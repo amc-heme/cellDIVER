@@ -100,5 +100,6 @@ RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.5.0)
 Suggests: 
+    shinytest2 (>= 0.3.0),
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
