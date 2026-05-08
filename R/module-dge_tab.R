@@ -809,7 +809,7 @@ dge_tab_server <- function(id,
             reactive({test_selections()$threshold_value}) 
           )
       
-      ## 3.9. Run Presto ####
+      ## 3.9. Run DGE ####
       dge_table_content <-
         eventReactive(
           # Chose the first reactive variable in the subset stats
@@ -820,10 +820,10 @@ dge_tab_server <- function(id,
           ignoreNULL = FALSE,
           ignoreInit = TRUE,
           {
-            print("DGE 3.9: Run Presto")
+            print("DGE 3.9: Run DGE")
             
             log_session(session)
-            log_info("DGE Tab: Begin Presto")
+            log_info("DGE Tab: Begin scDE DGE")
             
             dge_table <- 
               tryCatch(
@@ -890,7 +890,7 @@ dge_tab_server <- function(id,
                       )
                   
                   log_session(session)
-                  log_info("DGE Tab: Completed Presto")
+                  log_info("DGE Tab: Completed scDE DGE")
                   
                   # Compute on values of table (for use with automated tests)
                   # Commented out, column formatting here does not apply for 
