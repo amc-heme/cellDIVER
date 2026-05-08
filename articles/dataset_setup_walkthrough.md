@@ -80,6 +80,7 @@ Run the code below to load the Combined Samples dataset, replacing the
 path with the path to the downloaded object.
 
 ``` r
+
 library(anndata)
 
 full_dataset <- 
@@ -107,6 +108,7 @@ The object in this example contains 35 metadata variables. Let’s explore
 the variables to narrow down which are the most relevant.
 
 ``` r
+
 SCUBA::meta_varnames(full_dataset)
 ```
 
@@ -152,6 +154,7 @@ Only categorical metadata variables may be selected for use in the app.
 Below we identify categorical metadata variables.
 
 ``` r
+
 full_unique_vars <- SCUBA::meta_varnames(full_dataset)
 
 # Iterate through metadata variables and return a vector specifying whether 
@@ -275,6 +278,7 @@ function call using the `unique_values()` function from the
 [SCUBA](https://github.com/amc-heme/SCUBA#readme) package.
 
 ``` r
+
 SCUBA::unique_values(
   object = full_dataset,
   var = "cell_type_fine"
@@ -292,6 +296,7 @@ It may also be helpful to look at the number of unique values in the
 object for each variable.
 
 ``` r
+
 cell_type_vars <- 
   c("cell_type_coarse", 
     "cell_type_fine", 
@@ -336,6 +341,7 @@ resolution, and that there are very many clusters in `clusters`.
 Which resolution is most appropriate? Let’s plot the each one find out.
 
 ``` r
+
 library(patchwork)
 
 cell_type_vars <- 
@@ -373,6 +379,7 @@ the `donor_id` variable most closely match the patient IDs specified by
 Chan et al. 2021 in **Supplementary Table S1**.
 
 ``` r
+
 SCUBA::unique_values(
   object = full_dataset,
   var = "donor_id"
@@ -409,6 +416,7 @@ each cell are also stored in `obsm`. Let’s use the `obsm_keys()` method
 to see what alternate modalities and reductions exist.
 
 ``` r
+
 full_dataset$obsm_keys()
 ```
 
@@ -424,6 +432,7 @@ suited for reductions with exactly two dimensions, so only the UMAP
 reduction should be included.
 
 ``` r
+
 # Number of dimensions in each reduction
 full_dataset$obsm$X_umap |> dim()
 ```
@@ -431,6 +440,7 @@ full_dataset$obsm$X_umap |> dim()
     ## [1] 147137      2
 
 ``` r
+
 full_dataset$obsm$X_pca |> dim()
 ```
 
@@ -458,6 +468,7 @@ Next, we explore the SCLC Epithelial Cells dataset to see if the
 characteristics exposed differ from the combined dataset.
 
 ``` r
+
 library(anndata)
 
 sclc_dataset <- 
@@ -475,6 +486,7 @@ are not in the SCLC object, switch the order of the parameters to
 [`setdiff()`](https://rdrr.io/r/base/sets.html).
 
 ``` r
+
 # Identify metadata variables that are specific to the SCLC object
 sclc_unique_vars <-
   setdiff(
@@ -498,6 +510,7 @@ From this we see 16 variables that are not in the full object. Let’s
 view which variables are categorical.
 
 ``` r
+
 # Iterate through metadata variables and return a vector specifying whether 
 # the variable is categorical (character, factor), or numeric (numeric, 
 # double, integer)
@@ -539,6 +552,7 @@ comparison with `clusters_fine` and `treatment_categorized`,
 respectively.
 
 ``` r
+
 cell_type_vars <- 
   c("SCLC_subtype",
     "SCLC_subtype_plus_TP53_RB1_wt",
@@ -581,6 +595,7 @@ The `recurrent_cluster` variable appears to align with cluster 22 in
 the IDs for cells where `recurrent_cluster` is TRUE.
 
 ``` r
+
 # Use SCUBA::get_all_cells to return cell IDs for cells with a value 
 # of TRUE for the "recurrent cluster" column
 recurrent_cluster_cell_names <-
@@ -668,6 +683,7 @@ After adding the data to `uns`, make sure to save both objects. They can
 now be loaded into the config app for analysis.
 
 ``` r
+
 anndata::write_h5ad(
   full_dataset,
   filename = "~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad"
@@ -685,6 +701,7 @@ To launch the config app, run the code below replacing `object_path`
 with the path to the downloaded dataset.
 
 ``` r
+
 scExploreR::run_config(
   object_path = "~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad"
   )
@@ -823,6 +840,7 @@ app and repeat the process above, using the suggested settings below as
 a guide.
 
 ``` r
+
 scExploreR::run_config(
   object_path = "~/datasets/small_cell_lung_cancer/Epithelial_SCLC.h5ad"
 )
@@ -931,6 +949,7 @@ The app can now be ran by providing the path to the app config file. Use
 the `browser_config` parameter to specify the path.
 
 ``` r
+
 scExploreR::run_scExploreR(
   browser_config = "~/datasets/small_cell_lung_cancer/sclc_app_config.yaml"
 )
@@ -943,6 +962,7 @@ You can simply run `run_scExploreR`, using the `object_path` and
 `config_path` parameters instead of `browser_config`.
 
 ``` r
+
 scExploreR::run_scExploreR(
   object_path = "~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad",
   config_path = "~/datasets/small_cell_lung_cancer/SCLC_Full_config.yaml"

@@ -21,7 +21,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/amc-heme/scExploreR/blob/v1.0.0/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/amc-heme/scExploreR/blob/main/DESCRIPTION)
 
 Showers W, Desai J, Gipson S, Engel K, Gillen A (2026). *scExploreR:
 scExploreR*. R package version 1.0.0,

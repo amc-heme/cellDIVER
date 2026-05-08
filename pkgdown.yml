@@ -1,4 +1,4 @@
-pandoc: 3.1.11
+pandoc: 3.8.3
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
@@ -11,7 +11,7 @@ articles:
   object_guidelines: object_guidelines.html
   scRNA_Plots_Explained: scRNA_Plots_Explained.html
   tutorial: tutorial.html
-last_built: 2026-01-22T02:35Z
+last_built: 2026-05-08T05:58Z
 urls:
   reference: https://amc-heme.github.io/scExploreR/reference
   article: https://amc-heme.github.io/scExploreR/articles

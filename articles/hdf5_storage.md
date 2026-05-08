@@ -24,6 +24,7 @@ adata.write(filename = "output_path.h5ad")
 ```
 
 ``` r
+
 # If saving via the R anndata package
 anndata::write_h5ad(adata, filename = "output_path.h5ad")
 ```
@@ -59,6 +60,7 @@ disk space used, but decrease performance. We recommend a compression
 level of 3.
 
 ``` r
+
 saveHDF5SummarizedExperiment(
     # sce: SingleCellExperiment object
     sce,

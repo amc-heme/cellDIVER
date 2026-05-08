@@ -153,6 +153,7 @@ for data exploration.
 - Install from GitHub using remotes:
 
   ``` r
+
   # Set up user library location if needed
   .libPaths('~/R_libs')
 

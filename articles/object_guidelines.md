@@ -10,29 +10,29 @@ Functionality is largely similar between object classes, but there are
 some differences. A table with the supported object classes summarizing
 the differences in functionality between each class is given below.
 
-|                                  | **Seurat** | **Seurat v5 + BPCells** | **SingleCellExperiment** | **Anndata** |
-|----------------------------------|------------|-------------------------|--------------------------|-------------|
-| **Plotting**                     |            |                         |                          |             |
-| Full plotting capabilities       |            |                         |                          |             |
-| Consistent Style                 |            |                         |                          |             |
-| **Subsetting**                   |            |                         |                          |             |
-| Based on categorical Metadata    |            |                         |                          |             |
-| Based on feature expression      |            |                         |                          |             |
-| Advanced code-based subsetting   |            |                         |                          |             |
-| **Differential Gene Expression** |            |                         |                          |             |
-| Can perform DGE                  |            |                         |                          |             |
-| Results show AUC value           |            |                         |                          |             |
+|  | **Seurat** | **Seurat v5 + BPCells** | **SingleCellExperiment** | **Anndata** |
+|----|----|----|----|----|
+| **Plotting** |  |  |  |  |
+| Full plotting capabilities |  |  |  |  |
+| Consistent Style |  |  |  |  |
+| **Subsetting** |  |  |  |  |
+| Based on categorical Metadata |  |  |  |  |
+| Based on feature expression |  |  |  |  |
+| Advanced code-based subsetting |  |  |  |  |
+| **Differential Gene Expression** |  |  |  |  |
+| Can perform DGE |  |  |  |  |
+| Results show AUC value |  |  |  |  |
 
 ##### Note
 
 The function used to perform DGE varies by object class. The functions
 used for each object class are listed below.
 
-|                         |                                                                                                                   |
-|-------------------------|-------------------------------------------------------------------------------------------------------------------|
-| **Seurat**              | [presto::wilcoxauc](https://immunogenomics.github.io/presto/reference/wilcoxauc.html)                             |
-| **Seurat v5 + BPCells** | [BPcells::marker_features](https://bnprks.github.io/BPCells/reference/marker_features.html)                       |
-| **anndata**             | [scanpy.tl.rank_genes_groups](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.rank_genes_groups.html) |
+|  |  |
+|----|----|
+| **Seurat** | [presto::wilcoxauc](https://immunogenomics.github.io/presto/reference/wilcoxauc.html) |
+| **Seurat v5 + BPCells** | [BPcells::marker_features](https://bnprks.github.io/BPCells/reference/marker_features.html) |
+| **anndata** | [scanpy.tl.rank_genes_groups](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.rank_genes_groups.html) |
 
 scExploreR uses the most performant wilcoxon rank sum function for each
 object class. DGE is not available for SingleCellExperiment objects
