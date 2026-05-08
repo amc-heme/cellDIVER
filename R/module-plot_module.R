@@ -4400,6 +4400,10 @@ plot_module_server <- function(id,
                  }
 
                  # 14. Download handler ----------------------------------------
+                 # Note: SVG export uses ggsave(device = "svg"), which routes
+                 # through the svglite package when it is installed. svglite is
+                 # listed in Imports for this reason, even though it is never
+                 # called directly.
                  output$confirm_download <-
                    downloadHandler(
                      # Filename: takes the label and replaces

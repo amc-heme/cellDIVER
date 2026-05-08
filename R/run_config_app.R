@@ -43,6 +43,8 @@ run_config <-
     library(rintrojs)
     library(shinydashboard)
     library(waiter)
+    # shinycssloaders: withSpinner() is called bare (without ::) throughout
+    # the UI after this library() call attaches it to the search path.
     library(shinycssloaders)
     library(shinyjs)
     # library(shinyFeedback)
@@ -51,8 +53,11 @@ run_config <-
     # ShinyBS tooltips
     library(shinyBS, quietly = TRUE, warn.conflicts = FALSE)
 
-    # Reactlog (for debugging)
-    library(reactlog)
+    # Reactlog (for debugging): optional dev dependency listed in Suggests.
+    # Enables the reactive graph visualizer at /reactlog when the app is running.
+    if (requireNamespace("reactlog", quietly = TRUE)) {
+      library(reactlog)
+    }
     options(shiny.reactlog=TRUE)
 
     # Tidyverse Packages

@@ -69,21 +69,28 @@ run_scExploreR <-
     library(rintrojs, quietly = TRUE, warn.conflicts = FALSE)
     library(shinydashboard, quietly = TRUE, warn.conflicts = FALSE)
     library(waiter, quietly = TRUE, warn.conflicts = FALSE)
+    # shinycssloaders: withSpinner() is called bare (without ::) throughout
+    # the UI after this library() call attaches it to the search path.
     library(shinycssloaders, quietly = TRUE, warn.conflicts = FALSE)
     library(shinyjs, quietly = TRUE, warn.conflicts = FALSE)
     library(sortable, quietly = TRUE, warn.conflicts = FALSE)
     library(shinyBS, quietly = TRUE, warn.conflicts = FALSE)
 
-    # Reactlog (for debugging)
-    library(reactlog, quietly = TRUE, warn.conflicts = FALSE)
+    # Reactlog (for debugging): optional dev dependency, listed in Suggests.
+    # Enables the reactive graph visualizer at /reactlog when the app is running.
+    if (requireNamespace("reactlog", quietly = TRUE)) {
+      library(reactlog, quietly = TRUE, warn.conflicts = FALSE)
+    }
     options(
       shiny.reactlog = TRUE,
       shiny.fullstacktrace = full_stack_trace
     )
 
     # Logging and performance monitoring
-    library(profvis, quietly = TRUE, warn.conflicts = FALSE)
-    library(pryr, quietly = TRUE, warn.conflicts = FALSE)
+    # profvis is an optional dev dependency listed in Suggests.
+    if (requireNamespace("profvis", quietly = TRUE)) {
+      library(profvis, quietly = TRUE, warn.conflicts = FALSE)
+    }
     library(rlog, quietly = TRUE, warn.conflicts = FALSE)
 
     # Tidyverse packages
@@ -91,7 +98,6 @@ run_scExploreR <-
     library(stringr, quietly = TRUE, warn.conflicts = FALSE)
     library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
     library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
-    library(gridExtra, quietly = TRUE, warn.conflicts = FALSE)
     library(glue, quietly = TRUE, warn.conflicts = FALSE)
     library(DT, quietly = TRUE, warn.conflicts = FALSE)
 
@@ -105,8 +111,10 @@ run_scExploreR <-
     library(cowplot, quietly = TRUE, warn.conflicts = FALSE)
 
     # Additional backend packages
+    # presto is loaded here so Seurat's FindMarkers() auto-detects it as a
+    # fast backend. It is not called directly, but must be attached for
+    # Seurat to use it implicitly.
     library(presto, quietly = TRUE, warn.conflicts = FALSE)
-    library(R.devices, quietly = TRUE, warn.conflicts = FALSE)
 
     # Other packages
     library(yaml, quietly = TRUE, warn.conflicts = FALSE)
