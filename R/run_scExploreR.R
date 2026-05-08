@@ -83,7 +83,6 @@ run_scExploreR <-
 
     # Logging and performance monitoring
     library(profvis, quietly = TRUE, warn.conflicts = FALSE)
-    library(pryr, quietly = TRUE, warn.conflicts = FALSE)
     library(rlog, quietly = TRUE, warn.conflicts = FALSE)
 
     # Tidyverse packages
