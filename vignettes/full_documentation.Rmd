@@ -22,17 +22,89 @@ library(glue)
 ```
 
 ```{=html}
-<style type="text/css"> 
+<style type="text/css">
   .centered-image{
-    display: block; 
-    margin-left: auto; 
+    display: block;
+    margin-left: auto;
     margin-right: auto;
-    } 
+    }
+
+  /* CSS for callouts
+     From https://codepen.io/superjaberwocky/pen/rLKxOa */
+  .callout {
+    padding: 20px;
+    margin: 20px 0;
+    border: 1px solid #eee;
+    border-left-width: 8px;
+    border-radius: 8px;
+  }
+  .callout h4, .callout h5 {
+    margin-top: 0;
+    margin-bottom: 5px;
+  }
+  .callout p:last-child {
+    margin-bottom: 0;
+  }
+  .callout code {
+    border-radius: 3px;
+  }
+  .callout + .bs-callout {
+    margin-top: -5px;
+  }
+  .callout-default {
+    border-left-color: #777;
+    background-color: #77777735;
+  }
+  .callout-default h4, .callout-default h5 {
+    color: #777;
+  }
+  .callout-primary {
+    border-left-color: #428bca;
+    background-color: #428bca35;
+  }
+  .callout-primary h4, .callout-primary h5 {
+    color: #428bca;
+  }
+  .callout-success {
+    border-left-color: #5cb85c;
+    background-color: #5cb85c35;
+  }
+  .callout-success h4, .callout-success h5 {
+    color: #5cb85c;
+  }
+  .callout-danger {
+    border-left-color: #d9534f;
+    background-color: #d9534f35;
+  }
+  .callout-danger h4, .callout-danger h5 {
+    color: #d9534f;
+  }
+  .callout-warning {
+    border-left-color: #f0ad4e;
+    background-color: #f0ad4e35;
+  }
+  .callout-warning h4, .callout-warning h5 {
+    color: #f0ad4e;
+  }
+  .callout-info {
+    border-left-color: #5bc0de;
+    background-color: #5bc0de35;
+  }
+  .callout-info h4, .callout-info h5 {
+    color: #5bc0de;
+  }
+  .callout-bdc {
+    border-left-color: #29527a;
+    background-color: #29527a35;
+  }
+  .callout-bdc h4, .callout-bdc h5 {
+    color: #29527a;
+  }
     </style>
 ```
 ```{r text_snippets, include = FALSE}
 # Functions to write repeating units of documentation
-include_legend_description <- 
+include_legend_description <-
   "Adds or removes legend displayed on the right side of the plot."
 
 manual_dimensions_description <- 'When enabled, an interface appears allowing 
@@ -41,32 +113,32 @@ entering a value in the text box, press return to update the plot with the
 value. Downloaded plots will have the dimensions defined here if "manually 
 adjust plot dimensions" is checked. Otherwise defaults are...?'
 
-include_legend <- 
-  function(){
+include_legend <-
+  function() {
     tagList(
       tags$h3("Include Legend"),
       tags$p(include_legend_description)
     )
   }
 
-manual_dimensions <- 
-  function(){
+manual_dimensions <-
+  function() {
     tagList(
       tags$h3("Manually Adjust Plot Dimensions"),
       tags$p(manual_dimensions_description)
     )
   }
 
-download_button <- 
-  function(plot_type){
-    text <- 
+download_button <-
+  function(plot_type) {
+    text <-
       glue(
         'Plots are downloaded by clicking the download button at the bottom left 
          side of the "{plot_type} Specific Options" menu. A menu will appear 
          with an option to choose whether to download a .png or .svg file. Downloads in the 
          .svg format can be edited with Adobe Illustrator or a similar program.'
-        )
-    
+      )
+
     tagList(
       tags$h3("Download Button"),
       tags$p(text)
@@ -177,13 +249,10 @@ download_button(plot_type = "DimPlot")
 
 Feature plots are dimensional reduction plots that are colored according to feature values instead of categorical metadata. Among other things, feature plots can be used to see which cell types are expressing a feature and to what extent, or to visualize differences in expression between treatment groups when a split by metadata variable is selected.
 
-```{=html}
-<!-- ### Metadata to Group By
+### Metadata for Labeling Groups {#feature-plots-labeling-groups}
 
-For feature plots, the group by selection menu controls the metadata to use for labeling cells, if ...?
+This menu appears when [Label Groups](#feature-plots-label-groups) is checked. It selects the categorical metadata variable used to label groups of cells on the feature plot. Labels will be placed above each cluster of cells as defined by the selected variable.
 
-This menu is used to select a categorical metadata variable to be used to coloring cells. Cells will be colored according to their associated metadata for the variable chosen, and the key for colors used will display in the legend to the right. -->
-```
 ### Metadata to Split By {#Feature-plots-split-by}
 
 This menu sets a categorical metadata variable used to "split" cells into separate plots for viewing side-by-side. One panel will be created for each value in the split by variable. If a single feature is entered in the [feature selection](#feature-selection) menu, the number of columns used for the panels may be adjusted. If two or more features are entered, however, the layout is fixed to place features by row and split by groups by column.
@@ -224,9 +293,9 @@ This setting is available when one feature is entered and split by metadata is p
 
 When checked, cells with the highest values will be plotted on top of the cells with lower expression values- essentially masking them. When unchecked (the default), cells will be plotted in random order giving no preference to either high or low value containing cells to be seen. Enabling this setting can help with features that are expressed in only a few cells in the dataset. Caution should be taken when visualizing features with detectable values in many cells but low average values. In these scenarios the values in the dataset may be exaggerated. To avoid this, we recommend that feature plots be used alongside other means of visualization, such as [violin plots](#violin-plots), [dot plots](#dot-plots), and [ridge plots](#ridge-plots).
 
-### Label Groups
+### Label Groups {#feature-plots-label-groups}
 
-Toggles group by variable labels above each set of cells on and off.
+Toggles group by variable labels above each set of cells on and off. When checked, the [Metadata for Labeling Groups](#feature-plots-labeling-groups) menu will appear to select the metadata variable used for labels.
 
 ### Include Legend {#feature-plots-include-legend}
 
@@ -240,7 +309,7 @@ download_button(plot_type = "Feature Plot")
 
 ## Violin Plots {#violin-plots}
 
-`# TODO: General description`
+Violin plots show the distribution of feature expression and can be used to compare expression distributions between groups of cells.
 
 ### Metadata for Primary Groups {#violin-plots-group-by}
 
@@ -249,8 +318,6 @@ The categorical metadata variable chosen here will determine how cells are group
 ### Metadata for Secondary Grouping {#violin-plots-split-by}
 
 A second categorical variable may be supplied for more in-depth comparison of groups. When specified, violins for each combination between the values of the primary and secondary metadata variable will be drawn. Violins will be colored according to the secondary variable, and split according to the primary variable (see example below). In general, the plot can be used to compare distributions for each value of the primary variable between each value of the secondary variable.
-
-[ADD IMAGE]
 
 ### Order of Groups on Plot {#violin-plots-group-order}
 
@@ -276,9 +343,7 @@ download_button(plot_type = "Violin Plot")
 
 ## Dot Plots {#dot-plots}
 
-```         
-# TODO: General description
-```
+For defined groups of cells, dot plots show the average expression per cell group, as well as the percentage of cells with non-zero expression of the feature. Dot plots are especially useful for large numbers of features.
 
 ### Metadata to group by {#dot-plots-group-by}
 
@@ -425,7 +490,13 @@ Differential gene expression (DGE) analysis compares groups of cells based on th
 
 Two DGE testing modes are available: differential expression and marker identification. These may be selected using the **"Choose test to perform"** menu. When differential expression is selected, two groups of cells are compared and the genes upregulated/downregulated in one group vs. the other are shown. When marker identification is selected, more than two groups will be compared, and genes that serve as markers of each group (those that are particularly upregulated or downregulated in that group) will be displayed. When running differential gene expression, genes marked as upregulated in a group are differentially expressed to the extent shown in that group **relative to the other group**, whereas for marker identification the genes upregulated in the marker class are deferentially expressed to the extent shown in the marker class **relative to all other cells**.
 
+::: {.callout .callout-info}
+<h4> Note </h4>
+
 At this time, differential gene expression can only be performed for genes. Other feature types will be supported in the future.
+
+DGE is not available for SingleCellExperiment objects because there is no known package that can process both the standard sparse matrices and the HDF5-enabled DelayedArray matrices in these objects. See the [object guidelines](object_guidelines.html) article for more details.
+:::
 
 To run a DGE analysis, follow the process below. This process is described in greater detail in subsequent sections, with more information on the menus involved in each DGE mode.
 
@@ -487,25 +558,45 @@ The "test summary" section will display summary data on the test selected and th
 
 The columns of the DGE table are detailed below. The table may be downloaded via the "`r icon("table")` download table" button.
 
--   Feature: the gene observed as being differentially expressed.
+-   **Feature:** the gene observed as being differentially expressed.
 
--   Class (or group): the dge group, or marker class in which the gene is differentially expressed.
+-   **Class (or group):** the dge group, or marker class in which the gene is differentially expressed.
 
--   Average expression: the average expression of the gene in the group or class listed.
+-   **Average expression:** the average expression of the gene in the group or class listed.
 
--   Log2FC: the log-2 fold change in expression of the gene in the group or class, relative to either the other group (in differential expression mode) or all other cells (in marker identification mode).
+::: {.callout .callout-info}
+<h4> Note </h4>
 
--   AUC: the area under the receiver operator curve for the gene, which serves as a measure of how well the gene serves as a marker for the indicated group/class.
+The Average Expression column is only returned for Seurat and BPCells-backed Seurat objects. It is not present in DGE results for anndata objects. See the [object guidelines](object_guidelines.html) article for more details on feature availability by object class.
+:::
 
--   Adjusted p-value: the adjusted p-value associated with the log2FC calculation in expression of the gene in the current group vs. the other group, or all other cells.
+-   **Log2FC:** the log-2 fold change in expression of the gene in the group or class, relative to either the other group (in differential expression mode) or all other cells (in marker identification mode).
 
--   Percent expression within class: the percentage of cells in the indicated group or class that express the gene in the group/class.
+-   **AUC:** the area under the receiver operator curve for the gene, which serves as a measure of how well the gene serves as a marker for the indicated group/class.
 
--   Percent expression outside class: the percentage of cells in the indicated group or class that express the gene outside the group/class.
+::: {.callout .callout-info}
+<h4> Note </h4>
+
+The AUC column is only returned for standard Seurat objects. It is not present in DGE results for BPCells-backed Seurat objects, anndata objects, or SingleCellExperiment objects.
+:::
+
+-   **Raw p-value:** the unadjusted p-value from the statistical test comparing expression of the gene in the current group vs. the other group, or all other cells.
+
+-   **Adjusted p-value:** the adjusted p-value associated with the log2FC calculation in expression of the gene in the current group vs. the other group, or all other cells.
+
+-   **Percent expression within class:** the percentage of cells in the indicated group or class that express the gene in the group/class.
+
+-   **Percent expression outside class:** the percentage of cells in the indicated group or class that express the gene outside the group/class.
+
+::: {.callout .callout-info}
+<h4> Note </h4>
+
+The Percent Expression columns are only returned for standard Seurat and anndata objects. They are not present in DGE results for BPCells-backed Seurat objects.
+:::
 
 If either of the percent expression values are very low, or if there is a large difference in percent expression inside the group vs. outside, caution should be taken when interpreting the results. Definitive comparisons are difficult to determine when fewer cells are expressing the feature, and lower expression may be associated with the [dropout effect](https://doi.org/10.1038/nmeth.2967).
 
--   Additional info: a link to the [GeneCards](https://www.genecards.org/) for each gene is displayed here.
+-   **Additional info:** a link to the [GeneCards](https://www.genecards.org/) for each gene is displayed here.
 
 ### DGE DimPlot
 
@@ -541,4 +632,4 @@ Click any gene on the correlation table to view a scatterplot of expression for 
 
 # Changing Datasets
 
-To change the dataset, press the `r icon("elipsis-h")` button in the upper right hand corner of the app window, and select **"Choose Dataset"**. A window will appear with the datasets that have been added to the browser, with a description of each. Select a dataset and press "confirm selection" to load the dataset. The dataset can be changed from any tab, and the loaded dataset will affect all three tabs.
+To change the dataset, press the `r icon("ellipsis-h")` button in the upper right hand corner of the app window, and select **"Choose Dataset"**. A window will appear with the datasets that have been added to the browser, with a description of each. Select a dataset and press "confirm selection" to load the dataset. The dataset can be changed from any tab, and the loaded dataset will affect all three tabs.

@@ -67,7 +67,7 @@ Imports:
     rlang,
     rlog (>= 0.1.0),
     scales,
-    SCUBA,
+    SCUBA (>= 1.1.0),
     scDE,
     Seurat (>= 3.0.0),
     shiny (>= 1.6.1),
@@ -80,6 +80,7 @@ Imports:
     stringr,
     svglite,
     tibble,
+    tools,
     viridisLite,
     waiter (>= 0.2.5),
     yaml

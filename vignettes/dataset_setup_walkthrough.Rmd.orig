@@ -798,9 +798,6 @@ The `RSTUDIO_PANDOC` key is used to define a path to an RStudio pandoc installat
 To determine if this is necessary, run `rmarkdown::pandoc_available()` in your R console. If `TRUE` is returned, `RSTUDIO_PANDOC` does not need to be specified. In place of a path, enter a YAML `NULL` (`~`) for this key. If you see `FALSE`, you will need to install pandoc manually and provide the path to the installation. `rmarkdown::find_pandoc()` may be able to find the path. 
 
 ```{yaml, eval = FALSE}
-# YAML version
-%YAML 1.1
----
 datasets:
     combined_sclc:
         # Replace path with path to object
@@ -814,12 +811,6 @@ RSTUDIO_PANDOC: ~
 ```
 
 You can create a config file from R Studio by going to **File** >> **New File** >> **Text File**. After creating the text file, save it in the same directory as the object and config files, and **be sure to add ".yaml" to the filename**. After saving initially, use the structure above and define the paths to the object and config files. 
-
-::: {.callout .callout-info}
-#### Note
-
-Don't forget the YAML version at the top. Version 1.1 is the latest version supported by the `yaml` package used to read the data into R.
-:::
 
 ::: {.callout .callout-info}
 #### Note
