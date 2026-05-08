@@ -65,7 +65,6 @@ Imports:
     patchwork,
     presto,
     profvis (>= 0.3.7),
-    pryr (>= 0.1.5),
     R.devices,
     RColorBrewer,
     reactlog (>= 1.1.0),
