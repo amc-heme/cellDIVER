@@ -56,7 +56,7 @@ Imports:
     cowplot,
     dplyr,
     DT,
-    ggplot2 (<= 3.5.2),
+    ggplot2,
     ggsci,
     glue,
     gridExtra,
