@@ -644,7 +644,7 @@ dge_table_filtering_server <-
           
           if ("group" %in% colnames(dge_table())){
             # Update filter menu with the group names present in the 
-            # original table (the one returned from presto)
+            # original table (the one returned from scDE)
             all_groups <- 
               dge_table() %>% 
               dplyr::pull(group) %>% 

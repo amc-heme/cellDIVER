@@ -313,7 +313,7 @@ dge_tab_server <- function(id,
       # 2. Process Subset Selection Options -------------------------
       ## 2.1. Remove the current group by variable from subsetting choices ####
       # For standard DGE, the selections for the group by metadata category 
-      # are used to subset the object, so that presto only compares 
+      # are used to subset the object, so that scDE only compares 
       # the selected groups. The metadata variable used for forming groups must
       # be hidden from the subsetting menu to keep the user from being able to 
       # select a subset that does not allow comparison of the selected groups.
@@ -809,21 +809,21 @@ dge_tab_server <- function(id,
             reactive({test_selections()$threshold_value}) 
           )
       
-      ## 3.9. Run Presto ####
+      ## 3.9. Run DGE ####
       dge_table_content <-
         eventReactive(
           # Chose the first reactive variable in the subset stats
           # list (all are updated simultaneously, and it is desired
-          # for presto to run after stats are computed)
+          # for DGE to run after stats are computed)
           continue$depend(),
-          label = "DGE: Run Presto",
+          label = "DGE: Run DGE",
           ignoreNULL = FALSE,
           ignoreInit = TRUE,
           {
-            print("DGE 3.9: Run Presto")
+            print("DGE 3.9: Run DGE")
             
             log_session(session)
-            log_info("DGE Tab: Begin Presto")
+            log_info("DGE Tab: Begin scDE DGE")
             
             dge_table <- 
               tryCatch(
@@ -890,7 +890,7 @@ dge_tab_server <- function(id,
                       )
                   
                   log_session(session)
-                  log_info("DGE Tab: Completed Presto")
+                  log_info("DGE Tab: Completed scDE DGE")
                   
                   # Compute on values of table (for use with automated tests)
                   # Commented out, column formatting here does not apply for 

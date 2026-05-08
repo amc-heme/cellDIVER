@@ -59,15 +59,10 @@ Imports:
     ggplot2,
     ggsci,
     glue,
-    gridExtra,
     HDF5Array,
     lifecycle,
     patchwork,
-    presto,
-    profvis (>= 0.3.7),
-    R.devices,
     RColorBrewer,
-    reactlog (>= 1.1.0),
     rintrojs (>= 0.3.0),
     rlang,
     rlog (>= 0.1.0),
@@ -80,7 +75,6 @@ Imports:
     shinycssloaders (>= 1.0.0),
     shinydashboard (>= 0.7.2),
     shinyjs (>= 2.0.0),
-    shinytest,
     shinyWidgets (>= 0.6.2),
     sortable (>= 0.4.5),
     stringr,
@@ -90,7 +84,6 @@ Imports:
     waiter (>= 0.2.5),
     yaml
 Remotes: 
-    github::amc-heme/presto,
     github::amc-heme/SCUBA,
     github::amc-heme/scDE
 Encoding: UTF-8
@@ -99,5 +92,8 @@ RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.5.0)
 Suggests: 
+    profvis (>= 0.3.7),
+    reactlog (>= 1.1.0),
+    shinytest,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
