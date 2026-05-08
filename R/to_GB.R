@@ -1,3 +1,20 @@
+#' Returns total R memory usage in bytes
+#'
+#' Replacement for `pryr::mem_used()` using base R. Triggers a garbage
+#' collection and sums cell memory usage based on architecture-dependent
+#' node size, matching pryr's internal calculation exactly.
+#'
+#' @return Numeric. Total memory used by R in bytes.
+#'
+#' @noRd
+mem_used <- function() {
+  # gc() returns a matrix with rows for Ncells and Vcells;
+  # column 1 is the raw cell count (not Mb). Node size matches pryr's
+  # node_size(): 56 bytes on 64-bit, 28 bytes on 32-bit systems.
+  node_size <- if (8L * .Machine$sizeof.pointer == 32L) 28L else 56L
+  sum(gc(verbose = FALSE)[, 1] * c(node_size, 8))
+}
+
 #' Converts an input in bytes to GB
 #'
 #' @param bytes Integer giving the size of an object in bytes
@@ -5,22 +22,6 @@
 #' @return A string. Gives the input value in GB (SI Units)
 #'
 #' @noRd
-#' Returns total R memory usage in bytes
-#'
-#' Replacement for `pryr::mem_used()` using base R. Triggers a garbage
-#' collection and sums cell memory usage: Ncells (56 bytes each) and
-#' Vcells (8 bytes each), matching pryr's internal calculation.
-#'
-#' @return Integer. Total memory used by R in bytes.
-#'
-#' @noRd
-mem_used <- function() {
-  # gc() returns a matrix with rows for Ncells and Vcells;
-  # column 2 is "used" count. Cell sizes match pryr's implementation.
-  gc_stats <- gc(verbose = FALSE)
-  sum(gc_stats[, 2] * c(56, 8))
-}
-
 to_GB <- function(bytes){
   # Divide by 10^9 and round to two digits
   gb <- 
