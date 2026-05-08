@@ -1009,7 +1009,9 @@ Options for X_umap - Label: "UMAP"
 
 The final step before launching scExploreR is to create an app config file. The app config file specifies the paths of all objects used in the app and their respective config files, and it also defines app-wide settings. An example app config file is given below. 
 
-`datasets` is a list of all the datasets in the app. Each key under `datasets` represents a dataset to be loaded in the app instance (in this case, the dataset keys are `combined_sclc` and `epithelial_sclc`). The keys under `datasets` can be any name, as long as spaces are not used (use underscores instead). Any descriptive name for the dataset will work.
+`datasets` is a list of all the datasets in the app. Each key under `datasets` represents a dataset to be loaded in the app instance (in this case, the dataset keys are `combined_sclc` and `epithelial_sclc`). 
+
+**Important**: Dataset names (the keys under `datasets`) **must not contain spaces**. Use underscores or other characters instead (e.g., `my_dataset` instead of `my dataset`). Dataset names are used internally as Shiny module identifiers, and spaces will cause the app to fail with an error. The app will validate dataset names on startup and provide a clear error message if spaces are detected.
 
 Under the dataset keys, there are two keys: `object` and `config`. These should be the path to the object and config file, respectively.
 

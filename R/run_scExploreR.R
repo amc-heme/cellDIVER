@@ -553,6 +553,14 @@ run_scExploreR <-
         list()
       }
 
+    # Validate dataset names (check for spaces and invalid characters) ####
+    # This validation is only needed for browser mode, where dataset names are
+    # used as Shiny module IDs. In single-object mode, the dataset name is
+    # hardcoded to "object" and doesn't come from user input.
+    if (browser_mode && length(datasets) > 0) {
+      validate_dataset_names(datasets)
+    }
+
     ## Compile info on app admin, deployment name ####
     admin_info <-
       if (browser_mode){
