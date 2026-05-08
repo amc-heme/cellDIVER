@@ -110,11 +110,6 @@ run_scExploreR <-
     library(patchwork, quietly = TRUE, warn.conflicts = FALSE)
     library(cowplot, quietly = TRUE, warn.conflicts = FALSE)
 
-    # Additional backend packages
-    # presto is loaded here so Seurat's FindMarkers() auto-detects it as a
-    # fast backend. It is not called directly, but must be attached for
-    # Seurat to use it implicitly.
-    library(presto, quietly = TRUE, warn.conflicts = FALSE)
 
     # Other packages
     library(yaml, quietly = TRUE, warn.conflicts = FALSE)

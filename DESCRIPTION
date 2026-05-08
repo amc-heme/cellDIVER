@@ -62,7 +62,6 @@ Imports:
     HDF5Array,
     lifecycle,
     patchwork,
-    presto,
     RColorBrewer,
     rintrojs (>= 0.3.0),
     rlang,
@@ -85,7 +84,6 @@ Imports:
     waiter (>= 0.2.5),
     yaml
 Remotes: 
-    github::amc-heme/presto,
     github::amc-heme/SCUBA,
     github::amc-heme/scDE
 Encoding: UTF-8
