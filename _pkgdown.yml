@@ -2,7 +2,7 @@ url: https://amc-heme.github.io/scExploreR/
 template:
   bootstrap: 5
 home:
-  title: scExploreR
+  title: cellDIVER
   description: |
     Welcome to the single cell visualization tool you didn’t know you were looking  for! This app is designed to make exploration of highly complex data sets easy  for anyone, regardless of informatics background.
   links:
@@ -40,7 +40,7 @@ navbar:
         href: articles/advanced_subsetting_documentation.html
       - text: -------
       - text: "Full Documentation"
-      - text: scExploreR Documentation
+      - text: cellDIVER Documentation
         href: articles/full_documentation.html
       - text: Config App Documentation
         href: articles/config_documentation.html

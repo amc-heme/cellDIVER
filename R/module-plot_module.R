@@ -1064,7 +1064,7 @@ plot_module_server <- function(id,
 
                  # Reactive trigger to restore scroll position of plots tab
                  # when the plots tab interface is hidden and shown again
-                 scroll_restore <- scExploreR:::makeReactiveTrigger()
+                 scroll_restore <- cellDIVER:::makeReactiveTrigger()
 
                  # Return error notification if the plot type is not in the list
                  # of supported types
@@ -2832,7 +2832,7 @@ plot_module_server <- function(id,
 
                        # Compute number of cells in subset
                        n_cells_test <-
-                         scExploreR:::n_cells(object())
+                         cellDIVER:::n_cells(object())
 
                        # Test if the number of cells in the subset differs from
                        # the number of cells in the original object. If this
@@ -3476,11 +3476,11 @@ plot_module_server <- function(id,
 
                          # Create a summary table with average expression values
                          # This is currently done using the dot plot function,
-                         # regardless if the plot in scExploreR is a dot plot
+                         # regardless if the plot in cellDIVER is a dot plot
                          # This will be replaced with a SCUBA summary function
                          # in the future
                          summary_table <-
-                           scExploreR::plot_dot(
+                           cellDIVER::plot_dot(
                              object(),
                              features = input$sort_expr_feature,
                              group_by = input$group_by,
@@ -4206,7 +4206,7 @@ plot_module_server <- function(id,
                          # Only runs when the plot is enabled
                          req(plot_switch())
 
-                         scExploreR:::shiny_stacked_bar(
+                         cellDIVER:::shiny_stacked_bar(
                            object = object(),
                            group_by = plot_selections$group_by(),
                            split_by = plot_selections$split_by(),
@@ -4248,7 +4248,7 @@ plot_module_server <- function(id,
                          # Only runs when the plot is enabled
                          req(plot_switch())
 
-                         scExploreR:::shiny_pie(
+                         cellDIVER:::shiny_pie(
                            object = object(),
                            patient_colname = patient_colname(),
                            group_by = plot_selections$group_by(),

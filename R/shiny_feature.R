@@ -1,4 +1,4 @@
-#' Interactive Feature Plots in scExploreR
+#' Interactive Feature Plots in cellDIVER
 #'
 #' Accepts inputs from plots_selections module and outputs a Seurat FeaturePlot 
 #' from the Seurat object passed to it. 
@@ -148,7 +148,7 @@ shiny_feature <- function(object,
         assay_config = assay_config
         )
     
-    # scExplorer-specific modification of ggtitle for single feature plots
+    # cellDIVER-specific modification of ggtitle for single feature plots
     # with a split-by variable 
     # *** DO NOT MOVE THIS TO scPLOTS ***
     if (split_by != "none" & super_title == TRUE){
@@ -224,7 +224,7 @@ shiny_feature <- function(object,
       ## Multi-feature plots, with split_by variable ####
       # Use FeaturePlot function (SCUBA/scPlots)
       feature_plot <-
-        scExploreR::plot_feature(
+        cellDIVER::plot_feature(
           # Object or subset
           object,
           features = features_entered,
@@ -321,7 +321,7 @@ shiny_feature <- function(object,
     
     # Use Seurat::FeaturePlot
     feature_plot <-
-      scExploreR::plot_feature(
+      cellDIVER::plot_feature(
         # Object or subset
         object,
         features = features_entered,

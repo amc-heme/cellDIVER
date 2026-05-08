@@ -498,7 +498,7 @@ threshold_picker_server <-
               # Always draw in threshold mode, and draw in range mode if the
               # selection mode is not "none"
               behavior <-
-                scExploreR:::threshold_picker_behavior(
+                cellDIVER:::threshold_picker_behavior(
                   mode = mode
                 )
               
@@ -571,7 +571,7 @@ threshold_picker_server <-
             
             # Behavior of click depends on current mode, if provided
             behavior <-
-              scExploreR:::threshold_picker_behavior(
+              cellDIVER:::threshold_picker_behavior(
                 mode = mode
                 )
             
@@ -656,7 +656,7 @@ threshold_picker_server <-
             req(feature())
           
           behavior <-
-            scExploreR:::threshold_picker_behavior(
+            cellDIVER:::threshold_picker_behavior(
               mode = mode
             )
           
@@ -725,7 +725,7 @@ threshold_picker_server <-
             req(feature())
             
             behavior <-
-              scExploreR:::threshold_picker_behavior(
+              cellDIVER:::threshold_picker_behavior(
                 mode = mode
                 )
             
@@ -756,7 +756,7 @@ threshold_picker_server <-
               
               # Determine behavior based on "mode"
               behavior <-
-                scExploreR:::threshold_picker_behavior(
+                cellDIVER:::threshold_picker_behavior(
                   mode = mode
                 )
               
@@ -1103,7 +1103,7 @@ threshold_picker_server <-
         reactive({
           # Determine if the module is selecting a single threshold or a range
           behavior <-
-            scExploreR:::threshold_picker_behavior(
+            cellDIVER:::threshold_picker_behavior(
               mode = mode
             )
           

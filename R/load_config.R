@@ -2,7 +2,7 @@ library(yaml)
 
 #' Load config file from YAML
 #'
-#' Loads an scExploreR object-specific .yaml config file and converts all
+#' Loads an cellDIVER object-specific .yaml config file and converts all
 #' elements in the config list to the correct R data structures.
 #'
 #' @param path A path to a YAML file storing object-specific config info. 

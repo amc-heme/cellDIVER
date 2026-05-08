@@ -132,7 +132,7 @@ feature_list_all <-
           # Prepend key for the adtThreshold assay to each feature
           # Use make_key method for adaptability to Seurat and 
           # SingleCellExperiment objects
-          scExploreR:::make_key(
+          cellDIVER:::make_key(
             object,
             assay = "adtThreshold"
             ), 

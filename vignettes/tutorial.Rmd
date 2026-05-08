@@ -19,15 +19,15 @@ knitr::opts_chunk$set(echo = TRUE)
     } 
     </style>
 ```
-# scExploreR Walkthrough
+# cellDIVER Walkthrough
 
-This tutorial will guide you through the use of scExploreR to analyze your data. This is not a comprehensive exploration of each feature: for more information on any feature, see the [full documentation](full_documentation.html). The browser used for this tutorial is hosted here<!--[here]()-->. The dataset contains a single bone marrow and peripheral blood sample from a healthy patient (for more, see the [download page for the dataset](https://figshare.com/articles/dataset/Expression_of_197_surface_markers_and_462_mRNAs_in_15281_cells_from_blood_and_bone_marrow_from_a_young_healthy_donor/13398065), and the related [publication](https://doi.org/10.1038/s41590-021-01059-0)).
+This tutorial will guide you through the use of cellDIVER to analyze your data. This is not a comprehensive exploration of each feature: for more information on any feature, see the [full documentation](full_documentation.html). The browser used for this tutorial is hosted here<!--[here]()-->. The dataset contains a single bone marrow and peripheral blood sample from a healthy patient (for more, see the [download page for the dataset](https://figshare.com/articles/dataset/Expression_of_197_surface_markers_and_462_mRNAs_in_15281_cells_from_blood_and_bone_marrow_from_a_young_healthy_donor/13398065), and the related [publication](https://doi.org/10.1038/s41590-021-01059-0)).
 
 Key functionality is grouped into two <!--three--> tabs: plots and differential expression. <!--and gene correlations.--> The interface on each tab displays the plots and analysis results on the right, and the options on the left hand panel (referred to in this document as the options panel). The plots tab is selected by default, and is helpful for summarizing data and producing visualizations. While this is a good place to get an overview your dataset, some biological questions may be best answered by starting in different tabs. This vignette will walk through common biological questions and how to approach them using the app.
 
 # In which cell types is my gene deferentially expressed?
 
-scExploreR provides differential gene analysis via a wilcoxon rank sum test to determine which cell types express a gene to a greater extent compared to the background (all cells in a dataset). To perform a differential gene expression test, navigate to the "Differential expression" tab.
+cellDIVER provides differential gene analysis via a wilcoxon rank sum test to determine which cell types express a gene to a greater extent compared to the background (all cells in a dataset). To perform a differential gene expression test, navigate to the "Differential expression" tab.
 
 Marker identification is used to determine which cell types your gene is expressed in. This mode will divide all the cells in the dataset into groups based on cell type, and will compare the expression of **each group** to the **average expression value for all cells**. This method is selected by default in the **"Choose Test to Perform"** menu, so we will leave this the same for now.
 

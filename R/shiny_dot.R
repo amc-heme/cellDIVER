@@ -1,4 +1,4 @@
-#' scExploreR Dot Plots
+#' cellDIVER Dot Plots
 #'
 #' @param object a Seurat object. This can be either the full object or a subset.
 #' @param features_entered a character vector giving the features to use in the
@@ -77,7 +77,7 @@ shiny_dot <-
                   '`custom_factor_levels` is undefined, and sort_groups ',
                   'is set to either "custom" or "expression". When `sort_groups` ',
                   'is equal to "custom", `custom_factor_levels` ',
-                  'must be defined. When set to "expression", (in scExploreR) ',
+                  'must be defined. When set to "expression", (in cellDIVER) ',
                   '`custom_factor_levels` is supposed be defined in the parent ',
                   'plot module.'
                   )
@@ -92,14 +92,14 @@ shiny_dot <-
 
       # Save refactored metadata table to object
       object <-
-        scExploreR:::update_object_metadata(
+        cellDIVER:::update_object_metadata(
           object,
           table = meta_table
           )
 
       # Create plot if at least one feature is passed to shiny_dot()
       plot <-
-        scExploreR::plot_dot(
+        cellDIVER::plot_dot(
           # Seurat object or subset
           object,
           features = features_entered,

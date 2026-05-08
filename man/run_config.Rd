@@ -2,7 +2,7 @@
 % Please edit documentation in R/run_config_app.R
 \name{run_config}
 \alias{run_config}
-\title{scExploreR config app}
+\title{cellDIVER config app}
 \usage{
 run_config(
   object_path,

@@ -129,7 +129,7 @@ object_contents_info_ui <-
 #' @param id ID to use for module. This must match the id provided to the ui
 #' instance of the module for the module to function properly.
 #' @param object A single-cell object.
-#' @param meta_choices A named vector generated in run_scExploreR with each
+#' @param meta_choices A named vector generated in run_cellDIVER with each
 #' metadata variable included in the config file. This vector is used when 
 #' generating the choices displayed in the metadata information. 
 #' @param metadata_config The metadata section of the config file. This is 
@@ -545,7 +545,7 @@ object_contents_info_server <-
                     paste0(
                       'This is a numeric metadata variable. The app admin ',
                       'has not allowed access to numeric metadata in this ',
-                      'scExploreR instance, so it is not possible to plot ',
+                      'cellDIVER instance, so it is not possible to plot ',
                       'or subset based on this variable. Please contact ',
                       'the app admin for more information.'#,
                       # If the object is a Seurat object, state that advanced

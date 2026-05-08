@@ -1,6 +1,6 @@
 #' Plots Tab Module (UI)
 #'
-#' This is an internal function intended for use by scExploreR developers only.
+#' This is an internal function intended for use by cellDIVER developers only.
 #'
 #' @param id ID to use for module elements.
 #' @param meta_choices Metadata available for selection from group_by and 
@@ -1454,7 +1454,7 @@ plots_tab_server <- function(id,
                                 "Error in plots tab subsetting. ",
                                 "Subset filters entered:"
                                 )
-                              scExploreR:::log_subset(
+                              cellDIVER:::log_subset(
                                  filter_list = subset_selections$selections()
                                  )
 
@@ -1475,7 +1475,7 @@ plots_tab_server <- function(id,
                            # Begin tryCatch code
                            {
                               # Log the subset selected by the user
-                              scExploreR:::log_subset(
+                              cellDIVER:::log_subset(
                                  filter_list = subset_selections$selections()
                               )
                               

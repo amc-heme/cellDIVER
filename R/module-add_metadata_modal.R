@@ -1,7 +1,7 @@
 #' Add object metadata
 #' 
 #' Creates a modal with an interface to add metadata to the object. Unlike other 
-#' modules in scExplorer, this module only has a server component. Modals create 
+#' modules in cellDIVER, this module only has a server component. Modals create 
 #' UI in the server function. 
 #' 
 #' @param id Used to set a namespace for elements created in the module. 

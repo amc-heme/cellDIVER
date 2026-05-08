@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 This R Markdown document is intended to validate the expression threshold-based DGE performed in the app via analysis. The dataset used is the test dataset in `/data`.
 
 ```{r}
-library(scExploreR)
+library(cellDIVER)
 library(Seurat)
 library(dplyr)
 library(presto)
@@ -67,7 +67,7 @@ dge_table <-
 # Change "logFC" column to log-2 fold change 
 # (default output uses a natural log)
 dge_table$logFC <- 
-  scExploreR:::to_log2(dge_table$logFC)
+  cellDIVER:::to_log2(dge_table$logFC)
 
 # Rename column to explicitly specify log-2 fold change
 dge_table <-

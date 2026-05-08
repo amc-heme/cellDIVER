@@ -1,8 +1,8 @@
-# scExploreR
+# cellDIVER
 
-**Welcome to the single cell visualization tool you didn't know you were looking for!** This app is designed to make exploration of highly complex data sets easy for anyone, regardless of informatics background. Whether you're a researcher looking to make sense of your single cell data, or a bioinformatician looking to present your results interactively, you will find value in this app. scExplorer bridges the gap between domain (disease and clinical) specific knowledge and informatics expertise by providing a no-code platform for biologists to analyze data. 
+**Welcome to the single cell visualization tool you didn't know you were looking for!** This app is designed to make exploration of highly complex data sets easy for anyone, regardless of informatics background. Whether you're a researcher looking to make sense of your single cell data, or a bioinformatician looking to present your results interactively, you will find value in this app. cellDIVER bridges the gap between domain (disease and clinical) specific knowledge and informatics expertise by providing a no-code platform for biologists to analyze data. 
 
-scExploreR further facilitates analysis through compatability with most common single cell data formats! Seurat, SingleCellExpreiment, or Anndata objects can be used, and Seurat v5 objects with BP Cells assays are also supported.
+cellDIVER further facilitates analysis through compatability with most common single cell data formats! Seurat, SingleCellExpreiment, or Anndata objects can be used, and Seurat v5 objects with BP Cells assays are also supported.
 
 Some bioinformatics experience is required to install the app and configure each single-cell dataset, but once set up, the app can be used by anyone.
 
@@ -29,13 +29,13 @@ If using anndata objects, [reticulate](https://github.com/rstudio/reticulate) mu
 remotes::install_github("amc-heme/scExploreR")
 ```
 
-If this is your first time setting up scExploreR, we reccomend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html), which applies the process in steps 3-5 to an example object.
+If this is your first time setting up cellDIVER, we reccomend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html), which applies the process in steps 3-5 to an example object.
 
 2. Process or obtain a finalized single cell object.
 
 3. Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the [**Full Config App Documentation**](https://amc-heme.github.io/scExploreR/articles/config_documentation.html) or the [**App Setup Walkthrough**](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html).
 ```
-scExploreR::run_config(
+cellDIVER::run_config(
   object_path = "path_to_your_seurat_object.rds",
   # The config path will be blank the first time you use the config app for an object
   config_path = "previously_loaded_config_file"
@@ -46,14 +46,14 @@ scExploreR::run_config(
 <!-- Complete and add -->
 <!--See [**browser config setup**]() for more info. -->
 
-5. Run scExploreR. There are multiple ways to do this: 
+5. Run cellDIVER. There are multiple ways to do this: 
 
 <ul>
   <li>
   If setting up an app instance, use the path to your config file.
   
   ```
-  scExploreR::run_scExploreR(
+  cellDIVER::run_cellDIVER(
     browser_config = "./config.yaml"
     )
   ```
@@ -63,7 +63,7 @@ scExploreR::run_config(
   If setting up locally, and if you only have one object, you may instead enter the path to your object and object-specific config file.
   
   ```
-  scExploreR::run_scExploreR(
+  cellDIVER::run_cellDIVER(
     object_path = "./object.rds"
     config_path = "./config.yaml"
     )
@@ -81,4 +81,3 @@ scExploreR::run_config(
 
 * Additional analyses such as GSEA will be added in the future
 * Explicit support for single cell data besides CITE-seq will be added.
-

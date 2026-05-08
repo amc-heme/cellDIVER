@@ -8,7 +8,7 @@ dge_table_filtering_ui <- function(id){
   hidden(
     div(
       id = ns("filter_ui"),
-      scExploreR:::collapsible_panel(
+      cellDIVER:::collapsible_panel(
         inputId = ns("filter_ui_panel"),
         label = "Filter Table",
         active = TRUE,

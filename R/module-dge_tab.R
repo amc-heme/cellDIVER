@@ -589,7 +589,7 @@ dge_tab_server <- function(id,
                   log_info(
                     paste0(
                       "Subset filters entered:",
-                      scExploreR:::log_subset(
+                      cellDIVER:::log_subset(
                         filter_list = subset_selections$selections()
                         )
                       )
@@ -627,7 +627,7 @@ dge_tab_server <- function(id,
                         )
                     
                     # Log subset created
-                    scExploreR:::log_subset(
+                    cellDIVER:::log_subset(
                       filter_list = subset_selections$selections()
                     )
                     
@@ -665,7 +665,7 @@ dge_tab_server <- function(id,
                       
                       # Save new metadata table to subset
                       subset <-
-                        scExploreR:::update_object_metadata(
+                        cellDIVER:::update_object_metadata(
                           subset,
                           table = meta_table
                         )
@@ -730,7 +730,7 @@ dge_tab_server <- function(id,
                       
                       # Save metadata table with expression threshold column
                       subset <- 
-                        scExploreR:::update_object_metadata(
+                        cellDIVER:::update_object_metadata(
                           subset,
                           meta_table
                         )

@@ -1,6 +1,6 @@
-Package: scExploreR
+Package: cellDIVER
 Type: Package
-Title: scExploreR
+Title: cellDIVER
 Version: 1.0.0
 Date: 2025-06-03
 Authors@R: c(

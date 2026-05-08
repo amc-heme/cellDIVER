@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(scExploreR)
+library(cellDIVER)
 
-test_check("scExploreR")
+test_check("cellDIVER")
