@@ -94,8 +94,6 @@ Depends:
 Suggests: 
     profvis (>= 0.3.7),
     reactlog (>= 1.1.0),
-    # shinytest is deprecated in favour of shinytest2; migration planned in
-    # https://github.com/amc-heme/scExploreR/issues/412
     shinytest,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
