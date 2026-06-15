@@ -1,4 +1,4 @@
-url: https://amc-heme.github.io/scExploreR/
+url: https://amc-heme.github.io/cellDIVER/
 template:
   bootstrap: 5
 home:
@@ -7,7 +7,7 @@ home:
     Welcome to the single cell visualization tool you didn’t know you were looking  for! This app is designed to make exploration of highly complex data sets easy  for anyone, regardless of informatics background.
   links:
   - text: Report a Bug
-    href: https://github.com/amc-heme/scExploreR/issues
+    href: https://github.com/amc-heme/cellDIVER/issues
   sidebar:
     structure:
     - links

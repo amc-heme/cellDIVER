@@ -20,7 +20,7 @@ run_cellDIVER(
  )
 }
 \arguments{
-\item{browser_config}{path to a YAML config file giving browser specific settings. For more info on generating this config file, see \href{https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html#create-an-app-config-file}{here}.}
+\item{browser_config}{path to a YAML config file giving browser specific settings. For more info on generating this config file, see \href{https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html#create-an-app-config-file}{here}.}
 
 \item{object_path}{path to a single-cell object to be configured. Currently,
 Seurat, SingleCellExperiment, and anndata objects are supported. For
@@ -28,7 +28,7 @@ SingleCellExperiment objects with using HDF5 disk-backed storage via
 \link{HDF5Array}, \code{object_path} should be a path to the directory containing
 the se.rds and assays.h5 files for the object.}
 
-\item{config_path}{path to the config file for the single-cell object. This is generated either in the config app via \code{run_config_app}, or by auto-generating a config file via \code{generate_config_yaml} and editing it by hand. For more information on using the config app, see \href{https://amc-heme.github.io/scExploreR/articles/docker.html#step-4}{here}.}
+\item{config_path}{path to the config file for the single-cell object. This is generated either in the config app via \code{run_config_app}, or by auto-generating a config file via \code{generate_config_yaml} and editing it by hand. For more information on using the config app, see \href{https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4}{here}.}
 
 \item{enable_metadata_addition}{when TRUE, users may interactively add metadata to objects in the app. This feature is currently unstable, so it must be opted in to by setting this value to TRUE.}
 
@@ -46,5 +46,5 @@ the se.rds and assays.h5 files for the object.}
 Initializes the main cellDIVER app.
 }
 \details{
-For more information on setting up an cellDIVER deployment, see the \href{https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html}{dataset setup guide} on our website.
+For more information on setting up an cellDIVER deployment, see the \href{https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html}{dataset setup guide} on our website.
 }

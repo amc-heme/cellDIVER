@@ -2,15 +2,15 @@
 #'
 #' Initializes the main cellDIVER app.
 #' 
-#' For more information on setting up an cellDIVER deployment, see the [dataset setup guide](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html) on our website.
+#' For more information on setting up an cellDIVER deployment, see the [dataset setup guide](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html) on our website.
 #'
-#' @param browser_config path to a YAML config file giving browser specific settings. For more info on generating this config file, see [here](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html#create-an-app-config-file).
+#' @param browser_config path to a YAML config file giving browser specific settings. For more info on generating this config file, see [here](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html#create-an-app-config-file).
 #' @param object_path path to a single-cell object to be configured. Currently, 
 #' Seurat, SingleCellExperiment, and anndata objects are supported. For 
 #' SingleCellExperiment objects with using HDF5 disk-backed storage via 
 #' [HDF5Array], `object_path` should be a path to the directory containing 
 #' the se.rds and assays.h5 files for the object.
-#' @param config_path path to the config file for the single-cell object. This is generated either in the config app via `run_config_app`, or by auto-generating a config file via `generate_config_yaml` and editing it by hand. For more information on using the config app, see [here](https://amc-heme.github.io/scExploreR/articles/docker.html#step-4).
+#' @param config_path path to the config file for the single-cell object. This is generated either in the config app via `run_config_app`, or by auto-generating a config file via `generate_config_yaml` and editing it by hand. For more information on using the config app, see [here](https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4).
 #' @param enable_metadata_addition when TRUE, users may interactively add metadata to objects in the app. This feature is currently unstable, so it must be opted in to by setting this value to TRUE.
 #' @param port specify a port for launching the browser. This is optional for a single deployment but required to run several instances of the browser at the same IP address. The port can be any number between 3000:8000, except for ports blocked by Google Chrome (for more information on this, see \link[shiny]{runApp}).
 #' @param host This is passed to `shiny::runApp`. See the documentation of `host` in \link[shiny]{runApp} for more info.
@@ -1080,7 +1080,7 @@ run_cellDIVER <-
             "Single-Cell Visualizations",
             href =
               paste0(
-                "https://amc-heme.github.io/scExploreR/articles/",
+                "https://amc-heme.github.io/cellDIVER/articles/",
                 "scRNA_Plots_Explained.html"
                 ),
               # file.path(
@@ -1099,7 +1099,7 @@ run_cellDIVER <-
         tags$a(
           "Tutorial Vignette",
           href =
-            "https://amc-heme.github.io/scExploreR/articles/tutorial.html",
+            "https://amc-heme.github.io/cellDIVER/articles/tutorial.html",
             # file.path(
             #   "resources",
             #   "cellDIVER_Tutorial.html"
@@ -1115,7 +1115,7 @@ run_cellDIVER <-
           "Full Documentation",
           href = 
             paste0(
-              "https://amc-heme.github.io/scExploreR/articles/",
+              "https://amc-heme.github.io/cellDIVER/articles/",
               "full_documentation.html"
               ),
             #full_documentation_path,
@@ -1128,7 +1128,7 @@ run_cellDIVER <-
         # File issue on github
         tags$a(
           "Report a Bug",
-          href = "https://github.com/amc-heme/scExploreR/issues",
+          href = "https://github.com/amc-heme/cellDIVER/issues",
           class = "blue_hover",
           # Opens link in new tab
           target = "_blank",

@@ -1,5 +1,7 @@
 # cellDIVER
 
+*cellDIVER was formerly known as scExploreR.*
+
 **Welcome to the single cell visualization tool you didn't know you were looking for!** This app is designed to make exploration of highly complex data sets easy for anyone, regardless of informatics background. Whether you're a researcher looking to make sense of your single cell data, or a bioinformatician looking to present your results interactively, you will find value in this app. cellDIVER bridges the gap between domain (disease and clinical) specific knowledge and informatics expertise by providing a no-code platform for biologists to analyze data. 
 
 cellDIVER further facilitates analysis through compatability with most common single cell data formats! Seurat, SingleCellExpreiment, or Anndata objects can be used, and Seurat v5 objects with BP Cells assays are also supported.
@@ -26,14 +28,14 @@ If using anndata objects, [reticulate](https://github.com/rstudio/reticulate) mu
 
 1. Install from Github using [Remotes](https://github.com/r-lib/remotes).
 ```
-remotes::install_github("amc-heme/scExploreR")
+remotes::install_github("amc-heme/cellDIVER")
 ```
 
-If this is your first time setting up cellDIVER, we reccomend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html), which applies the process in steps 3-5 to an example object.
+If this is your first time setting up cellDIVER, we reccomend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html), which applies the process in steps 3-5 to an example object.
 
 2. Process or obtain a finalized single cell object.
 
-3. Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the [**Full Config App Documentation**](https://amc-heme.github.io/scExploreR/articles/config_documentation.html) or the [**App Setup Walkthrough**](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html).
+3. Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the [**Full Config App Documentation**](https://amc-heme.github.io/cellDIVER/articles/config_documentation.html) or the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html).
 ```
 cellDIVER::run_config(
   object_path = "path_to_your_seurat_object.rds",

@@ -72,7 +72,7 @@ cellDIVER is an R package providing a Shiny-based interactive visualization tool
   
   # Install from GitHub (requires network access and authentication for private dependencies)
   install.packages("remotes")
-  remotes::install_github("amc-heme/scExploreR")
+  remotes::install_github("amc-heme/cellDIVER")
   ```
 - **NETWORK REQUIREMENT**: Package installation requires internet access for CRAN, Bioconductor, and GitHub dependencies
 - **AUTHENTICATION REQUIRED**: Several dependencies are from private GitHub repositories requiring GITHUB_PAT
