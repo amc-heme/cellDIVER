@@ -1,10 +1,10 @@
-# scExploreR Development Instructions
+# cellDIVER Development Instructions
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here. Ask the user for clarification if information recieved contradicts these instructions.
 
 ## 1. Overview
 
-scExploreR is an R package providing a Shiny-based interactive visualization tool for single-cell RNA-seq data exploration. The package supports Seurat, SingleCellExperiment, and Anndata objects (any object supported by SCUBA). Any single-cell data can be supported, with CITE-seq data especially well-supported. It consists of two main applications: a configuration app for dataset setup and the main browser for data exploration.
+cellDIVER is an R package providing a Shiny-based interactive visualization tool for single-cell RNA-seq data exploration. The package supports Seurat, SingleCellExperiment, and Anndata objects (any object supported by SCUBA). Any single-cell data can be supported, with CITE-seq data especially well-supported. It consists of two main applications: a configuration app for dataset setup and the main browser for data exploration.
 
 ## 2. General Principles
 ### 2.1. Role
@@ -72,14 +72,14 @@ scExploreR is an R package providing a Shiny-based interactive visualization too
   
   # Install from GitHub (requires network access and authentication for private dependencies)
   install.packages("remotes")
-  remotes::install_github("amc-heme/scExploreR")
+  remotes::install_github("amc-heme/cellDIVER")
   ```
 - **NETWORK REQUIREMENT**: Package installation requires internet access for CRAN, Bioconductor, and GitHub dependencies
 - **AUTHENTICATION REQUIRED**: Several dependencies are from private GitHub repositories requiring GITHUB_PAT
 
 ### 3.3. Build and Check Commands
 - Build package: `R CMD build . --no-build-vignettes --no-manual` -- takes ~4 seconds. NEVER CANCEL.
-- Basic check: `R CMD check scExploreR_*.tar.gz --no-examples --no-vignettes --no-tests` -- takes ~2 seconds with dependency errors. NEVER CANCEL.
+- Basic check: `R CMD check cellDIVER_*.tar.gz --no-examples --no-vignettes --no-tests` -- takes ~2 seconds with dependency errors. NEVER CANCEL.
 - Full check with dependencies: requires all packages to be installed -- takes 5-10 minutes. NEVER CANCEL. Set timeout to 15+ minutes.
 
 ### 3.4. Testing
@@ -91,17 +91,17 @@ scExploreR is an R package providing a Shiny-based interactive visualization too
   - `AML_BPCells.rds` - BPCells format test data
 
 ### 3.5. Core Application Usage
-- Configuration app: `scExploreR::run_config(object_path = "path/to/object.rds", config_path = "optional/config.yaml")`
-- Main browser app: `scExploreR::run_scExploreR(object_path = "path/to/object.rds", config_path = "path/to/config.yaml")`
-- Multi-dataset browser: `scExploreR::run_scExploreR(browser_config = "path/to/browser_config.yaml")`
+- Configuration app: `cellDIVER::run_config(object_path = "path/to/object.rds", config_path = "optional/config.yaml")`
+- Main browser app: `cellDIVER::run_cellDIVER(object_path = "path/to/object.rds", config_path = "path/to/config.yaml")`
+- Multi-dataset browser: `cellDIVER::run_cellDIVER(browser_config = "path/to/browser_config.yaml")`
 
 ## 4. Validation
 
 ### 4.1. Manual Testing Scenarios
 - **ALWAYS** run through at least one complete end-to-end scenario after making changes:
-  1. Load the config app with test data: `scExploreR::run_config("inst/extdata/test_dataset.rds")`
+  1. Load the config app with test data: `cellDIVER::run_config("inst/extdata/test_dataset.rds")`
   2. Verify the config interface loads and preview plots render
-  3. Load the main browser: `scExploreR::run_scExploreR("inst/extdata/test_dataset.rds", "inst/extdata/test_dataset_config.yaml")`
+  3. Load the main browser: `cellDIVER::run_cellDIVER("inst/extdata/test_dataset.rds", "inst/extdata/test_dataset_config.yaml")`
   4. Test basic plot functionality (DimPlot, FeaturePlot)
   5. Test differential expression analysis functionality
   6. Verify data subsetting works correctly
@@ -109,7 +109,7 @@ scExploreR is an R package providing a Shiny-based interactive visualization too
 ### 4.2. Automated Testing
 - Shiny app tests use shinytest with pre-recorded interactions
 - Tests validate DGE functionality, marker identification, and subset operations
-- Test files located in `tests/testthat/apps/scExploreR/tests/shinytest/`
+- Test files located in `tests/testthat/apps/cellDIVER/tests/shinytest/`
 - **CRITICAL**: Tests require test data to be present and properly configured
 
 ### 4.3. Build Validation
@@ -119,11 +119,11 @@ scExploreR is an R package providing a Shiny-based interactive visualization too
 
 ## 5. Package Structure
 ```
-scExploreR/
+cellDIVER/
 ├── DESCRIPTION          # Package metadata and dependencies  
 ├── NAMESPACE           # Exported functions and imports
 ├── R/                  # Main R source code
-│   ├── run_scExploreR.R       # Main browser app
+│   ├── run_cellDIVER.R       # Main browser app
 │   ├── run_config_app.R       # Configuration app  
 │   ├── module-*.R             # Shiny modules
 │   └── methods-*.R            # S3/S4 methods
@@ -141,7 +141,7 @@ scExploreR/
   - `amc-heme/scDE` (differential expression methods)
 
 ## 7. Using SCUBA functions
-Any interaction with single-cell data in scExploreR should utilize SCUBA functions when they exist. Reference the SCUBA repo when necessary to understand function usage (https://github.com/amc-heme/SCUBA).
+Any interaction with single-cell data in cellDIVER should utilize SCUBA functions when they exist. Reference the SCUBA repo when necessary to understand function usage (https://github.com/amc-heme/SCUBA).
 
 Key SCUBA functions:
 - `SCUBA::fetch_data()`: retrieves feature expression data, reduction coordinates, or metadata from single-cell objects.
@@ -157,7 +157,7 @@ Key SCUBA functions:
 1. Make changes to R source files
 2. Update documentation: `R -e "devtools::document()"`
 3. Build: `R CMD build . --no-build-vignettes --no-manual`
-4. Check: `R CMD check scExploreR_*.tar.gz`
+4. Check: `R CMD check cellDIVER_*.tar.gz`
 5. Test: `R -e "devtools::test()"`
 6. Manual validation with test data
 7. Commit and push
@@ -175,7 +175,7 @@ Key SCUBA functions:
 - Tests are commented out in CI (manual testing required)
 
 ## 11. File Locations
-- Main functions: `R/run_scExploreR.R`, `R/run_config_app.R`
+- Main functions: `R/run_cellDIVER.R`, `R/run_config_app.R`
 - Test data: `inst/extdata/test_dataset.rds`, `inst/extdata/test_dataset_config.yaml`  
 - Example configs: `config.yaml`, `inst/extdata/AML_BPCells_config.yaml`
 - Documentation: `vignettes/dataset_setup_walkthrough.Rmd`

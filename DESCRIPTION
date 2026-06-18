@@ -1,6 +1,6 @@
-Package: scExploreR
+Package: cellDIVER
 Type: Package
-Title: scExploreR
+Title: cellDIVER
 Version: 1.0.0
 Date: 2025-06-03
 Authors@R: c(
@@ -46,8 +46,8 @@ Authors@R: c(
         role = c("aut", "cre", "fnd")
         )
     )
-URL: https://github.com/amc-heme/scExploreR,
-    https://amc-heme.github.io/scExploreR/
+URL: https://github.com/amc-heme/cellDIVER,
+    https://amc-heme.github.io/cellDIVER/
 Description: Shiny app for scRNA-seq visualization and analysis
 License: MIT + file LICENSE
 LazyData: true

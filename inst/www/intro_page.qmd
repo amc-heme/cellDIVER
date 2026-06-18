@@ -3,7 +3,7 @@ title: "Introduction Page"
 format: html
 ---
 
-scExploreR allows for in-depth exploration of single-cell datasets without code. Functionality for the app is grouped into three tabs, the info tab, the plots tab, and the differential expression tab.
+cellDIVER allows for in-depth exploration of single-cell datasets without code. Functionality for the app is grouped into three tabs, the info tab, the plots tab, and the differential expression tab.
 
 ## Info Tab
 
@@ -26,7 +26,7 @@ Use the plots tab to produce and export several plot types commonly used in sing
 - Ridge Plots
 - Cell Type Proportion Plots
 
-For more information on plot types, go to the "?" button and select "Single-Cell Visualizations". For information on all features in the plots tab, please see the [full documentation](https://amc-heme.github.io/scExploreR/articles/full_documentation.html#plots-tab).
+For more information on plot types, go to the "?" button and select "Single-Cell Visualizations". For information on all features in the plots tab, please see the [full documentation](https://amc-heme.github.io/cellDIVER/articles/full_documentation.html#plots-tab).
 
 ## Differential Expression Tab
 
@@ -60,7 +60,7 @@ Use the menu on the left hand side of the app to run a differential gene express
 - **Full object:** Run on all cells.  
 - **Subset:** Apply filters based on metadata or feature expression, then run on the filtered cells.
 
-For more information, see the [full documentation](https://amc-heme.github.io/scExploreR/articles/full_documentation.html#dge-tab).
+For more information, see the [full documentation](https://amc-heme.github.io/cellDIVER/articles/full_documentation.html#dge-tab).
 
 ## Subsetting
 

@@ -1,6 +1,6 @@
 #' Plots Tab Module (UI)
 #'
-#' This is an internal function intended for use by scExploreR developers only.
+#' This is an internal function intended for use by cellDIVER developers only.
 #'
 #' @param id ID to use for module elements.
 #' @param meta_choices Metadata available for selection from group_by and 
@@ -83,7 +83,7 @@ plots_tab_ui <- function(id,
                           ), 
                        href = 
                           paste0(
-                             "https://amc-heme.github.io/scExploreR/articles/",
+                             "https://amc-heme.github.io/cellDIVER/articles/",
                              "scRNA_Plots_Explained.html#dimplot"
                              ),  
                        target = "_blank"
@@ -122,7 +122,7 @@ plots_tab_ui <- function(id,
                           ), 
                        href = 
                           paste0(
-                             "https://amc-heme.github.io/scExploreR/articles/",
+                             "https://amc-heme.github.io/cellDIVER/articles/",
                              "scRNA_Plots_Explained.html#feature"
                           ),  
                        target = "_blank"
@@ -163,7 +163,7 @@ plots_tab_ui <- function(id,
                        ), 
                        href = 
                           paste0(
-                             "https://amc-heme.github.io/scExploreR/articles/",
+                             "https://amc-heme.github.io/cellDIVER/articles/",
                              "scRNA_Plots_Explained.html#scatter"
                           ),  
                        target = "_blank"
@@ -199,7 +199,7 @@ plots_tab_ui <- function(id,
                      ), 
                      href = 
                        paste0(
-                         "https://amc-heme.github.io/scExploreR/articles/",
+                         "https://amc-heme.github.io/cellDIVER/articles/",
                          "scRNA_Plots_Explained.html#proportion"
                        ),  
                      target = "_blank"
@@ -241,7 +241,7 @@ plots_tab_ui <- function(id,
                           ), 
                        href = 
                           paste0(
-                             "https://amc-heme.github.io/scExploreR/articles/",
+                             "https://amc-heme.github.io/cellDIVER/articles/",
                              "scRNA_Plots_Explained.html#vln"
                              ),  
                        target = "_blank"
@@ -277,7 +277,7 @@ plots_tab_ui <- function(id,
                      ), 
                      href = 
                        paste0(
-                         "https://amc-heme.github.io/scExploreR/articles/",
+                         "https://amc-heme.github.io/cellDIVER/articles/",
                          "scRNA_Plots_Explained.html#dot"
                        ),  
                      target = "_blank"
@@ -315,7 +315,7 @@ plots_tab_ui <- function(id,
                        ), 
                        href = 
                           paste0(
-                             "https://amc-heme.github.io/scExploreR/articles/",
+                             "https://amc-heme.github.io/cellDIVER/articles/",
                              "scRNA_Plots_Explained.html#ridge"
                           ),  
                        target = "_blank"
@@ -355,7 +355,7 @@ plots_tab_ui <- function(id,
                               ), 
                               href = 
                                  paste0(
-                                    "https://amc-heme.github.io/scExploreR/articles/",
+                                    "https://amc-heme.github.io/cellDIVER/articles/",
                                     "scRNA_Plots_Explained.html#pie"
                                  ),  
                               target = "_blank"
@@ -449,7 +449,7 @@ plots_tab_ui <- function(id,
                  'Show "raw" feature names',
                  a(id = ns("raw_feature_names_help"),
                    icon("info-circle"), 
-                   href=paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                   href=paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                                "full_documentation.html"),  
                    target="_blank")
                  ),
@@ -1454,7 +1454,7 @@ plots_tab_server <- function(id,
                                 "Error in plots tab subsetting. ",
                                 "Subset filters entered:"
                                 )
-                              scExploreR:::log_subset(
+                              cellDIVER:::log_subset(
                                  filter_list = subset_selections$selections()
                                  )
 
@@ -1475,7 +1475,7 @@ plots_tab_server <- function(id,
                            # Begin tryCatch code
                            {
                               # Log the subset selected by the user
-                              scExploreR:::log_subset(
+                              cellDIVER:::log_subset(
                                  filter_list = subset_selections$selections()
                               )
                               

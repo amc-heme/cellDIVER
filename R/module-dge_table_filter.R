@@ -8,7 +8,7 @@ dge_table_filtering_ui <- function(id){
   hidden(
     div(
       id = ns("filter_ui"),
-      scExploreR:::collapsible_panel(
+      cellDIVER:::collapsible_panel(
         inputId = ns("filter_ui_panel"),
         label = "Filter Table",
         active = TRUE,
@@ -24,7 +24,7 @@ dge_table_filtering_ui <- function(id){
               a(
                 id = ns("group_tooltip"),
                 icon("info-circle"), 
-                href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                               "full_documentation.html"),  
                 target = "_blank"
                 )
@@ -73,7 +73,7 @@ dge_table_filtering_ui <- function(id){
               a(
                 id = ns("feature_tooltip"),
                 icon("info-circle"), 
-                href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                               "full_documentation.html"),  
                 target = "_blank"
               )
@@ -123,7 +123,7 @@ dge_table_filtering_ui <- function(id){
                 a(
                   id = ns("expr_tooltip"),
                   icon("info-circle"), 
-                  href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                  href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                                 "full_documentation.html"),  
                   target = "_blank"
                   )
@@ -207,7 +207,7 @@ dge_table_filtering_ui <- function(id){
                 a(
                   id = ns("lfc_tooltip"),
                   icon("info-circle"), 
-                  href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                  href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                                 "full_documentation.html"),  
                   target = "_blank"
                   )
@@ -293,7 +293,7 @@ dge_table_filtering_ui <- function(id){
               a(
                 id = ns("auc_tooltip"),
                 icon("info-circle"), 
-                href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                               "full_documentation.html"),  
                 target = "_blank"
                 )
@@ -333,7 +333,7 @@ dge_table_filtering_ui <- function(id){
               a(
                 id = ns("pval_tooltip"),
                 icon("info-circle"), 
-                href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                               "full_documentation.html"),  
                 target = "_blank"
               )
@@ -385,7 +385,7 @@ dge_table_filtering_ui <- function(id){
               a(
                 id = ns("pct_in_tooltip"),
                 icon("info-circle"), 
-                href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                               "full_documentation.html"),  
                 target = "_blank"
                 )
@@ -425,7 +425,7 @@ dge_table_filtering_ui <- function(id){
               a(
                 id = ns("pct_out_tooltip"),
                 icon("info-circle"), 
-                href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                               "full_documentation.html"),  
                 target = "_blank"
                 )

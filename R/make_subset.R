@@ -135,7 +135,7 @@ make_subset.default <-
       }
     }
     
-    scExploreR:::update_object_metadata(
+    cellDIVER:::update_object_metadata(
       subset,
       table = meta_table
       )

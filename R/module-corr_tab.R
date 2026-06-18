@@ -529,7 +529,7 @@ corr_tab_server <- function(id,
                                "Error in corr tab subsetting. ",
                                "Subset filters entered:"
                                )
-                             scExploreR:::log_subset(
+                             cellDIVER:::log_subset(
                                filter_list = subset_selections$selections()
                              )
                              
@@ -563,7 +563,7 @@ corr_tab_server <- function(id,
                                # and return
                                
                                # Log subset created
-                               scExploreR:::log_subset(
+                               cellDIVER:::log_subset(
                                  filter_list = subset_selections$selections()
                                  )
                                

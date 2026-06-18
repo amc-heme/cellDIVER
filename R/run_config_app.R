@@ -1,4 +1,4 @@
-#' scExploreR config app
+#' cellDIVER config app
 #'
 #' run_config() will launch a Shiny app used to configure datasets for use in
 #' the main browser.
@@ -102,7 +102,7 @@ run_config <-
     # Get list of .css files in www/ directory
     css_files <-
       list.files(
-        path = system.file("css", package = "scExploreR"),
+        path = system.file("css", package = "cellDIVER"),
         pattern = "*.css$",
         full.names = TRUE,
         ignore.case = TRUE
@@ -123,7 +123,7 @@ run_config <-
     # www/applet_js/ directory)
     js_files <-
       list.files(
-        path = system.file("js", package = "scExploreR", mustWork = TRUE),
+        path = system.file("js", package = "cellDIVER", mustWork = TRUE),
         # Use regex to search for files ending in .js (double
         # backslash used to escape '.' character)
         pattern = ".*\\.js",
@@ -141,7 +141,7 @@ run_config <-
           "js", 
           "applet_js", 
           "applet_navbar_wizzard.js", 
-          package = "scExploreR", 
+          package = "cellDIVER", 
           mustWork = TRUE
           )
         )
@@ -226,7 +226,7 @@ run_config <-
     # Printed in config file. Will be used to alert user if they are using a
     # config file that is not compatible with the current version of the main app
     config_version <-
-      packageVersion("scExploreR") |>
+      packageVersion("cellDIVER") |>
       as.character()
 
     # Identify numeric metadata variables
@@ -256,12 +256,12 @@ run_config <-
 
     # Assays, reductions in object
     all_assays <-
-      scExploreR:::assay_names(
+      cellDIVER:::assay_names(
         object
       )
 
     reductions <-
-      scExploreR:::reduction_names(
+      cellDIVER:::reduction_names(
         object
       )
 
@@ -1710,7 +1710,7 @@ run_config <-
 
           # Fetch ADTs in the designated assay (reacts to assay)
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -1732,7 +1732,7 @@ run_config <-
         {
           # Fetch features (surface proteins) for the designated ADT assay
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -1770,7 +1770,7 @@ run_config <-
             #   input$selected_adt
             # )
             paste0(
-              scExploreR:::make_key(
+              cellDIVER:::make_key(
                 object,
                 assay = isolate({ADT_assay()})
                 ),
@@ -1781,7 +1781,7 @@ run_config <-
             # (this is set using a reactiveValues object)
             paste0(
               # Add assay key
-              scExploreR:::make_key(
+              cellDIVER:::make_key(
                 object,
                 assay = isolate({ADT_assay()})
                 ),
@@ -1907,7 +1907,7 @@ run_config <-
           # Reset ADT selection input
           # Get names of all ADTs
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -1976,7 +1976,7 @@ run_config <-
 
           # Update ADT choices to exclude the ADTs currently in the table
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -2142,7 +2142,7 @@ run_config <-
               # list of available ADTs, by updating the select input with all
               # ADTs not in the new table
               adts <-
-                scExploreR:::features_in_assay(
+                cellDIVER:::features_in_assay(
                   object,
                   assay = ADT_assay()
                   )

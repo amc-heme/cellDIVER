@@ -2,10 +2,10 @@ library(shinytest)
 library(shiny)
 
 # Path for running tests
-app <- ShinyDriver$new("./apps/scExploreR", seed = 325)
+app <- ShinyDriver$new("./apps/cellDIVER", seed = 325)
 
 # Use this path when editing tests
-# app <- ShinyDriver$new("tests/testthat/apps/scExploreR", seed = 325)
+# app <- ShinyDriver$new("tests/testthat/apps/cellDIVER", seed = 325)
 
 test_that("DGE: Marker ID Mode Works", {
   # Swtich to DGE tab: find button in navbar panel, and click the button 

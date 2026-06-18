@@ -18,7 +18,7 @@
 #' go to the "..." menu on the top right, and select "Load Config File". Save 
 #' changes via "Save Config File" when you are finished editing.
 #'
-#' @param object a single-cell object to be configured for use in scExploreR 
+#' @param object a single-cell object to be configured for use in cellDIVER 
 #' (not the path to the object). Currently, Seurat, SingleCellExperiment, and 
 #' anndata objects are supported.
 #' @param output_yaml path specifying where the output config file should be saved. 
@@ -39,7 +39,7 @@
 #' is passed to the prefix parameter of HDF5Array::loadHDF5SummarizedExperiment 
 #' to specify the prefixes for the se.rds and assays.h5 files. 
 #' @param include_numeric_metadata If `TRUE`, numeric metadata in the object 
-#' will searchable in scExploreR for plotting and subsetting. The default 
+#' will searchable in cellDIVER for plotting and subsetting. The default 
 #' setting is `TRUE`.
 #' @param genes_assay single-length character vector giving the name of the 
 #' genes assay/experiment/modality in the object. If undefined, the first assay 
@@ -51,7 +51,7 @@
 #' @param sample_level_var a sample-level metadata variable used to construct 
 #' sample-level pie charts in the plots tab. This should be a sample or patient 
 #' ID, for example. If this is not provided (the default), pie charts will not 
-#' appear in scExploreR.
+#' appear in cellDIVER.
 #'
 #' @returns A config file is generated at the path provided to `output_yaml`. Nothing is returned from the function.
 #' 
@@ -136,7 +136,7 @@ generate_config_yaml <-
     # genes_assay
     if (is.null(genes_assay)){
       # Set default if NULL (first assay)
-      scExploreR:::assay_names(object = object)[[1]]
+      cellDIVER:::assay_names(object = object)[[1]]
     } else {
       # Check value provided if not NULL
       # genes_assay must be a character vector
@@ -145,7 +145,7 @@ generate_config_yaml <-
       }
       
       # genes_assay must be in the assay names 
-      if (!genes_assay %in% scExploreR:::assay_names(object = object)){
+      if (!genes_assay %in% cellDIVER:::assay_names(object = object)){
         stop(
           paste0(
             "The input for `genes_assay` does not match any of the ",
@@ -159,10 +159,10 @@ generate_config_yaml <-
     config <-
       list(
         `config_version` = 
-          packageVersion("scExploreR") |>
+          packageVersion("cellDIVER") |>
           as.character(),
         `object_class` = 
-          # Test for object classes supported by SCUBA and scExploreR
+          # Test for object classes supported by SCUBA and cellDIVER
           if (inherits(object, "Seurat")){
             "Seurat"
           } else if (inherits(object, "SingleCellExperiment")){
@@ -194,7 +194,7 @@ generate_config_yaml <-
     config$assays <-
       lapply(
         # Loop through each assay as determined by assay_names
-        scExploreR:::assay_names(object = object),
+        cellDIVER:::assay_names(object = object),
         function(assay_name){
           # Construct fields for each assay using defaults
           list(
@@ -203,7 +203,7 @@ generate_config_yaml <-
             # "key" for feature access via fetch_data: defined via the
             # make_key method
             `key` = 
-              scExploreR:::make_key(
+              cellDIVER:::make_key(
                 object,
                 assay = assay_name
               ),
@@ -220,7 +220,7 @@ generate_config_yaml <-
     
     # Assign names to each element in config$assays (using assay_names)
     names(config$assays) <- 
-      scExploreR:::assay_names(object = object)
+      cellDIVER:::assay_names(object = object)
     
     config$other_assay_options <-
       list(
@@ -297,7 +297,7 @@ generate_config_yaml <-
     # Iterate through each reduction, compile fields
     config$reductions <-
       lapply(
-        scExploreR:::reduction_names(object),
+        cellDIVER:::reduction_names(object),
         function(reduction_name){
           list(
             # Name of the reduction as it appears on the object
@@ -309,7 +309,7 @@ generate_config_yaml <-
     
     # Apply names to elements in config$reductions
     # names are the names of reductions as they appear in the object
-    names(config$reductions) <- scExploreR:::reduction_names(object)
+    names(config$reductions) <- cellDIVER:::reduction_names(object)
     
     # ADT thresholds are not supported in this function
     # Must use c() to append `adt_thresholds` with a NULL element 
