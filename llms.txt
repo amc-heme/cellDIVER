@@ -12,10 +12,11 @@ gap between domain (disease and clinical) specific knowledge and
 informatics expertise by providing a no-code platform for biologists to
 analyze data.
 
-cellDIVER further facilitates analysis through compatability with most
-common single cell data formats! Seurat, SingleCellExpreiment, or
-Anndata objects can be used, and Seurat v5 objects with BP Cells assays
-are also supported.
+cellDIVER (Single-**cell** **D**ata **I**nterface for **V**isualization
+and **E**xploration in **R**) further facilitates analysis through
+compatability with most common single cell data formats! Seurat,
+SingleCellExpreiment, or Anndata objects can be used, and Seurat v5
+objects with BP Cells assays are also supported.
 
 Some bioinformatics experience is required to install the app and
 configure each single-cell dataset, but once set up, the app can be used
