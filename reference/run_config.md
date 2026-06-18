@@ -1,4 +1,4 @@
-# scExploreR config app
+# cellDIVER config app
 
 run_config() will launch a Shiny app used to configure datasets for use
 in the main browser.

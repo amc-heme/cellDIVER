@@ -1,11 +1,11 @@
 # Analyzing Your Data in the Browser
 
-## scExploreR Walkthrough
+## cellDIVER Walkthrough
 
-This tutorial will guide you through the use of scExploreR to analyze
+This tutorial will guide you through the use of cellDIVER to analyze
 your data. This is not a comprehensive exploration of each feature: for
 more information on any feature, see the [full
-documentation](https://amc-heme.github.io/scExploreR/articles/full_documentation.md).
+documentation](https://amc-heme.github.io/cellDIVER/articles/full_documentation.md).
 The browser used for this tutorial is hosted here. The dataset contains
 a single bone marrow and peripheral blood sample from a healthy patient
 (for more, see the [download page for the
@@ -25,7 +25,7 @@ questions and how to approach them using the app.
 
 ## In which cell types is my gene deferentially expressed?
 
-scExploreR provides differential gene analysis via a wilcoxon rank sum
+cellDIVER provides differential gene analysis via a wilcoxon rank sum
 test to determine which cell types express a gene to a greater extent
 compared to the background (all cells in a dataset). To perform a
 differential gene expression test, navigate to the “Differential
@@ -79,7 +79,7 @@ type.
 Below the stats section, a table of differential gene expression results
 is displayed. For details on each column of the table, see the
 [Differential Gene
-Expression](https://amc-heme.github.io/scExploreR/articles/full_documentation.html#differential-expression-columns)
+Expression](https://amc-heme.github.io/cellDIVER/articles/full_documentation.html#differential-expression-columns)
 section of the full documentation. Enter a gene in the text box below
 “Feature” to see results. For this example, we will use “SPINK2”.
 

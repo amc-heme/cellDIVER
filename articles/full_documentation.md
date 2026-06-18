@@ -1,4 +1,4 @@
-# scExploreR Documentation
+# cellDIVER Documentation
 
 ## Plots Tab
 
@@ -96,14 +96,14 @@ such as:
 - Cells with feature expression within a defined range
 
 For more information, see the [documentation for string
-subsetting](https://amc-heme.github.io/scExploreR/articles/advanced_subsetting_documentation.md).
+subsetting](https://amc-heme.github.io/cellDIVER/articles/advanced_subsetting_documentation.md).
 
 ### Dimensional Reduction Plots
 
 Dimensional reduction plots are used to summarize relatedness between
 cells across the dataset, e.g. using gene expression (for more, see
 [Interpereting scRNA-seq
-plots](https://amc-heme.github.io/scExploreR/articles/scRNA_Plots_Explained.md)).
+plots](https://amc-heme.github.io/cellDIVER/articles/scRNA_Plots_Explained.md)).
 Cells with similar profiles tend to cluster next to each other, but
 quantitative connections can’t necessarily be made between distance on
 the plot and similarity in gene expression (i.e. a cell that is 16 units
@@ -633,7 +633,7 @@ similar program.
 
 Differential gene expression (DGE) analysis compares groups of cells
 based on their metadata, and returns a table of genes that differ in
-expression between the groups. scExploreR uses
+expression between the groups. cellDIVER uses
 [presto](https://www.biorxiv.org/content/10.1101/653253v1.full) for DGE
 analysis, which performs a Wilcoxon Rank Sum and an area under the
 receiver operator curve (auROC) analysis on the expression data.

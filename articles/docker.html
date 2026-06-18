@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Running scExploreR with Docker • scExploreR</title>
+<title>Running cellDIVER with Docker • cellDIVER</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Running scExploreR with Docker">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Running cellDIVER with Docker">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -18,7 +18,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">scExploreR</a>
+    <a class="navbar-brand me-2" href="../index.html">cellDIVER</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
@@ -43,14 +43,14 @@
     <li><a class="dropdown-item" href="../articles/advanced_subsetting_documentation.html">String Subsetting Guide</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Full Documentation</h6></li>
-    <li><a class="dropdown-item" href="../articles/full_documentation.html">scExploreR Documentation</a></li>
+    <li><a class="dropdown-item" href="../articles/full_documentation.html">cellDIVER Documentation</a></li>
     <li><a class="dropdown-item" href="../articles/config_documentation.html">Config App Documentation</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/amc-heme/scExploreR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/amc-heme/cellDIVER/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -64,10 +64,10 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Running scExploreR with Docker</h1>
+      <h1>Running cellDIVER with Docker</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/amc-heme/scExploreR/blob/main/vignettes/docker.Rmd" class="external-link"><code>vignettes/docker.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/amc-heme/cellDIVER/blob/main/vignettes/docker.Rmd" class="external-link"><code>vignettes/docker.Rmd</code></a></small>
       <div class="d-none name"><code>docker.Rmd</code></div>
     </div>
 
@@ -76,21 +76,21 @@
 <style type="text/css">
 .center{text-align:center;display:block}.white-text{color:white}.card-header{background-color:#CFB87C;margin-top:0px}.card-body{background-color:#E1E1E1;border-radius:0px 0px var(--bs-card-border-radius) var(--bs-card-border-radius)}.callout{padding:20px;margin:20px 0;border:1px solid #eee;border-left-width:8px;border-radius:8px}.callout h4,.callout h5{margin-top:0;margin-bottom:5px}.callout p:last-child{margin-bottom:0}.callout code{border-radius:3px}.callout+.bs-callout{margin-top:-5px}.callout-default{border-left-color:#777;background-color:#77735}.callout-default h4,.callout-default h5{color:#777}.callout-primary{border-left-color:#428bca;background-color:#428bca35}.callout-primary h4,.callout-primary h5{color:#428bca}.callout-success{border-left-color:#5cb85c;background-color:#5cb85c35}.callout-success h4,.callout-success h5{color:#5cb85c}.callout-danger{border-left-color:#d9534f;background-color:#d9534f35}.callout-danger h4,.callout-danger h5{color:#d9534f}.callout-warning{border-left-color:#f0ad4e;background-color:#f0ad4e35}.callout-warning h4,.callout-warning h5{color:#f0ad4e}.callout-info{border-left-color:#5bc0de;background-color:#5bc0de35}.callout-info h4,.callout-info h5{color:#5bc0de}.callout-bdc{border-left-color:#29527a;background-color:#29527a35}.callout-bdc h4,.callout-bdc h5{color:#29527a}.scroll-80{max-height:80px;overflow-y:auto;background-color:inherit}.scroll-100{max-height:100px;overflow-y:auto;background-color:inherit}.scroll-300{max-height:300px;overflow-y:auto;background-color:inherit}
 </style>
-<!-- Opening paragraph --><p>scExploreR can be deployed with Docker to facilitate deployment on a
-server, or to facilitate sharing scExploreR instances with your data
-with collaborators. Deployment on docker is not required to run
-scExploreR. For general instructions on setting up an app instance with
-your data, see the <a href="https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html">Dataset
+<!-- Opening paragraph --><p>cellDIVER can be deployed with Docker to facilitate deployment on a
+server, or to facilitate sharing cellDIVER instances with your data with
+collaborators. Deployment on docker is not required to run cellDIVER.
+For general instructions on setting up an app instance with your data,
+see the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html">Dataset
 Setup Walkthrough</a> article.</p>
 <p>This guide provides step-by-step instructions for setting up and
-running the scExploreR Shiny app using Docker. We’ll cover building the
+running the cellDIVER Shiny app using Docker. We’ll cover building the
 Docker image, understanding the file structure, configuring the
 application, and running the app.</p>
 <!-- Note containers must use ::: for the <div> and <h4> for the header 
 (not ####). They will not display properly on the pkgdown site otherwise. -->
 <div class="callout callout-info">
 <h4>
-<strong>scExploreR_docker Repository</strong>
+<strong>cellDIVER_docker Repository</strong>
 </h4>
 <p>All of this code is available to clone, build and run on the <a href="https://github.com/amc-heme/scExploreR_docker" class="external-link">amc-heme/scExploreR_docker
 GitHub repository</a>.</p>
@@ -151,14 +151,13 @@ files.</li>
 <strong>project-name/</strong>: Directory for the specific
 dataset/application.</li>
 <li>
-<strong>app.R</strong>: Main R script to run the scExploreR
-app.</li>
+<strong>app.R</strong>: Main R script to run the cellDIVER app.</li>
 <li>
 <strong>config.yaml</strong>: Configuration file specifying datasets
-and settings for scExploreR .</li>
+and settings for cellDIVER .</li>
 <li>
 <strong>object-config.yaml</strong>: Configuration for the specific
-data object built using the scExploreR Config App.</li>
+data object built using the cellDIVER Config App.</li>
 <li>
 <strong>object.rds</strong>: Serialized R data object containing
 your single-cell dataset. This may be a Seurat object, a
@@ -169,7 +168,7 @@ SingleCellExperiment object, or an anndata object.</li>
 <h2 id="step-1">Step 1: Set Up the Dockerfile<a class="anchor" aria-label="anchor" href="#step-1"></a>
 </h2>
 <p>The <code>Dockerfile</code> specifies the environment and
-dependencies required to run scExploreR.</p>
+dependencies required to run cellDIVER.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Dockerfile</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="kw">FROM</span> rocker/shiny-verse:latest</span>
@@ -185,7 +184,7 @@ dependencies required to run scExploreR.</p>
 <span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co"># Install Bioconductor packages</span></span>
 <span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">"install.packages('BiocManager'); if (!library(BiocManager, logical.return=T)) quit(status=10)"</span></span>
 <span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">"BiocManager::install(c('SummarizedExperiment', 'HDF5Array', 'SingleCellExperiment'))"</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">"remotes::install_github('amc-heme/scExploreR');  if (!library(scExploreR, logical.return=T)) quit(status=10)"</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">"remotes::install_github('amc-heme/cellDIVER');  if (!library(cellDIVER, logical.return=T)) quit(status=10)"</span></span>
 <span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a></span>
 <span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co"># Install additional system dependencies</span></span>
 <span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">apt-get</span> install <span class="at">-y</span> <span class="at">--no-install-recommends</span> texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra lmodern</span>
@@ -216,7 +215,7 @@ dependencies required to run scExploreR.</p>
 <h2 id="step-2">Step 2: Configure the Shiny Server<a class="anchor" aria-label="anchor" href="#step-2"></a>
 </h2>
 <p>The <code>shiny-server.conf</code> file sets up the Shiny server to
-host scExploreR.</p>
+host cellDIVER.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode shiny-server.conf"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co"># shiny-server.conf</span></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a></span>
@@ -252,22 +251,22 @@ may be Seurat, SingleCellExperiment, or anndata objects. Each object
 needs an object config file to define assays/modalities and metadata to
 expose to end users. The object config file is generated by running
 <code>run_config_app</code> locally on the object(s) you wish to
-containerize. For more information, see the <a href="https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html#launching-the-config-app">Dataset
+containerize. For more information, see the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html#launching-the-config-app">Dataset
 Setup Walkthrough</a> Article.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># This should be ran locally, and the output yaml generated by the config app</span></span>
 <span><span class="co"># should then be moved to /srv/shiny-server/project-name.</span></span>
-<span><span class="fu">scExploreR</span><span class="fu">::</span><span class="fu"><a href="../reference/run_config.html">run_config</a></span><span class="op">(</span></span>
+<span><span class="fu">cellDIVER</span><span class="fu">::</span><span class="fu"><a href="../reference/run_config.html">run_config</a></span><span class="op">(</span></span>
 <span>  object_path <span class="op">=</span> <span class="st">"/srv/shiny-server/project-name/object.rds"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="step-4">Step 4: Generate App Config File<a class="anchor" aria-label="anchor" href="#step-4"></a>
 </h2>
-<p>The <code>config.yaml</code> file specifies settings for scExploreR,
+<p>The <code>config.yaml</code> file specifies settings for cellDIVER,
 and the paths of datasets to load in the app. This is the app config
 file (rather than the object config file). For more information on how
-to generate this file, see the <a href="https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html#create-an-app-config-file">Dataset
+to generate this file, see the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html#create-an-app-config-file">Dataset
 Setup Walkthrough</a> article.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode config.yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># config.yaml</span></span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
@@ -277,16 +276,16 @@ Setup Walkthrough</a> article.</p>
 <span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="at">    </span><span class="fu">config</span><span class="kw">:</span><span class="at"> </span><span class="st">"/srv/shiny-server/project-name/object-config.yaml"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="step-5">Step 5: Set up scExploreR Script<a class="anchor" aria-label="anchor" href="#step-5"></a>
+<h2 id="step-5">Step 5: Set up cellDIVER Script<a class="anchor" aria-label="anchor" href="#step-5"></a>
 </h2>
-<p>The <code>app.R</code> script defines how scExploreR will be ran.
-This file should be an R script with a call to
-<code>run_scExploreR</code>, with the <code>browser_config</code>
-parameter set to the path of the app config file created in step 4.</p>
+<p>The <code>app.R</code> script defines how cellDIVER will be ran. This
+file should be an R script with a call to <code>run_cellDIVER</code>,
+with the <code>browser_config</code> parameter set to the path of the
+app config file created in step 4.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode app.r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># app.R</span></span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">"/srv/shiny-server/project-name"</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>scExploreR<span class="sc">::</span><span class="fu">run_scExploreR</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>cellDIVER<span class="sc">::</span><span class="fu">run_cellDIVER</span>(</span>
 <span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">browser_config =</span> <span class="st">"/srv/shiny-server/project-name/config.yaml"</span>, </span>
 <span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">launch_browser =</span> <span class="cn">FALSE</span></span>
 <span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  )</span></code></pre></div>
@@ -295,7 +294,7 @@ parameter set to the path of the app config file created in step 4.</p>
 <code>setwd</code>: Sets the working directory to where data and
 configuration files are located.</li>
 <li>
-<code>run_scExploreR</code>: Launches the scExploreR app with the
+<code>run_cellDIVER</code>: Launches the cellDIVER app with the
 specified configuration.</li>
 </ul>
 </div>
@@ -303,14 +302,14 @@ specified configuration.</li>
 <h2 id="step-6">Step 6: Build the Docker Image<a class="anchor" aria-label="anchor" href="#step-6"></a>
 </h2>
 <p>Navigate to the directory containing the Dockerfile and run:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">docker</span> build <span class="at">--platform</span><span class="op">=</span>linux/amd64 <span class="at">-t</span> scexplorer .</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">docker</span> build <span class="at">--platform</span><span class="op">=</span>linux/amd64 <span class="at">-t</span> celldiver .</span></code></pre></div>
 <ul>
 <li>
 <code>--platform=linux/amd64</code> : Builds the image for the amd64
 architecture. (remove if not using ARM Mac)</li>
 <li>
-<code>-t scexplorer</code> : Tags the image with the name
-scexplorer.</li>
+<code>-t celldiver</code> : Tags the image with the name
+celldiver.</li>
 <li>
 <code>.</code> : Specifies the current directory as the build
 context.</li>
@@ -330,13 +329,13 @@ that all package names and dependencies are correct.</p>
 <h2 id="step-7">Step 7: Run the Docker Container<a class="anchor" aria-label="anchor" href="#step-7"></a>
 </h2>
 <p>Run the Docker container with the command below.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--rm</span> <span class="at">-p</span> 3838:3838 scexplorer</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--rm</span> <span class="at">-p</span> 3838:3838 celldiver</span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="accessing-the-application">Accessing the Application<a class="anchor" aria-label="anchor" href="#accessing-the-application"></a>
 </h2>
 <p>Once the container is running, open your web browser and navigate to
-<code>http://localhost:3838</code>. You should see the scExploreR
+<code>http://localhost:3838</code>. You should see the cellDIVER
 interface.</p>
 </div>
 <div class="section level2">
@@ -362,16 +361,16 @@ and that the files exist in the specified locations.</li>
 <li><p>Interactive Shell: If needed, start a shell inside the container
 for debugging:</p></li>
 </ul>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">-it</span> <span class="at">--entrypoint</span> /bin/bash <span class="at">-p</span> 3838:3838 scexplorer</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">-it</span> <span class="at">--entrypoint</span> /bin/bash <span class="at">-p</span> 3838:3838 celldiver</span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
-<li><p><a href="https://github.com/amc-heme/scExploreR" class="external-link">scExploreR
-GitHub Repository</a></p></li>
-<li><p><a href="https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html">Dataset
+<li><p><a href="https://github.com/amc-heme/cellDIVER" class="external-link">cellDIVER GitHub
+Repository</a></p></li>
+<li><p><a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html">Dataset
 Setup Walkthrough</a></p></li>
 <li><p><a href="https://www.docker.com" class="external-link">Docker
 Documentation</a></p></li>

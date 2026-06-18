@@ -14,7 +14,7 @@ though the standard method as of 2025 is principal component analysis
 (PCA) followed by uniform manifold approximation and projection (UMAP).
 All reduction methods implemented by the bioinformatican that prepared
 the object can be toggled in the reductions menu, and you can contact
-the person who prepared the object for more information (scExploreR
+the person who prepared the object for more information (cellDIVER
 authors do not prepare the data shown in the app, only the app itself).
 
 Over interpretation of DimPlots is a common pitfall and should be

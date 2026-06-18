@@ -42,7 +42,7 @@ auto_config(
 
 - object:
 
-  a single-cell object to be configured for use in scExploreR (not the
+  a single-cell object to be configured for use in cellDIVER (not the
   path to the object). Currently, Seurat, SingleCellExperiment, and
   anndata objects are supported.
 
@@ -80,8 +80,8 @@ auto_config(
 
 - include_numeric_metadata:
 
-  If `TRUE`, numeric metadata in the object will searchable in
-  scExploreR for plotting and subsetting. The default setting is `TRUE`.
+  If `TRUE`, numeric metadata in the object will searchable in cellDIVER
+  for plotting and subsetting. The default setting is `TRUE`.
 
 - genes_assay:
 
@@ -107,7 +107,7 @@ auto_config(
   a sample-level metadata variable used to construct sample-level pie
   charts in the plots tab. This should be a sample or patient ID, for
   example. If this is not provided (the default), pie charts will not
-  appear in scExploreR.
+  appear in cellDIVER.
 
 ## Value
 

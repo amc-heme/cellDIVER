@@ -1,10 +1,10 @@
 # HDF5 Storage Formats
 
-The size of single cell objects can make hosting in scExploreR difficult
+The size of single cell objects can make hosting in cellDIVER difficult
 or impossible on local computing resources. Objects can take tens or
 even hundreds of gigabytes of RAM when loaded into memory, depending on
-the number of cells. Fortunately, scExploreR supports storage formats
-for multiple object types that require only fractions of the data to be
+the number of cells. Fortunately, cellDIVER supports storage formats for
+multiple object types that require only fractions of the data to be
 loaded into RAM at once, considerably decreasing the RAM requirements.
 Guidelines are provided below for each common object formats to allow
 the analysis of datasets with hundreds of thousands or even millions of
@@ -71,7 +71,7 @@ saveHDF5SummarizedExperiment(
 
 The output of saveHDF5SummarizedExperiment is a directory rather than a
 single file. Make sure to reference the directory when loading the
-object into scExploreR, rather than the files in the directory.
+object into cellDIVER, rather than the files in the directory.
 
 ## Converting Between Object Formats
 

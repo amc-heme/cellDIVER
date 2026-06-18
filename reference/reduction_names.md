@@ -43,8 +43,8 @@ reduction_names(object)
   Reductions are stored in obsm, but matrices that are not reductions
   may exist in this slot. To use reduction_names with Anndata objects, a
   vector of reductions (python list) must be stored in
-  `object.uns["scExploreR_reductions"]`. This method will return an
-  error if this data is not present in the object.
+  `object.uns["cellDIVER_reductions"]`. This method will return an error
+  if this data is not present in the object.
 
 - `reduction_names(md._core.mudata.MuData)`: MuData objects
 

@@ -5,10 +5,10 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>HDF5 Storage Formats • scExploreR</title>
+<title>HDF5 Storage Formats • cellDIVER</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="HDF5 Storage Formats">
 </head>
@@ -18,7 +18,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">scExploreR</a>
+    <a class="navbar-brand me-2" href="../index.html">cellDIVER</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
@@ -43,14 +43,14 @@
     <li><a class="dropdown-item" href="../articles/advanced_subsetting_documentation.html">String Subsetting Guide</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Full Documentation</h6></li>
-    <li><a class="dropdown-item" href="../articles/full_documentation.html">scExploreR Documentation</a></li>
+    <li><a class="dropdown-item" href="../articles/full_documentation.html">cellDIVER Documentation</a></li>
     <li><a class="dropdown-item" href="../articles/config_documentation.html">Config App Documentation</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/amc-heme/scExploreR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/amc-heme/cellDIVER/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -67,7 +67,7 @@
       <h1>HDF5 Storage Formats</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/amc-heme/scExploreR/blob/main/vignettes/hdf5_storage.Rmd" class="external-link"><code>vignettes/hdf5_storage.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/amc-heme/cellDIVER/blob/main/vignettes/hdf5_storage.Rmd" class="external-link"><code>vignettes/hdf5_storage.Rmd</code></a></small>
       <div class="d-none name"><code>hdf5_storage.Rmd</code></div>
     </div>
 
@@ -80,10 +80,10 @@
     margin-right: auto;
     } 
     </style>
-<p>The size of single cell objects can make hosting in scExploreR
+<p>The size of single cell objects can make hosting in cellDIVER
 difficult or impossible on local computing resources. Objects can take
 tens or even hundreds of gigabytes of RAM when loaded into memory,
-depending on the number of cells. Fortunately, scExploreR supports
+depending on the number of cells. Fortunately, cellDIVER supports
 storage formats for multiple object types that require only fractions of
 the data to be loaded into RAM at once, considerably decreasing the RAM
 requirements. Guidelines are provided below for each common object
@@ -137,7 +137,7 @@ recommend a compression level of 3.</p>
 <span>    <span class="op">)</span></span></code></pre></div>
 <p>The output of saveHDF5SummarizedExperiment is a directory rather than
 a single file. Make sure to reference the directory when loading the
-object into scExploreR, rather than the files in the directory.</p>
+object into cellDIVER, rather than the files in the directory.</p>
 </div>
 <div class="section level2">
 <h2 id="converting-between-object-formats">Converting Between Object Formats<a class="anchor" aria-label="anchor" href="#converting-between-object-formats"></a>

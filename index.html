@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>scExploreR • scExploreR</title>
+<title>cellDIVER • cellDIVER</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="scExploreR">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="cellDIVER">
 <meta name="description" content="Welcome to the single cell visualization tool you didn’t know you were looking  for! This app is designed to make exploration of highly complex data sets easy  for anyone, regardless of informatics background.
 ">
 <meta property="og:description" content="Welcome to the single cell visualization tool you didn’t know you were looking  for! This app is designed to make exploration of highly complex data sets easy  for anyone, regardless of informatics background.
@@ -22,7 +22,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="index.html">scExploreR</a>
+    <a class="navbar-brand me-2" href="index.html">cellDIVER</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
@@ -47,14 +47,14 @@
     <li><a class="dropdown-item" href="articles/advanced_subsetting_documentation.html">String Subsetting Guide</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Full Documentation</h6></li>
-    <li><a class="dropdown-item" href="articles/full_documentation.html">scExploreR Documentation</a></li>
+    <li><a class="dropdown-item" href="articles/full_documentation.html">cellDIVER Documentation</a></li>
     <li><a class="dropdown-item" href="articles/config_documentation.html">Config App Documentation</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/amc-heme/scExploreR/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/amc-heme/cellDIVER/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -63,10 +63,11 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="scexplorer">scExploreR<a class="anchor" aria-label="anchor" href="#scexplorer"></a>
+<div class="page-header"><h1 id="celldiver">cellDIVER<a class="anchor" aria-label="anchor" href="#celldiver"></a>
 </h1></div>
-<p><strong>Welcome to the single cell visualization tool you didn’t know you were looking for!</strong> This app is designed to make exploration of highly complex data sets easy for anyone, regardless of informatics background. Whether you’re a researcher looking to make sense of your single cell data, or a bioinformatician looking to present your results interactively, you will find value in this app. scExplorer bridges the gap between domain (disease and clinical) specific knowledge and informatics expertise by providing a no-code platform for biologists to analyze data.</p>
-<p>scExploreR further facilitates analysis through compatability with most common single cell data formats! Seurat, SingleCellExpreiment, or Anndata objects can be used, and Seurat v5 objects with BP Cells assays are also supported.</p>
+<p><em>cellDIVER was formerly known as scExploreR.</em></p>
+<p><strong>Welcome to the single cell visualization tool you didn’t know you were looking for!</strong> This app is designed to make exploration of highly complex data sets easy for anyone, regardless of informatics background. Whether you’re a researcher looking to make sense of your single cell data, or a bioinformatician looking to present your results interactively, you will find value in this app. cellDIVER bridges the gap between domain (disease and clinical) specific knowledge and informatics expertise by providing a no-code platform for biologists to analyze data.</p>
+<p>cellDIVER further facilitates analysis through compatability with most common single cell data formats! Seurat, SingleCellExpreiment, or Anndata objects can be used, and Seurat v5 objects with BP Cells assays are also supported.</p>
 <p>Some bioinformatics experience is required to install the app and configure each single-cell dataset, but once set up, the app can be used by anyone.</p>
 <div class="section level2">
 <h2 id="requirements">Requirements<a class="anchor" aria-label="anchor" href="#requirements"></a>
@@ -92,31 +93,31 @@
 <ol style="list-style-type: decimal">
 <li>Install from Github using <a href="https://github.com/r-lib/remotes" class="external-link">Remotes</a>.</li>
 </ol>
-<pre><code><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"amc-heme/scExploreR"</span><span class="op">)</span></span></code></pre>
-<p>If this is your first time setting up scExploreR, we reccomend you view the <a href="https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html"><strong>App Setup Walkthrough</strong></a>, which applies the process in steps 3-5 to an example object.</p>
+<pre><code><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"amc-heme/cellDIVER"</span><span class="op">)</span></span></code></pre>
+<p>If this is your first time setting up cellDIVER, we reccomend you view the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html"><strong>App Setup Walkthrough</strong></a>, which applies the process in steps 3-5 to an example object.</p>
 <ol start="2" style="list-style-type: decimal">
 <li><p>Process or obtain a finalized single cell object.</p></li>
-<li><p>Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the <a href="https://amc-heme.github.io/scExploreR/articles/config_documentation.html"><strong>Full Config App Documentation</strong></a> or the <a href="https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html"><strong>App Setup Walkthrough</strong></a>.</p></li>
+<li><p>Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the <a href="https://amc-heme.github.io/cellDIVER/articles/config_documentation.html"><strong>Full Config App Documentation</strong></a> or the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html"><strong>App Setup Walkthrough</strong></a>.</p></li>
 </ol>
-<pre><code><span><span class="fu">scExploreR</span><span class="fu">::</span><span class="fu"><a href="reference/run_config.html">run_config</a></span><span class="op">(</span></span>
+<pre><code><span><span class="fu">cellDIVER</span><span class="fu">::</span><span class="fu"><a href="reference/run_config.html">run_config</a></span><span class="op">(</span></span>
 <span>  object_path <span class="op">=</span> <span class="st">"path_to_your_seurat_object.rds"</span>,</span>
 <span>  <span class="co"># The config path will be blank the first time you use the config app for an object</span></span>
 <span>  config_path <span class="op">=</span> <span class="st">"previously_loaded_config_file"</span></span>
 <span>  <span class="op">)</span></span></code></pre>
 <ol start="4" style="list-style-type: decimal">
 <li><p>To set up a browser for others to use, create a browser config YAML file (If you are using the browser locally for your own use, skip to step 4). The file will contain a list of datasets with the path to the objects and config files for each, along with browser specific settings. <!-- Complete and add --> <!--See [**browser config setup**]() for more info. --></p></li>
-<li><p>Run scExploreR. There are multiple ways to do this:</p></li>
+<li><p>Run cellDIVER. There are multiple ways to do this:</p></li>
 </ol>
 <ul>
 <li>
 <p>If setting up an app instance, use the path to your config file.</p>
-<pre><code><span>  <span class="fu">scExploreR</span><span class="fu">::</span><span class="fu"><a href="reference/run_scExploreR.html">run_scExploreR</a></span><span class="op">(</span></span>
+<pre><code><span>  <span class="fu">cellDIVER</span><span class="fu">::</span><span class="fu"><a href="reference/run_cellDIVER.html">run_cellDIVER</a></span><span class="op">(</span></span>
 <span>    browser_config <span class="op">=</span> <span class="st">"./config.yaml"</span></span>
 <span>    <span class="op">)</span></span></code></pre>
 </li>
 <li>
 <p>If setting up locally, and if you only have one object, you may instead enter the path to your object and object-specific config file.</p>
-<pre><code>  scExploreR::run_scExploreR(
+<pre><code>  cellDIVER::run_cellDIVER(
     object_path = "./object.rds"
     config_path = "./config.yaml"
     )</code></pre>
@@ -139,8 +140,8 @@
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/amc-heme/scExploreR/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/amc-heme/scExploreR/issues" class="external-link">Report a Bug</a></li>
+<li><a href="https://github.com/amc-heme/cellDIVER/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/amc-heme/cellDIVER/issues" class="external-link">Report a Bug</a></li>
 </ul>
 </div>
 

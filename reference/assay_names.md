@@ -45,7 +45,7 @@ assay_names(object)
   modalities/assays. Additional modalities are stored in obsm, but this
   slot is not specific to modalities. To use assay_names with Anndata
   objects, a vector of assays (python list) must be stored in
-  `object.uns["scExploreR_assays"]`. This method will return an error if
+  `object.uns["cellDIVER_assays"]`. This method will return an error if
   this data is not present in the object.
 
 - `assay_names(md._core.mudata.MuData)`: MuData objects

@@ -1,14 +1,14 @@
-# scExploreR Config App Documentation
+# cellDIVER Config App Documentation
 
-The scExploreR config app is used to configure single-cell objects for
+The cellDIVER config app is used to configure single-cell objects for
 display in the main browser. This vignette will walk through the
 operation of the app and detail all settings that may be adjusted.
 
 For guidelines on preparing objects before loading them into the config
 app, see the [object guidelines
-vignette](https://amc-heme.github.io/scExploreR/articles/object_guidelines.md),
+vignette](https://amc-heme.github.io/cellDIVER/articles/object_guidelines.md),
 and see the [app setup walkthrough
-vignette](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.md)
+vignette](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.md)
 for an interactive walkthrough of both object preparation and use of the
 config app.
 
@@ -309,7 +309,7 @@ to your local file system. The file will save in a .yaml format.
 #### Loading
 
 To load a config file, call
-[`run_config()`](https://amc-heme.github.io/scExploreR/reference/run_config.md)
+[`run_config()`](https://amc-heme.github.io/cellDIVER/reference/run_config.md)
 with the path to the saved file:
 
     run_config(

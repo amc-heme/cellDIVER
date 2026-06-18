@@ -1,7 +1,7 @@
 # App Setup Walkthrough
 
 This vignette will walk you through the process of setting up a dataset
-in scExploreR. This vignette is based on the Small Cell Lung Carcinoma
+in cellDIVER. This vignette is based on the Small Cell Lung Carcinoma
 dataset analyzed by [Chan et
 al. 2021](https://www.cell.com/cancer-cell/fulltext/S1535-6108(21)00497-9#gr1).
 To download the datasets for this tutorial, [go
@@ -32,23 +32,23 @@ in this vignette uses Reticulate, along with the
 provides utility functions for common exploration/data accession
 operations in single cell objects.
 
-By the end of this example, you will be able to set up an scExploreR
+By the end of this example, you will be able to set up an cellDIVER
 instance with both datasets.
 
-#### Process to host a dataset in scExploreR
+#### Process to host a dataset in cellDIVER
 
 1.  Explore object to determine appropriate data to display in app.
 2.  Use the config app to select relevant data and generate a config
     file
-3.  Launch scExploreR using the created config file
+3.  Launch cellDIVER using the created config file
 
 ## Dataset Exploration
 
-To host a dataset in scExploreR, you must indicate which metadata
+To host a dataset in cellDIVER, you must indicate which metadata
 variables, reductions, and modalities to include in the app. Whether you
 are setting up the app for end users or yourself, careful selection of
 the most relevant data is key to maximizing the effectiveness of
-scExploreR for your dataset.
+cellDIVER for your dataset.
 
 To understand what aspects to include, it is best to explore the object
 to identify relevant modalities, metadata, and reductions. When hosting
@@ -57,7 +57,7 @@ the object to skip this step.
 
 In this section, we will load the “Combined Samples” and “SCLC
 epithelial cells” objects and explore relevant data to include in the
-scExploreR instance.
+cellDIVER instance.
 
 ##### Note
 
@@ -98,7 +98,7 @@ splitting plots. Chosen metadata also populates the choices avaliable in
 subsetting, determining how the user can select sub-populations for
 further exploration.
 
-scExploreR allows you to select as many metadata variables as you like,
+cellDIVER allows you to select as many metadata variables as you like,
 even all of the ones in the object, but the app functions best when
 included metadata is limited to a handful of relevant variables. Adding
 variables less relevant to the end user provides limited benefit, and
@@ -453,14 +453,14 @@ There is only the main modality, gene expression, in the `X` slot.
 
 Other datasets may include surface protein (ADT) data, computed gene
 signatures per cell, or other data. **For anndata objects, alternate
-modalities must be stored in `obsm` to be accessible to scExploreR**
+modalities must be stored in `obsm` to be accessible to cellDIVER**
 (with the exception of `X`, of course). Seurat and SingleCellExperiment
 objects have defined slots for modalities: `@assays` in Seurat objects,
 and “alternate experiments” for SingleCellExperiment objects. For these
-object types, scExploreR will use these slots to access modality
+object types, cellDIVER will use these slots to access modality
 information. As long as feature expression data for each modality is
 stored using the convention for Seurat and SingleCellExperiment objects,
-no additional action is needed for scExploreR to find this data.
+no additional action is needed for cellDIVER to find this data.
 
 ### SCLC Epithelial Cells Object
 
@@ -639,7 +639,7 @@ This reduction does not appear in the figures of Chan et al. and is not
 explicitly mentioned in the methods section, so it is best to exclude it
 to keep things simple for the end user.
 
-## Configure Dataset-specific scExploreR Settings in the Config App
+## Configure Dataset-specific cellDIVER Settings in the Config App
 
 Now that we have identified metadata, reductions, and modalities to
 include for the dataset, the next step is to apply these settings in the
@@ -653,7 +653,7 @@ data are stored in `obsm`, and there is no exclusive storage slot for
 reductions or modalities in anndata objects.
 
 Alternate modalities and reductions should be stored in `uns`, under
-`scExploreR_assays` and `scExploreR_reductions`, respectively. This is
+`cellDIVER_assays` and `cellDIVER_reductions`, respectively. This is
 done below in python, via reticulate, for both the full object and the
 SCLC object.
 
@@ -668,15 +668,15 @@ This step is not required for Seurat or SingleCellExperiment objects.
 # Full object
 # Use `r.` to access the full dataset in python using Reticulate
 # No non-RNA modalities
-r.full_dataset.uns["scExploreR_assays"] = []
+r.full_dataset.uns["cellDIVER_assays"] = []
 
-r.full_dataset.uns["scExploreR_reductions"] = ["X_umap", "X_pca"]
+r.full_dataset.uns["cellDIVER_reductions"] = ["X_umap", "X_pca"]
 
 # SCLC object
-r.sclc_dataset.uns["scExploreR_assays"] = []
+r.sclc_dataset.uns["cellDIVER_assays"] = []
 
 # Indicate that X_diffmap is a reduction, even though it will not be used
-r.sclc_dataset.uns["scExploreR_reductions"] = ["X_umap", "X_pca", "X_diffmap"]
+r.sclc_dataset.uns["cellDIVER_reductions"] = ["X_umap", "X_pca", "X_diffmap"]
 ```
 
 After adding the data to `uns`, make sure to save both objects. They can
@@ -702,7 +702,7 @@ with the path to the downloaded dataset.
 
 ``` r
 
-scExploreR::run_config(
+cellDIVER::run_config(
   object_path = "~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad"
   )
 ```
@@ -752,7 +752,7 @@ this object (gene expression, in `X`).
 
 ![](dataset_setup_walkthrough-007-assay_tab_intro.png)
 
-To include a modality in scExploreR, select it under **“Available
+To include a modality in cellDIVER, select it under **“Available
 Assays”**. Once selected, it will appear under **“Selected Assays”**,
 and a card will appear on the right side of the screen with
 modality-specific options. Use the text entry to provide a display name
@@ -841,7 +841,7 @@ a guide.
 
 ``` r
 
-scExploreR::run_config(
+cellDIVER::run_config(
   object_path = "~/datasets/small_cell_lung_cancer/Epithelial_SCLC.h5ad"
 )
 ```
@@ -888,7 +888,7 @@ Options for X_umap - Label: “UMAP”
 
 ### Create an App Config File
 
-The final step before launching scExploreR is to create an app config
+The final step before launching cellDIVER is to create an app config
 file. The app config file specifies the paths of all objects used in the
 app and their respective config files, and it also defines app-wide
 settings. An example app config file is given below.
@@ -943,14 +943,14 @@ above and define the paths to the object and config files.
 Don’t forget the YAML version at the top. Version 1.1 is the latest
 version supported by the `yaml` package used to read the data into R.
 
-## Run scExploreR
+## Run cellDIVER
 
 The app can now be ran by providing the path to the app config file. Use
 the `browser_config` parameter to specify the path.
 
 ``` r
 
-scExploreR::run_scExploreR(
+cellDIVER::run_cellDIVER(
   browser_config = "~/datasets/small_cell_lung_cancer/sclc_app_config.yaml"
 )
 ```
@@ -958,12 +958,12 @@ scExploreR::run_scExploreR(
 ##### Note
 
 If you only have one object, you don’t need to make an app config file.
-You can simply run `run_scExploreR`, using the `object_path` and
+You can simply run `run_cellDIVER`, using the `object_path` and
 `config_path` parameters instead of `browser_config`.
 
 ``` r
 
-scExploreR::run_scExploreR(
+cellDIVER::run_cellDIVER(
   object_path = "~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad",
   config_path = "~/datasets/small_cell_lung_cancer/SCLC_Full_config.yaml"
 )

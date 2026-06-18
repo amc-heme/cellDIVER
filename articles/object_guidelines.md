@@ -1,11 +1,11 @@
-# Guidelines for Preparing objects for scExploreR
+# Guidelines for Preparing objects for cellDIVER
 
 This vignette details the requirements and guidelines for loading
-single-cell data in scExploreR.
+single-cell data in cellDIVER.
 
-## What objects can I upload to scExploreR?
+## What objects can I upload to cellDIVER?
 
-scExploreR works with many common object formats for single-cell data.
+cellDIVER works with many common object formats for single-cell data.
 Functionality is largely similar between object classes, but there are
 some differences. A table with the supported object classes summarizing
 the differences in functionality between each class is given below.
@@ -34,7 +34,7 @@ used for each object class are listed below.
 | **Seurat v5 + BPCells** | [BPcells::marker_features](https://bnprks.github.io/BPCells/reference/marker_features.html) |
 | **anndata** | [scanpy.tl.rank_genes_groups](https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.rank_genes_groups.html) |
 
-scExploreR uses the most performant wilcoxon rank sum function for each
+cellDIVER uses the most performant wilcoxon rank sum function for each
 object class. DGE is not available for SingleCellExperiment objects
 because there is no known package that can process both the standard
 sparse matrices and the HDF5-enabled DelayedArray matrices in these
@@ -51,8 +51,8 @@ docs.
 
 Objects should have the have the following characteristics below before
 loading into the browser. Objects lacking these properties may load in
-scExploreR, but key functionality may be limited, and unexpected
-behavior may be observed.
+cellDIVER, but key functionality may be limited, and unexpected behavior
+may be observed.
 
 Objects should have:
 
@@ -71,7 +71,7 @@ values in expression data are known to cause issues in the app. If you
 are using software that outputs count data that evaluates to `NA` in R,
 or `NaN` in Python, we recommend changing those values to `0`. If this
 causes issues with the software you are using, please [file an
-issue](https://github.com/amc-heme/scExploreR/issues) and mention the
+issue](https://github.com/amc-heme/cellDIVER/issues) and mention the
 software name in the issue title and text.
 
 - No `NA` values in metadata. `NA` values for categorical metadata
@@ -81,23 +81,23 @@ software name in the issue title and text.
 
 If you wish to load an object that doesn’t meet the conditions above,
 feel free to [file an
-issue](https://github.com/amc-heme/scExploreR/issues) describing your
+issue](https://github.com/amc-heme/cellDIVER/issues) describing your
 situation. Please search the issue board for similar situations to yours
 before filing an issue.
 
 ### Additional Preprocessing for anndata objects
 
-For anndata objects, scExploreR requires additional information to
-locate matrices corresponding to reductions and multimodal data. Unlike
-Seurat and SingleCellExperment objects, the anndata class does not
-specify storage locations exclusive to modalities and reductions.
-Instead, both are stored in `obsm`.
+For anndata objects, cellDIVER requires additional information to locate
+matrices corresponding to reductions and multimodal data. Unlike Seurat
+and SingleCellExperment objects, the anndata class does not specify
+storage locations exclusive to modalities and reductions. Instead, both
+are stored in `obsm`.
 
-For scExploreR to properly locate additional modalities and reductions,
+For cellDIVER to properly locate additional modalities and reductions,
 you must specify the names of the matrices in `obsm` corresponding to
 these data types. This is done by adding two python lists to `uns`:
-`uns.scExploreR_assays` for additional modalities, and
-`uns.scExploreR_reductions` for reductions.
+`uns.cellDIVER_assays` for additional modalities, and
+`uns.cellDIVER_reductions` for reductions.
 
 For example, if you have an object with surface protein measurements in
 `obsm.protein`, and UMAP and PCA reductions in `obsm.X_uamp` and
@@ -105,9 +105,9 @@ For example, if you have an object with surface protein measurements in
 (replacing `object` with the name of the variable you assigned to your
 object):
 
-    object.uns["scExploreR_reductions"] = ["X_umap", "X_pca"]
+    object.uns["cellDIVER_reductions"] = ["X_umap", "X_pca"]
 
-    object.uns["scExploreR_assays"] = ["protein"]
+    object.uns["cellDIVER_assays"] = ["protein"]
 
 For an additional example, see the [app setup walkthrough
-vignette](https://amc-heme.github.io/scExploreR/articles/dataset_setup_walkthrough.html#anndata_uns_requirements).
+vignette](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html#anndata_uns_requirements).
