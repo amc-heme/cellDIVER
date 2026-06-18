@@ -52,6 +52,8 @@ Description: Shiny app for scRNA-seq visualization and analysis
 License: MIT + file LICENSE
 LazyData: true
 Imports:
+    bsicons, 
+    bslib,
     colourpicker,
     cowplot,
     dplyr,
@@ -59,10 +61,12 @@ Imports:
     ggplot2,
     ggsci,
     glue,
+    gtools,
     HDF5Array,
     lifecycle,
     patchwork,
     RColorBrewer,
+    R.devices,
     rintrojs (>= 0.3.0),
     rlang,
     rlog (>= 0.1.0),

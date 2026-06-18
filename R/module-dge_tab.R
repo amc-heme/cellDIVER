@@ -1408,7 +1408,7 @@ dge_tab_server <- function(id,
       
       # UMAP plot
       output$umap <- 
-        suppressGraphics(
+        R.devices::suppressGraphics(
           renderPlot({
             dge_umap()
             })

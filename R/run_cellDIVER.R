@@ -59,7 +59,6 @@ run_cellDIVER <-
     # Load Libraries and Data ------------------------------------------------------
     ## Initialize libraries ####
     library(shiny)
-    library(shinymanager)
     library(Seurat, quietly = TRUE, warn.conflicts = FALSE)
 
     #library(SCUBA, quietly = TRUE, warn.conflicts = FALSE)
