@@ -64,6 +64,7 @@ Imports:
     grDevices,
     gtools,
     HDF5Array,
+    hextant,
     lifecycle,
     methods,
     patchwork,
@@ -96,7 +97,8 @@ Imports:
     yaml
 Remotes: 
     github::amc-heme/SCUBA,
-    github::amc-heme/scDE
+    github::amc-heme/scDE,
+    github::amc-heme/hextant
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: 
