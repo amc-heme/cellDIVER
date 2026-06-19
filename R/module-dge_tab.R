@@ -7,6 +7,11 @@
 #' app.
 #' @param metadata_config the metadata section of the config file imported in 
 #' the main server function.
+#' @param assay_config the assays section of the config file imported in 
+#' the main server function. Used to create the assay selection menu.
+#' @param designated_genes_assay the name of the assay designated in the config 
+#' file as the genes assay. Used to set the default selection. If NULL, the 
+#' first assay will be selected by default.
 #' @param meta_categories the metadata variables exposed by the config user.
 #' @param meta_choices a named vector giving the metadata categories defined in
 #' the config file, with their respective labels for display in dropdown menus.
@@ -21,6 +26,8 @@
 dge_tab_ui <- function(id,
                        unique_metadata,
                        metadata_config,
+                       assay_config,
+                       designated_genes_assay,
                        meta_categories,
                        meta_choices,
                        auto_dictionary_path,
@@ -39,8 +46,9 @@ dge_tab_ui <- function(id,
           id = ns("sidebar"),
           tags$h3("Differential Gene Expression"),
           tags$p(
-          "Use the dropdown menus below to select the desired test, the groups 
-          to use, and the subset on which to perform the test."
+          "Use the dropdown menus below to select the desired test, the assays 
+          to analyze, the groups to use, and the subset on which to perform 
+          the test."
           ),
           
           collapsible_panel(
@@ -53,6 +61,31 @@ dge_tab_ui <- function(id,
               id = ns("test_selections"),
               meta_choices = meta_choices
               ),
+            
+            # Assay selection for multi-assay differential expression ####
+            # Create choices for assay selection using dropdown_title from 
+            # config
+            checkboxGroupInput(
+              inputId = ns("assays"),
+              label = "Assays to Analyze:",
+              choices = 
+                setNames(
+                  names(assay_config),
+                  sapply(
+                    assay_config, 
+                    function(assay_info) {
+                      assay_info$dropdown_title
+                      }
+                    )
+                  ),
+              selected = 
+                if (!is.null(designated_genes_assay) && 
+                    isTruthy(designated_genes_assay)) {
+                  designated_genes_assay
+                } else {
+                  names(assay_config)[[1]]
+                }
+            ),
             
             # Checkbox to return positive markers only (shown for both modes)
             checkboxInput(
@@ -210,9 +243,10 @@ dge_tab_ui <- function(id,
 
 #' Differential Gene Expression Tab Module
 #'
-#' The server instance of the differential gene expression tab module. One 
-#' instance should be created for each object to avoid input collisions between 
-#' objects with similarly named metadata columns.
+#' The server instance of the differential gene expression tab module. This
+#' module supports multi-assay differential expression analysis. One instance 
+#' should be created for each object to avoid input collisions between objects 
+#' with similarly named metadata columns.
 #'
 #' @param id Used to match server function to ui function. "dge" is the 
 #' recommended value to use.
@@ -220,10 +254,10 @@ dge_tab_ui <- function(id,
 #' @param metadata_config The metadata section of the config file imported in 
 #' the main server function.
 #' @param assay_config The assays section of the config file imported in 
-#' the main server function.
+#' the main server function. Used to enable multi-assay analysis.
 #' @param designated_genes_assay the name of the assay designated in the config 
-#' file as the genes assay. If NULL, the first assay will be assumed to be the 
-#' genes assay.
+#' file as the genes assay. Used to set the default assay selection. If NULL, 
+#' the first assay will be selected by default.
 #' @param meta_categories a named vector of metadata categories retrieved from the 
 #' config file.
 #' @param unique_metadata a list of all the unique metadata values in the current 
@@ -238,7 +272,8 @@ dge_tab_ui <- function(id,
 #' display to the user based on the errors detected
 #'
 #' @return server code for the differential gene expression tab. Reactive 
-#' expressions are contained within the namespace set by `id`
+#' expressions are contained within the namespace set by `id`. Results include
+#' an `assay` column to distinguish features from different assays.
 #'
 #' @noRd
 dge_tab_server <- function(id,
@@ -395,6 +430,10 @@ dge_tab_server <- function(id,
             log_info("DGE Tab: Submit button pressed")
             sidebar_spinner$show()
             main_spinner$show()
+            
+            # Disable assay selector during analysis
+            shinyjs::disable("assays")
+            
             log_session(session)
             log_info("DGE Tab: Spinners displayed.")
             
@@ -609,6 +648,9 @@ dge_tab_server <- function(id,
                   main_spinner$hide()
                   sidebar_spinner$hide()
                   
+                  # Re-enable assay selector
+                  shinyjs::enable("assays")
+                  
                   # Return NULL for subset to 
                   # discontinue downstream calculations
                   NULL
@@ -788,6 +830,9 @@ dge_tab_server <- function(id,
             # In case spinners are displayed, remove them
             sidebar_spinner$hide()
             main_spinner$hide()
+            
+            # Re-enable assay selector
+            shinyjs::enable("assays")
           }
           
         })
@@ -840,6 +885,9 @@ dge_tab_server <- function(id,
                   main_spinner$hide()
                   sidebar_spinner$hide()
                   
+                  # Re-enable assay selector
+                  shinyjs::enable("assays")
+                  
                   # Return nothing for the dge table in the event of an error
                   return(NULL)
                   },
@@ -861,36 +909,127 @@ dge_tab_server <- function(id,
                     }
                   }
                   
-                  # Note: designated genes assay is no longer used
-                  dge_table <-
-                    # Use DGE generic to determine test to run
-                    scDE::run_dge(
-                      object = subset(),
-                      group_by = 
-                        if (metaclusters_present()){
-                          "metacluster"
-                        } else if (thresholding_present()){
-                          "simple_expr_threshold"
-                        } else {
-                          group_by_category()
-                        },
-                      # Seurat assay: designated genes assay, or the first
-                      # assay if undefined.
-                      # This is only used for Seurat objects
-                      seurat_assay =
-                        if (isTruthy(designated_genes_assay())){
-                          designated_genes_assay()
-                        } else names(assay_config())[[1]],
-                      # Positive genes only: based on user input
-                      positive_only = input$pos,
-                      # Report results using a log2 fold change
-                      lfc_format = "log2",
-                      # Show only adjusted p-value column
-                      remove_raw_pval = FALSE
-                      )
+                  # Multi-assay differential expression ####
+                  # Get selected assays from user input
+                  selected_assays <- input$assays
                   
-                  log_session(session)
-                  log_info("DGE Tab: Completed scDE DGE")
+                  # Validate that at least one assay is selected
+                  if (is.null(selected_assays) || 
+                      length(selected_assays) == 0) {
+                    stop("Please select at least one assay to analyze.")
+                  }
+                  
+                  # Run DGE for each selected assay
+                  dge_results_list <- list()
+                  failed_assays <- character()
+                  
+                  # Determine group_by variable (shared across all assays)
+                  group_by_variable <- 
+                    if (metaclusters_present()){
+                      "metacluster"
+                    } else if (thresholding_present()){
+                      "simple_expr_threshold"
+                    } else {
+                      group_by_category()
+                    }
+                  
+                  # Loop over each selected assay
+                  for (assay_name in selected_assays) {
+                    tryCatch({
+                      log_session(session)
+                      log_info(
+                        paste0(
+                          "DGE Tab: Running scDE DGE for assay: ", 
+                          assay_name
+                          )
+                        )
+                      
+                      # Run differential expression for this assay
+                      dge_result <- scDE::run_dge(
+                        object = subset(),
+                        group_by = group_by_variable,
+                        # Seurat assay: current assay from loop
+                        # This parameter is only used for Seurat objects
+                        seurat_assay = assay_name,
+                        # Positive genes only: based on user input
+                        positive_only = input$pos,
+                        # Report results using a log2 fold change
+                        lfc_format = "log2",
+                        # Show only adjusted p-value column
+                        remove_raw_pval = FALSE
+                      )
+                      
+                      # Add assay column to identify which assay these 
+                      # results came from
+                      dge_result$assay <- assay_name
+                      
+                      # Store successful result
+                      dge_results_list[[assay_name]] <- dge_result
+                      
+                      log_session(session)
+                      log_info(
+                        paste0(
+                          "DGE Tab: Completed scDE DGE for assay: ", 
+                          assay_name
+                          )
+                        )
+                      
+                    }, error = function(assay_error) {
+                      # Log the error for this specific assay
+                      log_session(session)
+                      log_error(
+                        paste0(
+                          "DGE Tab: Failed for assay ", 
+                          assay_name, 
+                          ": ", 
+                          assay_error$message
+                          )
+                        )
+                      
+                      # Add to list of failed assays
+                      failed_assays <<- c(failed_assays, assay_name)
+                    })
+                  }
+                  
+                  # Handle results: check if any assays succeeded
+                  if (length(dge_results_list) == 0) {
+                    # All assays failed - stop with error
+                    stop(
+                      paste0(
+                        "Differential expression analysis failed for all ",
+                        "selected assays: ",
+                        paste(failed_assays, collapse = ", ")
+                        )
+                      )
+                  } else {
+                    # At least one assay succeeded - combine results
+                    dge_table <- dplyr::bind_rows(dge_results_list)
+                    
+                    # Show warning notification if some assays failed
+                    if (length(failed_assays) > 0) {
+                      showNotification(
+                        paste0(
+                          "Warning: Differential expression analysis ",
+                          "failed for the following assays: ",
+                          paste(failed_assays, collapse = ", "),
+                          ". Results are shown for successful assays only."
+                          ),
+                        type = "warning",
+                        duration = 10
+                      )
+                    }
+                    
+                    log_session(session)
+                    log_info(
+                      paste0(
+                        "DGE Tab: Completed scDE DGE for all assays. ",
+                        "Successful: ", 
+                        length(dge_results_list), 
+                        ", Failed: ", 
+                        length(failed_assays)
+                        )
+                      )
+                  }
                   
                   # Compute on values of table (for use with automated tests)
                   # Commented out, column formatting here does not apply for 
@@ -965,6 +1104,9 @@ dge_tab_server <- function(id,
               main_spinner$hide()
               sidebar_spinner$hide()
               
+              # Re-enable assay selector
+              shinyjs::enable("assays")
+              
               # Return NULL for subset to 
               # discontinue downstream calculations
               NULL
@@ -1003,6 +1145,20 @@ dge_tab_server <- function(id,
                   dge_table %>% 
                   dplyr::filter(
                     feature %in% dge_table_filters$feature()
+                  )
+              }
+              
+              if (session$userData$dev_mode == TRUE){
+                print(paste0("Number of rows remaining: ", nrow(dge_table)))
+                print("Filtering by assay:")
+              }
+              
+              # Filter by assay
+              if (isTruthy(dge_table_filters$assay())){
+                dge_table <-
+                  dge_table %>% 
+                  dplyr::filter(
+                    assay %in% dge_table_filters$assay()
                   )
               }
               
@@ -1196,10 +1352,38 @@ dge_tab_server <- function(id,
               c(`Feature` = "feature",
                 `Average Expression` = "avgExpr", 
                 `AUC` = "auc",
-                `Adjusted p-value` = "pval_adj"
+                `Adjusted p-value` = "pval_adj",
+                `Assay` = "assay"
                 )
             
             table <- dplyr::rename(table, any_of(rename_cols))
+            
+            # Reorder columns to place Assay column early in the table ####
+            # Desired order: Feature, Group, Assay, log2FC, then remaining cols
+            # Only reorder if Assay column is present
+            if ("Assay" %in% colnames(table)) {
+              # Get all column names
+              all_cols <- colnames(table)
+              
+              # Define the desired order for the first columns
+              priority_cols <- c("Feature", group_rename, "Assay", "log2FC")
+              
+              # Get priority columns that exist in the table
+              first_cols <- priority_cols[priority_cols %in% all_cols]
+              
+              # Get remaining columns (excluding priority and "Additional Info")
+              remaining_cols <- setdiff(
+                all_cols, 
+                c(first_cols, "Additional Info")
+                )
+              
+              # Create final column order: priority cols, remaining cols, 
+              # Additional Info last
+              final_order <- c(first_cols, remaining_cols, "Additional Info")
+              
+              # Reorder the table
+              table <- table[, final_order]
+            }
             
             datatable(
               table,
@@ -1383,6 +1567,10 @@ dge_tab_server <- function(id,
           # Hide spinners
           sidebar_spinner$hide()
           main_spinner$hide()
+          
+          # Re-enable assay selector after analysis completes
+          shinyjs::enable("assays")
+          
           log_session(session)
           log_info("DGE Tab: Spinners removed.")
           })

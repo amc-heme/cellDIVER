@@ -110,9 +110,57 @@ dge_table_filtering_ui <- function(id){
             )
           ),
         
+        # Filter by assay ####
+        collapsible_panel(
+          inputId = ns("assay_header"),
+          label = 
+            tags$span(
+              tags$span("Filter by Assay: "),
+              a(
+                id = ns("assay_tooltip"),
+                icon("info-circle"), 
+                href = paste0(
+                  "https://amc-heme.github.io/scExploreR/articles/", 
+                  "full_documentation.html"
+                  ),  
+                target = "_blank"
+                )
+              ),
+          transparent = TRUE,
+          size = "s",
+          # VirtualSelectInput for assay filtering
+          shinyWidgets::virtualSelectInput(
+            inputId = ns("assay"),
+            label = NULL,
+            # Choices are populated in the server based on results
+            choices = NULL, 
+            selected = character(0),
+            multiple = TRUE,
+            search = TRUE,
+            optionsCount = 5,
+            zIndex = 3
+            ),
+          shinyBS::bsTooltip(
+            id = ns("assay_tooltip"), 
+            title = 
+              paste0(
+                'Select assays in the menu to filter the table for ',
+                'those assays. When no assays are selected, all assays will ',
+                'be included in the table (no filtering will be applied based ',
+                'on assay). Use the checkbox next to "search" to select or ',
+                'de-select all assays, and the "search" text box to search ',
+                'for assays via text.'
+                ), 
+            placement = "bottom", 
+            trigger = "hover",
+            options = NULL
+            )
+          ),
+        
         # Average Expression filter interface
         # Collapsible panel is within a container to show/hide the whole
-        # interface based on the presence/absence of the average expression column
+        # interface based on the presence/absence of the average 
+        # expression column
         div(
           id = ns("expr_ui"),
           collapsible_panel(
@@ -672,6 +720,21 @@ dge_table_filtering_server <-
               )
           }
           
+          # Assay filter: update based on assays present in table
+          if ("assay" %in% colnames(dge_table())){
+            all_assays <-
+              dge_table() %>% 
+              dplyr::pull(assay) %>% 
+              unique()
+            
+            shinyWidgets::updateVirtualSelect(
+              session = session,
+              inputId = "assay",
+              choices = all_assays,
+              selected = character(0)
+              )
+          }
+          
           # Expression slider: update based on range of avgExpr column
           if ("avgExpr" %in% colnames(dge_table())){
             # Determine min, max L2FC values
@@ -902,6 +965,7 @@ dge_table_filtering_server <-
           list(
             `group` = reactive({input$group}),
             `feature` = reactive({input$feature}),
+            `assay` = reactive({input$assay}),
             `expression` = expr_value,
             `lfc` = lfc_value,
             `auc` = auc,
