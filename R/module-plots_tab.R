@@ -533,16 +533,16 @@ plots_tab_ui <- function(id,
                        }
                      )
                  )
-             ),
-             bsTooltip(
-               id = ns("continuous_palette_div"),
-               title = "Continous palette applies to Dot Plot and Feature plot.",
-               placement = "top",
-               trigger = "hover",
-               options = NULL
-             )
-           )
-         ),
+              ),
+              bsTooltip(
+                id = ns("continuous_palette_div"),
+                title = "Continous palette applies to Dot Plot and Feature plot.",
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
+            )
+          ),
          
          ## 1.4. Feature summary statistics ####
          # Panel is hidden until at least one feature has been entered
@@ -730,15 +730,15 @@ plots_tab_ui <- function(id,
                group_by =              TRUE,
                split_by =              FALSE,
                title_menu =            FALSE,
-               sort_groups_menu =      TRUE,
-               dot_x_labels_menu =     TRUE,
-               ncol_slider =           FALSE,
-               order_checkbox =        FALSE,
-               label_checkbox =        FALSE,
-               legend_checkbox =       TRUE,
-               limits_checkbox =       FALSE,
-               custom_colors =         FALSE,
-               manual_dimensions =     TRUE,
+                sort_groups_menu =      TRUE,
+                dot_x_labels_menu =     TRUE,
+                ncol_slider =           FALSE,
+                order_checkbox =        FALSE,
+                label_checkbox =        FALSE,
+                legend_checkbox =       TRUE,
+                limits_checkbox =       FALSE,
+                custom_colors =         TRUE,
+                manual_dimensions =     TRUE,
                separate_features =     TRUE,
                download_button =       TRUE
                )
@@ -1172,17 +1172,17 @@ plots_tab_server <- function(id,
                            return(
                              continuous_palettes[[input$continuous_palette]]
                            )
-                         }
-                       } else {
-                         # If input$continuous_palette is NULL, pass NULL to 
-                         # this reactive expression. Default palettes will be 
-                         # used when the output is NULL.
-                         return(NULL)
-                       }
-                       
-                     })
-                 
-                 # 3. Plot Modules ---------------------------------------------
+                          }
+                        } else {
+                          # If input$continuous_palette is NULL, pass NULL to 
+                          # this reactive expression. Default palettes will be 
+                          # used when the output is NULL.
+                          return(NULL)
+                        }
+                        
+                      })
+                  
+                  # 3. Plot Modules ---------------------------------------------
                  # A server instance of the plot_module is created for each plot
                  ## 3.1. Dimplot ####
                  plot_module_server(
@@ -1203,32 +1203,32 @@ plots_tab_server <- function(id,
                    palette = selected_categorical_palette
                    )
                  
-                 ## 3.2. Feature Plot ####
-                 plot_module_server(
-                   id = "feature",
-                   object = subset, 
-                   # plot_switch: uses the input$make_feature switch
-                   plot_switch = reactive({input$make_feature}),
-                   features_entered = reactive({input$text_features}),
-                   plot_label = "Feature Plot",
-                   raw_feature_names = reactive({input$raw_feature_names}),
-                   n_cells_original = n_cells_original, 
-                   plots_tab_spinner = main_spinner,
-                   # Instructs server on which plot function to run
-                   plot_type = "feature",
-                   valid_features = valid_features,
-                   assay_config = assay_config,
-                   metadata_config = metadata_config,
-                   lim_orig = lim_orig,
-                   # Both palettes are passed to feature plot. Continuous
-                   # palette is used unless "color_by_feature" is TRUE
-                   palette = 
-                     list(
-                       "categorical_palette" = selected_categorical_palette,
-                       "continuous_palette" = selected_continuous_palette
-                       ),
-                   blend_palettes = blend_palettes
-                   )
+                  ## 3.2. Feature Plot ####
+                  plot_module_server(
+                    id = "feature",
+                    object = subset, 
+                    # plot_switch: uses the input$make_feature switch
+                    plot_switch = reactive({input$make_feature}),
+                    features_entered = reactive({input$text_features}),
+                    plot_label = "Feature Plot",
+                    raw_feature_names = reactive({input$raw_feature_names}),
+                    n_cells_original = n_cells_original, 
+                    plots_tab_spinner = main_spinner,
+                    # Instructs server on which plot function to run
+                    plot_type = "feature",
+                    valid_features = valid_features,
+                    assay_config = assay_config,
+                    metadata_config = metadata_config,
+                    lim_orig = lim_orig,
+                    # Both palettes are passed to feature plot. Continuous
+                    # palette is used unless "color_by_feature" is TRUE
+                    palette = 
+                      list(
+                        "categorical_palette" = selected_categorical_palette,
+                        "continuous_palette" = selected_continuous_palette
+                        ),
+                    blend_palettes = blend_palettes
+                    )
                  
                  ## 3.3. Violin Plot ####
                  plot_module_server(
@@ -1248,24 +1248,24 @@ plots_tab_server <- function(id,
                    palette = selected_categorical_palette
                    )
                  
-                 ## 3.4. Dot plot ####
-                 plot_module_server(
-                   id = "dot",
-                   object = subset, 
-                   # plot_switch: uses the input$make_dot switch
-                   plot_switch = reactive({input$make_dot}),
-                   features_entered = reactive({input$text_features}),
-                   raw_feature_names = reactive({input$raw_feature_names}),
-                   plots_tab_spinner = main_spinner,
-                   plot_label = "Dot Plot", 
-                   # Instructs server on which plot function to run
-                   plot_type = "dot",
-                   assay_config = assay_config,
-                   valid_features = valid_features,
-                   separate_features_server = TRUE,
-                   # Use continuous palettes for dot plot
-                   palette = selected_continuous_palette
-                   )
+                  ## 3.4. Dot plot ####
+                  plot_module_server(
+                    id = "dot",
+                    object = subset, 
+                    # plot_switch: uses the input$make_dot switch
+                    plot_switch = reactive({input$make_dot}),
+                    features_entered = reactive({input$text_features}),
+                    raw_feature_names = reactive({input$raw_feature_names}),
+                    plots_tab_spinner = main_spinner,
+                    plot_label = "Dot Plot", 
+                    # Instructs server on which plot function to run
+                    plot_type = "dot",
+                    assay_config = assay_config,
+                    valid_features = valid_features,
+                    separate_features_server = TRUE,
+                    # Pass continuous palette for dot plot
+                    palette = selected_continuous_palette
+                    )
                  
                  ## 3.5. Scatterplot ####
                  plot_module_server(

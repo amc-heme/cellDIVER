@@ -48,6 +48,9 @@
 #' This does not work for multi-feature plots with a split by category.
 #' @param palette A color palette to use for plotting expression values. This 
 #' is ignored for blended feature plots.
+#' @param diverging_palette A 3-color diverging palette (low, mid, high) for use 
+#' with scale_color_gradient2() with a fixed midpoint at 0. Takes precedence over 
+#' palette when provided.
 #' @param blend_palette a two-color palette to use for blended feature plots.
 #' @param blend_layout for blended plots, sets whether the plot displays in a 
 #' two-column or four-column layout.
@@ -79,6 +82,7 @@ shiny_feature <- function(object,
                           legend_title = NULL,
                           ncol = NULL, 
                           palette = NULL,
+                          diverging_palette = NULL,
                           blend_palette = NULL,
                           blend_layout = NULL,
                           reduction = NULL
@@ -124,7 +128,13 @@ shiny_feature <- function(object,
         label_by = group_by,
         # Colors: set to colors passed in the palette. 
         # If NULL, Seurat defaults are used
-        colors = if (!is.null(palette)) palette,
+        # Note: diverging_palette takes precedence and is applied as a layer below
+        colors = if (!is.null(diverging_palette)) {
+          # Pass NULL to use defaults, diverging colors applied as layer
+          NULL
+        } else if (!is.null(palette)) {
+          palette
+        },
         show_title = show_title,
         # Use custom titles if defined
         custom_titles = if (!is.null(custom_titles)) custom_titles else NULL,
@@ -147,6 +157,22 @@ shiny_feature <- function(object,
         order = order,
         assay_config = assay_config
         )
+    
+    # Apply diverging or standard color scales as layers
+    # (overrides any default colors set by FeaturePlotSingle)
+    if (isTruthy(diverging_palette)){
+      # Use diverging palette with 3 colors and midpoint at 0
+      feature_plot <- feature_plot &
+        scale_color_gradient2(
+          low = diverging_palette[1],
+          mid = diverging_palette[2],
+          high = diverging_palette[3],
+          midpoint = 0
+        )
+    } else if (isTruthy(palette)){
+      # Use standard continuous palette (already applied via colors parameter above)
+      # No additional layer needed
+    }
     
     # cellDIVER-specific modification of ggtitle for single feature plots
     # with a split-by variable 
@@ -190,36 +216,60 @@ shiny_feature <- function(object,
     if (split_by == "none"){
       ## Multi-feature plots, no split by variable ####
       # Use MultiFeatureSimple from featurePlotWrapper.R
-      MultiFeatureSimple(
-        object,
-        features = features_entered,
-        label_by = group_by,
-        # Colors: set to colors passed in the palette. 
-        # If NULL, Seurat defaults are used
-        colors = if (!is.null(palette)) palette,
-        color_by_feature = color_by_feature,
-        show_title = show_title,
-        # Use custom titles if defined
-        custom_titles = if (!is.null(custom_titles)) custom_titles else NULL,
-        share_scale = share_scale,
-        legend_title = legend_title,
-        ncol = ncol,
-        reduction = 
-          if (!is.null(reduction)) reduction else NULL,
-        xlim = 
-          if (isTruthy(original_limits)){
-            xlim_orig
-          } else NULL,
-        ylim = 
-          if (isTruthy(original_limits)){
-            ylim_orig
-          } else NULL,
-        show_legend = show_legend,
-        # `...` arguments passed to FeaturePlot
-        label = show_label,
-        order = order,
-        assay_config = assay_config
-      )
+      feature_plot <-
+        MultiFeatureSimple(
+          object,
+          features = features_entered,
+          label_by = group_by,
+          # Colors: set to colors passed in the palette. 
+          # If NULL, Seurat defaults are used
+          # Note: diverging_palette takes precedence and is applied as a layer below
+          colors = if (!is.null(diverging_palette)) {
+            # Pass NULL to use defaults, diverging colors applied as layer
+            NULL
+          } else if (!is.null(palette)) {
+            palette
+          },
+          color_by_feature = color_by_feature,
+          show_title = show_title,
+          # Use custom titles if defined
+          custom_titles = if (!is.null(custom_titles)) custom_titles else NULL,
+          share_scale = share_scale,
+          legend_title = legend_title,
+          ncol = ncol,
+          reduction = 
+            if (!is.null(reduction)) reduction else NULL,
+          xlim = 
+            if (isTruthy(original_limits)){
+              xlim_orig
+            } else NULL,
+          ylim = 
+            if (isTruthy(original_limits)){
+              ylim_orig
+            } else NULL,
+          show_legend = show_legend,
+          # `...` arguments passed to FeaturePlot
+          label = show_label,
+          order = order,
+          assay_config = assay_config
+        )
+      
+      # Apply diverging color scale as layer if specified
+      # (overrides any default colors set by MultiFeatureSimple)
+      if (isTruthy(diverging_palette) & !color_by_feature){
+        # Use diverging palette with 3 colors and midpoint at 0
+        # Note: only apply when not coloring by feature (which uses categorical palette)
+        feature_plot <- feature_plot &
+          scale_color_gradient2(
+            low = diverging_palette[1],
+            mid = diverging_palette[2],
+            high = diverging_palette[3],
+            midpoint = 0
+          )
+      }
+      
+      # Return the plot
+      feature_plot
     } else {
       ## Multi-feature plots, with split_by variable ####
       # Use FeaturePlot function (SCUBA/scPlots)
@@ -290,10 +340,22 @@ shiny_feature <- function(object,
           },
           
           # Element D: Custom colors
-          # If a palette is entered, use the palette for the plot.
+          # If a diverging_palette is provided, use scale_color_gradient2()
+          # with a fixed midpoint at 0 (for diverging 3-color palettes).
+          # Otherwise, if a palette is entered, use scale_color_gradientn()
+          # for standard 2-color continuous palettes.
           # The palette may be a continuous palette selected in the plot tab,
-          # or it may be a pair of user-defined custom colors.
-          if (isTruthy(palette)){
+          # or it may be user-defined custom colors.
+          if (isTruthy(diverging_palette)){
+            # Use diverging palette with 3 colors and midpoint at 0
+            scale_color_gradient2(
+              low = diverging_palette[1],
+              mid = diverging_palette[2],
+              high = diverging_palette[3],
+              midpoint = 0
+            )
+          } else if (isTruthy(palette)){
+            # Use standard continuous palette
             scale_color_gradientn(
               colors = c(palette)
             )

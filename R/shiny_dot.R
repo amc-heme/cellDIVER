@@ -6,6 +6,9 @@
 #' @param group_by user specified group_by metadata variable
 #' @param show_legend user choice as to whether a legend should be shown (default is TRUE)
 #' @param palette the color palette to use for the plot (plot uses a continuous color palette)
+#' @param diverging_palette A 3-color diverging palette (low, mid, high) for use 
+#' with scale_color_gradient2() with a fixed midpoint at 0. Takes precedence over 
+#' palette when provided.
 #' @param sort_groups the order with which to sort groups on the dot plot. This may be set to "ascending", "descending", or "custom". If ascending, groups will be sorted in increasing alphabetical order. If descending, they will be sorted in decreasing alphabetical order. If custom, groups will be sorted according to how they appear in `custom_factor_levels`.
 #' @param custom_factor_levels A character vector giving the order of groups if `sort_groups` is set to "custom".
 #' @param rename_feature_labels a character vector giving alternate names to use
@@ -22,6 +25,7 @@ shiny_dot <-
     group_by,
     show_legend = TRUE,
     palette = NULL,
+    diverging_palette = NULL,
     sort_groups = NULL,
     custom_factor_levels = NULL,
     rename_feature_labels = NULL
@@ -117,10 +121,20 @@ shiny_dot <-
           )
         )
 
-      # If a palette is defined, apply it to the plot
-      if (!is.null(palette)){
+      # If a diverging palette is defined, use it with scale_color_gradient2()
+      # (takes precedence over standard palette)
+      if (!is.null(diverging_palette)){
         plot <-
-          #suppressMessages()
+          plot +
+          scale_color_gradient2(
+            low = diverging_palette[1],
+            mid = diverging_palette[2],
+            high = diverging_palette[3],
+            midpoint = 0
+          )
+      } else if (!is.null(palette)){
+        # If a standard palette is defined, apply it with scale_color_gradientn()
+        plot <-
           plot +
           scale_color_gradientn(
             colors = palette

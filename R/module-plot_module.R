@@ -863,6 +863,48 @@ plot_module_ui <- function(id,
           )
         } else NULL,
 
+      ## Checkbox for custom diverging colors on Feature plot ####
+      if (custom_colors == TRUE){
+        tagList(
+          # Checkbox to select custom diverging colors (3-color palette)
+          checkboxInput(
+            inputId = ns("custom_diverging_colors"),
+            label = "Use Custom Diverging Colors (3 colors, center=0)",
+            # FALSE by default
+            value = FALSE
+          ),
+          conditionalPanel(
+            condition = glue("input['{ns('custom_diverging_colors')}'] == true"),
+            tagList(
+              div(
+                class = "two-color-input-left",
+                colourInput(
+                  inputId = ns("low_color"),
+                  label = "Low Value",
+                  value = "#2166AC"
+                  )
+                ),
+              div(
+                class = "two-color-input-right",
+                colourInput(
+                  inputId = ns("mid_color"),
+                  label = "Mid Value (0)",
+                  value = "#F7F7F7"
+                  )
+                ),
+              div(
+                class = "two-color-input-left",
+                colourInput(
+                  inputId = ns("high_color"),
+                  label = "High Value",
+                  value = "#B2182B"
+                  )
+                )
+              )
+            )
+          )
+        } else NULL,
+
       ## Custom x-axis limits ####
       # Currently for ridge plots only
       if (custom_x_axis_ui == TRUE){
@@ -2625,17 +2667,50 @@ plot_module_server <- function(id,
                          } else NULL
                        }),
 
-                     `max_color` =
-                       reactive(
-                         label =
-                           glue("{plot_label}: process max_color slection"),
-                         {
-                         if (isTruthy(input$custom_colors)){
-                           input$max_color
-                           } else NULL
-                         }),
+                      `max_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process max_color slection"),
+                          {
+                          if (isTruthy(input$custom_colors)){
+                            input$max_color
+                            } else NULL
+                          }),
 
-                     # Super title checkbox (feature plots with more than one
+                      # Custom diverging colors (3 colors: low, mid, high)
+                      `low_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process low_color selection"),
+                          {
+                          # Pass color value if custom diverging colors checkbox
+                          # exists and is selected
+                          if (isTruthy(input$custom_diverging_colors)){
+                            input$low_color
+                          } else NULL
+                        }),
+
+                      `mid_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process mid_color selection"),
+                          {
+                          if (isTruthy(input$custom_diverging_colors)){
+                            input$mid_color
+                          } else NULL
+                        }),
+
+                      `high_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process high_color selection"),
+                          {
+                          if (isTruthy(input$custom_diverging_colors)){
+                            input$high_color
+                          } else NULL
+                        }),
+
+                      # Super title checkbox (feature plots with more than one
                      # split_by category)
 
                      # Include legend
@@ -3929,24 +4004,42 @@ plot_module_server <- function(id,
                              lim_orig()[[plot_selections$reduction()]]$xlim_orig,
                            ylim_orig =
                              lim_orig()[[plot_selections$reduction()]]$ylim_orig,
-                           palette =
-                             if (plot_selections$color_by_feature() == FALSE){
-                               # Use custom colors if defined; if not, use the
-                               # palette if defined; if not, pass NULL to use
-                               # Seurat defaults.
-                               if (
-                                 isTruthy(plot_selections$min_color()) &
-                                 isTruthy(plot_selections$max_color())
-                               ){
-                                 c(plot_selections$min_color(),
-                                   plot_selections$max_color())
-                               } else if (isTruthy(palette())) {
-                                 palette$continuous_palette()
-                               } else NULL
-                             } else {
-                               palette$categorical_palette()
-                             },
-                           # Palette for blended feature plots
+                            palette =
+                              if (plot_selections$color_by_feature() == FALSE){
+                                # Use custom colors if defined; if not, use the
+                                # palette if defined; if not, pass NULL to use
+                                # Seurat defaults.
+                                if (
+                                  isTruthy(plot_selections$min_color()) &
+                                  isTruthy(plot_selections$max_color())
+                                ){
+                                  c(plot_selections$min_color(),
+                                    plot_selections$max_color())
+                                 } else if (is.list(palette)) {
+                                  palette$continuous_palette()
+                                } else NULL
+                              } else {
+                                if (is.list(palette)) {
+                                  palette$categorical_palette()
+                                } else if (is.function(palette)) {
+                                  palette()
+                                } else NULL
+                              },
+                            # Diverging palette (3 colors with midpoint at 0)
+                            diverging_palette =
+                              if (plot_selections$color_by_feature() == FALSE){
+                                # Use custom diverging colors if defined
+                                if (
+                                  isTruthy(plot_selections$low_color()) &
+                                  isTruthy(plot_selections$mid_color()) &
+                                  isTruthy(plot_selections$high_color())
+                                ){
+                                  c(plot_selections$low_color(),
+                                    plot_selections$mid_color(),
+                                    plot_selections$high_color())
+                                } else NULL
+                              } else NULL,
+                            # Palette for blended feature plots
                            blend_palette =
                              # Use value from blend palette, unless custom
                              if (plot_selections$blend_palette() != "custom"){
@@ -4060,22 +4153,39 @@ plot_module_server <- function(id,
                            all(features() %in% valid_keyed_features)
                            )
 
-                         shiny_dot(
-                           object = object(),
-                           # Features argument: uses value returned by reactive
-                           features = features(),
-                           # use_separate_features =
-                           #   reactive({input$use_separate_features}),
-                           # separate_features =
-                           #   reactive({input$separate_features}),
-                           group_by = plot_selections$group_by(),
-                           show_legend = plot_selections$legend(),
-                           palette = palette(),
-                           sort_groups = plot_selections$sort_groups(),
-                           custom_factor_levels =
-                             plot_selections$custom_refactoring(),
-                           rename_feature_labels = dot_x_labels()
-                           )
+                          shiny_dot(
+                            object = object(),
+                            # Features argument: uses value returned by reactive
+                            features = features(),
+                            # use_separate_features =
+                            #   reactive({input$use_separate_features}),
+                            # separate_features =
+                            #   reactive({input$separate_features}),
+                            group_by = plot_selections$group_by(),
+                            show_legend = plot_selections$legend(),
+                             palette = 
+                              if (is.list(palette)){
+                                palette$continuous_palette()
+                              } else if (is.function(palette)) {
+                                palette()
+                              } else NULL,
+                            # Diverging palette (3 colors with midpoint at 0)
+                            diverging_palette = 
+                              # Use custom diverging colors if defined
+                              if (
+                                isTruthy(plot_selections$low_color()) &
+                                isTruthy(plot_selections$mid_color()) &
+                                isTruthy(plot_selections$high_color())
+                              ){
+                                c(plot_selections$low_color(),
+                                  plot_selections$mid_color(),
+                                  plot_selections$high_color())
+                              } else NULL,
+                            sort_groups = plot_selections$sort_groups(),
+                            custom_factor_levels =
+                              plot_selections$custom_refactoring(),
+                            rename_feature_labels = dot_x_labels()
+                            )
                          })
                  } else if (plot_type == "scatter"){
                    ### 11.2.5. Scatterplot ####
