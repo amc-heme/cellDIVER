@@ -30,8 +30,6 @@ navbar:
         href: articles/tutorial.html
       - text: Object Preparation Guidelines
         href: articles/object_guidelines.html
-      - text: Deploying With Docker
-        href: articles/docker.html
       - text: -------
       - text: "Additional Information"
       - text: Guide to scRNA-Seq Plots
