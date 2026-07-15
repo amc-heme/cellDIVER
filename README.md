@@ -87,6 +87,16 @@ docker run --rm -p 3838:3838 celldiver
 ```
 Open <http://localhost:3838/> for the directory index. The demo data browser is at `/demo/browser` and its config editor at `/demo/config`. (`--platform=linux/amd64` is only needed on Apple-Silicon/ARM hosts.)
 
+**PR approval smoke test (concise):**
+1. Build from a clean state: `docker build --platform=linux/amd64 -t celldiver .`
+2. Run the container: `docker run --rm -p 3838:3838 celldiver`
+3. Confirm these routes load:
+   - `/` (directory index)
+   - `/demo/` (dataset folder index)
+   - `/demo/browser/` (`cellDIVER` app)
+   - `/demo/config/` (`Configure Seurat Object` app)
+4. Confirm both apps log `Listening on` without startup errors.
+
 **Deploy your own data:** mount a host folder of per-dataset subdirectories at `/srv/shiny-server`:
 ```
 docker run --rm -p 3838:3838 -v /path/to/apps:/srv/shiny-server celldiver
