@@ -1642,7 +1642,7 @@ run_cellDIVER <-
 
         # Pull full metadata table
         object_metadata <-
-          fetch_metadata(
+          SCUBA::fetch_metadata(
             isolate({
               object()
             }),

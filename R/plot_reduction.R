@@ -116,7 +116,7 @@ plot_reduction <- function(
   
   # 1. Define reduction (defaults to the first reduction stored for sce objects)
   # Uses rlang %||% infix
-  reduction <- reduction %||% default_reduction(object)
+  reduction <- reduction %||% SCUBA::default_reduction(object)
   # 2. Define cells to include in plot
   ## Same as for Seurat object ##
   cells <- cells %||% SCUBA::get_all_cells(object)
@@ -124,7 +124,7 @@ plot_reduction <- function(
   # Fetch dimensional reduction data from object
   # 3. Convert dims to format readable by fetch_data (<reduction>_<dim>)
   dim_names <-
-    reduction_dimnames(
+    SCUBA::reduction_dimnames(
       object,
       reduction = reduction,
       dims = dims
@@ -139,7 +139,7 @@ plot_reduction <- function(
   
   # 5. Fetch reduction coordinates
   data <-
-    fetch_reduction(
+    SCUBA::fetch_reduction(
       object = object,
       reduction = reduction,
       cells = cells,
@@ -150,7 +150,7 @@ plot_reduction <- function(
   data <-
     cbind(
       data,
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object = object,
         vars = group_by,
         cells = cells
@@ -179,7 +179,7 @@ plot_reduction <- function(
   # 9. Add shape_by data if it exists
   if (!is.null(x = shape_by)) {
     data[, shape_by] <-
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object = object,
         vars = shape_by,
         cells = cells
@@ -189,7 +189,7 @@ plot_reduction <- function(
   # 10. Same for split_by data
   if (!is.null(x = split_by)) {
     data[, split_by] <-
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object = object,
         vars = split_by,
         cells = cells

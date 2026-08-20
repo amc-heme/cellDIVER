@@ -94,12 +94,12 @@ expr_plot <-
     
     ## 1.2. Define the default slot
     slot <-
-      slot %||% default_layer(object)
+      slot %||% SCUBA::default_layer(object)
     
     # 2. Fetch data
     ## 2.1. Fetch feature expression data
     data <-
-      fetch_data(
+      SCUBA::fetch_data(
         object = object,
         vars = features,
         layer = slot
@@ -112,7 +112,7 @@ expr_plot <-
     ## 2.2. Fetch group_by metadata (stored as a separate variable instead of
     # in `data`)
     group <-
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object = object,
         vars = group_by,
         # Get data for all cells (subsetting will happen later based on `idents`)
@@ -155,7 +155,7 @@ expr_plot <-
     } else {
       # Fetch split_by metadata, subsetted for the cells in the object.
       split <-
-        fetch_metadata(
+        SCUBA::fetch_metadata(
           object = object,
           vars = split_by,
           cells = cells,
