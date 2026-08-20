@@ -127,7 +127,7 @@ plot_dot <-
     cells <-
       if (is.null(idents)){
         # If `idents` is NULL, pull all cells
-        get_all_cells(object)
+        SCUBA::get_all_cells(object)
       } else {
         # Otherwise, use fetch_cells method to specify included cells
         fetch_cells(

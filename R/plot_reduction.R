@@ -119,7 +119,7 @@ plot_reduction <- function(
   reduction <- reduction %||% default_reduction(object)
   # 2. Define cells to include in plot
   ## Same as for Seurat object ##
-  cells <- cells %||% get_all_cells(object)
+  cells <- cells %||% SCUBA::get_all_cells(object)
   
   # Fetch dimensional reduction data from object
   # 3. Convert dims to format readable by fetch_data (<reduction>_<dim>)

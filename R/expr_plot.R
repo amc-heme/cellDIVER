@@ -116,7 +116,7 @@ expr_plot <-
         object = object,
         vars = group_by,
         # Get data for all cells (subsetting will happen later based on `idents`)
-        cells = get_all_cells(object),
+        cells = SCUBA::get_all_cells(object),
         return_class = "vector"
       )
     
@@ -132,7 +132,7 @@ expr_plot <-
     
     ## 3.2. Cells included in plot (based on idents)
     if (is.null(x = idents)) {
-      cells <- get_all_cells(object)
+      cells <- SCUBA::get_all_cells(object)
     } else {
       # Fetch metadata for group_by category, then subset for cells that
       # are in idents

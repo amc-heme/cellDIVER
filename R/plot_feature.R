@@ -138,7 +138,7 @@ plot_feature <- function(
   # Set default slot if not defined
   slot <- slot %||% default_layer(object)
   # Select all cells if cells is unspecified
-  cells <- cells %||% get_all_cells(object)
+  cells <- cells %||% SCUBA::get_all_cells(object)
   
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
