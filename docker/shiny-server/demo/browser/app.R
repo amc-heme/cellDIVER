@@ -12,8 +12,9 @@
 # The object and its config are staged into the PARENT dataset directory by the
 # Dockerfile build step (from the installed package's inst/extdata), so they are
 # NOT committed to the repo:
-#   /srv/shiny-server/demo/object.rds         <- inst/extdata/test_dataset.rds
-#   /srv/shiny-server/demo/object-config.yaml <- inst/extdata/test_dataset_config.yaml
+#   <dataset>/object.rds         <- inst/extdata/test_dataset.rds
+#   <dataset>/object-config.yaml <- inst/extdata/test_dataset_config.yaml
+# For the bundled demo, <dataset> is /srv/shiny-server/demo.
 
 # Defensive library() attaches. cellDIVER historically made a few unqualified
 # calls (R.devices::suppressGraphics, SingleCellExperiment accessors,
@@ -25,11 +26,32 @@ library(R.devices)
 library(SingleCellExperiment)
 library(tools)
 
+# Resolve the dataset directory from this app's OWN location rather than
+# hardcoding /srv/shiny-server/demo, so the whole dataset folder can be copied
+# or renamed for a real dataset with no edits to this file. shiny-server runs
+# each app with the working directory set to that app's own directory (here
+# `<dataset>/browser`), so the dataset root is simply its parent.
+dataset_dir <- dirname(normalizePath("."))
+object_path <- file.path(dataset_dir, "object.rds")
+config_path <- file.path(dataset_dir, "object-config.yaml")
+
+# Fail with an actionable message naming the directory we looked in, rather
+# than surfacing a deep stack trace from inside the app. A missing object is
+# the likeliest mistake when this folder is copied to serve a new dataset.
+if (!file.exists(object_path)) {
+  stop(
+    "No object.rds found in the dataset directory: ", dataset_dir,
+    ". Each dataset folder must contain object.rds and object-config.yaml ",
+    "alongside its browser/ and config/ sub-apps.",
+    call. = FALSE
+  )
+}
+
 # run_cellDIVER() returns a shinyApp object as its last expression; shiny-server
 # owns host/port, so we omit them and only force launch_browser = FALSE (a
 # headless server must never try to open a local browser).
 cellDIVER::run_cellDIVER(
-  object_path = "/srv/shiny-server/demo/object.rds",
-  config_path = "/srv/shiny-server/demo/object-config.yaml",
+  object_path = object_path,
+  config_path = config_path,
   launch_browser = FALSE
 )

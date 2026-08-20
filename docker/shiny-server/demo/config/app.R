@@ -11,9 +11,15 @@ library(R.devices)
 library(SingleCellExperiment)
 library(tools)
 
-# The demo object and its config are staged here by the Dockerfile build step.
-parent_object <- "/srv/shiny-server/demo/object.rds"
-parent_config <- "/srv/shiny-server/demo/object-config.yaml"
+# The object and its config are staged into the parent dataset directory by the
+# Dockerfile build step. Resolve that directory from this app's OWN location
+# rather than hardcoding /srv/shiny-server/demo, so the dataset folder can be
+# copied or renamed for a real dataset with no edits to this file. shiny-server
+# runs each app with the working directory set to that app's own directory
+# (here `<dataset>/config`), so the dataset root is simply its parent.
+dataset_dir <- dirname(normalizePath("."))
+parent_object <- file.path(dataset_dir, "object.rds")
+parent_config <- file.path(dataset_dir, "object-config.yaml")
 
 # run_config()'s config_path is a LOAD source: when supplied, the app exposes a
 # "Load Config File" link that loads this YAML for editing. (Saving is a browser
