@@ -132,7 +132,33 @@ preview_dimplot_server <-
             }
         })
         
-        # 2. Load plot selections from file ####
+        # 2. Disable/reset label checkbox when group_by == split_by ####
+        # Mirrors the equivalent guard in module-plot_module.R (see #309):
+        # Seurat::LabelClusters errors when asked to label a DimPlot whose
+        # group_by and split_by are the same variable. Disabling alone does
+        # not clear an existing TRUE value, so the value is also forced off.
+        observe({
+          req(input$group_by)
+          req(input$split_by)
+
+          if (input$group_by == input$split_by){
+            shinyjs::disable(id = "label")
+
+            updateCheckboxInput(
+              session,
+              inputId = "label",
+              value = FALSE
+              )
+          } else {
+            shinyjs::enable(id = "label")
+
+            # Do not modify the value of the checkbox in other cases
+            # (otherwise the checkbox would be reset to TRUE each time
+            # the user changes group_by and split_by)
+          }
+        })
+
+        # 3. Load plot selections from file ####
         observeEvent(
           session$userData$config(),
           {
@@ -204,7 +230,7 @@ preview_dimplot_server <-
             }
         })
         
-        # 3. return selected options ####
+        # 4. return selected options ####
         list(
           `group_by` = reactive({input$group_by}),
           `split_by` = reactive({input$split_by}),

@@ -2202,13 +2202,22 @@ plot_module_server <- function(id,
                      req(plot_selections$group_by())
                      req(plot_selections$split_by())
                      
-                     if (plot_selections$group_by() == 
+                     if (plot_selections$group_by() ==
                          plot_selections$split_by()){
                        # Disable checkbox
                        shinyjs::disable(
                          id = "label"
                          )
-                       
+
+                       # Disabling alone does not clear an existing TRUE
+                       # value, which would still crash Seurat::LabelClusters
+                       # (see #309); force it off.
+                       updateCheckboxInput(
+                         session,
+                         inputId = "label",
+                         value = FALSE
+                         )
+
                        # Change the tootip over the label checkbox
                        # Remove existing tooptip, add a new one explaining why
                        # the checkbox was disabled.
