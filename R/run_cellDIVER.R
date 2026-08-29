@@ -1,35 +1,35 @@
 #' cellDIVER app
 #'
 #' Initializes the main cellDIVER app.
-#' 
+#'
 #' For more information on setting up an cellDIVER deployment, see the [dataset setup guide](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html) on our website.
 #'
 #' @param browser_config path to a YAML config file giving browser specific settings. For more info on generating this config file, see [here](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html#create-an-app-config-file).
-#' @param object_path path to a single-cell object to be configured. Currently, 
-#' Seurat, SingleCellExperiment, and anndata objects are supported. For 
-#' SingleCellExperiment objects with using HDF5 disk-backed storage via 
-#' [HDF5Array], `object_path` should be a path to the directory containing 
+#' @param object_path path to a single-cell object to be configured. Currently,
+#' Seurat, SingleCellExperiment, and anndata objects are supported. For
+#' SingleCellExperiment objects with using HDF5 disk-backed storage via
+#' [HDF5Array], `object_path` should be a path to the directory containing
 #' the se.rds and assays.h5 files for the object.
-#' @param config_path path to the config file for the single-cell object. This is generated either in the config app via `run_config_app`, or by auto-generating a config file via `generate_config_yaml` and editing it by hand. For more information on using the config app, see [here](https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4).
+#' @param config_path path to the config file for the single-cell object. This is generated either in the config app via `run_config_app`, or by auto-generating a config file via `generate_config_yaml` and editing it by hand. For more information on using the config app, see [here](https://amc-heme.github.io/cellDIVER/articles/config_documentation.html).
 #' @param enable_metadata_addition when TRUE, users may interactively add metadata to objects in the app. This feature is currently unstable, so it must be opted in to by setting this value to TRUE.
 #' @param port specify a port for launching the browser. This is optional for a single deployment but required to run several instances of the browser at the same IP address. The port can be any number between 3000:8000, except for ports blocked by Google Chrome (for more information on this, see \link[shiny]{runApp}).
 #' @param host This is passed to `shiny::runApp`. See the documentation of `host` in \link[shiny]{runApp} for more info.
 #' @param launch_browser This is passed to `shiny::runApp` as `launch.browser`. See the documentation of `launch.browser` in \link[shiny]{runApp} for more info.
-#' @param full_stack_trace when TRUE, the full stack trace of errors is logged to the console (FALSE by default). 
-#' @param dev_mode used for development and debugging. When this is TRUE, additional logging occurrs, and the status of the app is printed in the UI. This is not reccomended to be used outside of development. 
-#' 
+#' @param full_stack_trace when TRUE, the full stack trace of errors is logged to the console (FALSE by default).
+#' @param dev_mode used for development and debugging. When this is TRUE, additional logging occurrs, and the status of the app is printed in the UI. This is not reccomended to be used outside of development.
+#'
 #' @usage
-#' # Option 1: Single-object deployment with 
+#' # Option 1: Single-object deployment with
 #' # an object and an object config file
 #' run_cellDIVER(
 #'  object = "path_to_object",
 #'  config_file = "path_to_config_file.yaml"
 #'  )
-#' 
+#'
 #' # Option 2: Multi-object deployment with
-#' # Browser config file with paths to object, 
+#' # Browser config file with paths to object,
 #' # config files for any number of objects
-#' #  
+#' #
 #' run_cellDIVER(
 #'  browser_config = "path_to_browser_config_file.yaml"
 #'  )
@@ -42,20 +42,19 @@ run_cellDIVER <-
     config_path = NULL,
     enable_metadata_addition = FALSE,
     object_description_path = NULL,
-    contact_info = 
-      list(
-        name = NULL,
-        email = NULL,
-        slack_channel = NULL,
-        other = NULL
-        ),
+    contact_info = list(
+      name = NULL,
+      email = NULL,
+      slack_channel = NULL,
+      other = NULL
+    ),
     deployment_name = NULL,
     port = NULL,
     host = NULL,
     launch_browser = NULL,
     full_stack_trace = FALSE,
     dev_mode = FALSE
-  ){
+  ) {
     # Load Libraries and Data ------------------------------------------------------
     ## Initialize libraries ####
     library(shiny)
@@ -109,7 +108,6 @@ run_cellDIVER <-
     library(patchwork, quietly = TRUE, warn.conflicts = FALSE)
     library(cowplot, quietly = TRUE, warn.conflicts = FALSE)
 
-
     # Other packages
     library(yaml, quietly = TRUE, warn.conflicts = FALSE)
     library(rlang, quietly = TRUE, warn.conflicts = FALSE)
@@ -118,40 +116,40 @@ run_cellDIVER <-
     # Check inputs to run_cellDIVER ####
     # contact info for admin
     # Check that the contact info is a list
-    if (!is.list(contact_info)){
+    if (!is.list(contact_info)) {
       stop(
         paste0(
           "The parameter `contact_info` must be a list. Enter `?run_cellDIVER` 
           in the console for more information."
-          )
         )
+      )
     }
-    
+
     # Check that all elements in contact_info are character vectors, of length 1
-    invalid_elems <- 
+    invalid_elems <-
       sapply(
         contact_info,
-        function(elem){
+        function(elem) {
           # Elements not matching the required format will be marked as TRUE
           !(is.null(elem) || (class(elem) == "character" && length(elem) == 1))
         }
       )
-    
-    # If any elements are invalid, return error to user with the 
+
+    # If any elements are invalid, return error to user with the
     # invalid elements
-    if (any(invalid_elems)){
+    if (any(invalid_elems)) {
       stop(
         paste0(
           "Invalid input in `contact_info`. The following elements in ",
-          "`contact_info` are not valid: ", 
+          "`contact_info` are not valid: ",
           # List all invalid elements, separated by a comma
-          paste(names(invalid_elems[invalid_elems == TRUE]), collapse = ", "), 
+          paste(names(invalid_elems[invalid_elems == TRUE]), collapse = ", "),
           ". \n",
           "All elements must be character vectors of length 1."
         )
       )
     }
-    
+
     # Add Resource Paths ####
     # Add inst/www to the resource path so static html can be loaded
     addResourcePath("resources", system.file("www", package = "cellDIVER"))
@@ -167,10 +165,14 @@ run_cellDIVER <-
       system.file(
         "www/Auto_Dictionary.Rmd",
         package = "cellDIVER"
-        )
+      )
     #Copying to temp file in order to comply with Posit Connect security rules
     temp_markdown_path <- tempfile(fileext = ".Rmd")
-    file.copy(auto_dictionary_markdown_path, temp_markdown_path, overwrite = TRUE)
+    file.copy(
+      auto_dictionary_markdown_path,
+      temp_markdown_path,
+      overwrite = TRUE
+    )
     auto_dictionary_markdown_path <- temp_markdown_path
 
     # Path to string subsetting documentation (passed to subset
@@ -194,20 +196,26 @@ run_cellDIVER <-
     local_mode <- FALSE
     local_single_object_mode <- FALSE
 
-    if (is.null(browser_config) & !is.null(object_path) & !is.null(config_path)){
+    if (
+      is.null(browser_config) & !is.null(object_path) & !is.null(config_path)
+    ) {
       # Local mode with one object: when only the object_path and the config_path are specified.
       local_single_object_mode <- TRUE
-    } else if (!is.null(browser_config) & is.null(object_path) & is.null(config_path)){
+    } else if (
+      !is.null(browser_config) & is.null(object_path) & is.null(config_path)
+    ) {
       # Browser mode (original app): when only a config file is passed
       browser_mode <- TRUE
-    } else if (is.null(browser_config) & is.null(object_path) & is.null(config_path)){
+    } else if (
+      is.null(browser_config) & is.null(object_path) & is.null(config_path)
+    ) {
       # When no arguments are defined, run a local version with an interface
       # for picking the object and config file.
       local_mode <- TRUE
     } else {
       stop(
         "Invalid combination of defined parameters for browser_config, object_path, and config_path. See ?run_cellDIVER for more details."
-        )
+      )
     }
 
     # Load CSS, JavaScript, and R scripts --------------------------------------
@@ -246,9 +254,9 @@ run_cellDIVER <-
     css_files <-
       list.files(
         path = system.file("css", package = "cellDIVER"),
-        pattern=".*\\.css",
-        full.names=TRUE,
-        ignore.case=TRUE
+        pattern = ".*\\.css",
+        full.names = TRUE,
+        ignore.case = TRUE
       )
 
     # Create list of style tags for each CSS file
@@ -273,11 +281,10 @@ run_cellDIVER <-
     js_list <- lapply(js_files, includeScript)
 
     # Read browser config yaml (if in browser mode)
-    if (browser_mode){
+    if (browser_mode) {
       browser_config <-
         read_yaml(browser_config)
     }
-
 
     # Non-reactive Global Variables --------------------------------------------
 
@@ -381,99 +388,93 @@ run_cellDIVER <-
     # Different sub-lists are used in different tryCatch statements
     error_list <-
       list(
-        `dge_test_errors` = 
-          list(
-            error_data(
-              message = "Selected subset has 0 marker groups.",
-              notification_ui =
-                icon_notification_ui(
-                  icon_name = "skull-crossbones",
-                  tagList(
-                    paste0(
-                      "There are 0 groups present for the metadata variable ",
-                      "selected for marker groups in the subset selected."
-                      )
-                    ) #End tagList
-                ), # End icon_notification_ui
-              notification_id = "dge_error_1"
-            ), # End error_data
-            error_data(
-              message = "Selected subset has only 1 marker group.",
-              notification_ui =
-                icon_notification_ui(
-                  icon_name = "skull-crossbones",
-                  tagList(
-                    paste0(
-                      "The metadata variable selected for marker ",
-                      "identification has only one group in the subset ",
-                      "selected. Please verify you have chosen a variable ",
-                      "with more than one group and try the test again. ",
-                      "(To see the number of groups for a metadata variable, ",
-                      "you can use the group by selection menu for a ",
-                      "DimPlot. There should be more than one color ",
-                      "on the plot.)"
-                      )
-                    ) #End tagList
-                ), # End icon_notification_ui
-              notification_id = "dge_error_2"
-            )
-          ),
-        `subset_errors` =
-          list(
-            # error_data(
-            #   message = "cannot allocate vector of size",
-            #   notification_ui =
-            #     icon_notification_ui(
-            #       icon_name = "skull-crossbones",
-            #       tagList(
-            #         "Memory Error: RAM is insufficient for analyzing the specified
-            #     subset. Please narrow down the subset scope using the
-            #     restriction criteria to the left, and feel free to",
-            #     github_link(display_text = "let us know"),
-            #     " ", # Space after link
-            #     "if you repeatedly recieve this error.") #End tagList
-            #     ), # End icon_notification_ui
-            #   notification_id = "subset_error_1"
-            # ), # End error_data
+        `dge_test_errors` = list(
+          error_data(
+            message = "Selected subset has 0 marker groups.",
+            notification_ui = icon_notification_ui(
+              icon_name = "skull-crossbones",
+              tagList(
+                paste0(
+                  "There are 0 groups present for the metadata variable ",
+                  "selected for marker groups in the subset selected."
+                )
+              ) #End tagList
+            ), # End icon_notification_ui
+            notification_id = "dge_error_1"
+          ), # End error_data
+          error_data(
+            message = "Selected subset has only 1 marker group.",
+            notification_ui = icon_notification_ui(
+              icon_name = "skull-crossbones",
+              tagList(
+                paste0(
+                  "The metadata variable selected for marker ",
+                  "identification has only one group in the subset ",
+                  "selected. Please verify you have chosen a variable ",
+                  "with more than one group and try the test again. ",
+                  "(To see the number of groups for a metadata variable, ",
+                  "you can use the group by selection menu for a ",
+                  "DimPlot. There should be more than one color ",
+                  "on the plot.)"
+                )
+              ) #End tagList
+            ), # End icon_notification_ui
+            notification_id = "dge_error_2"
+          )
+        ),
+        `subset_errors` = list(
+          # error_data(
+          #   message = "cannot allocate vector of size",
+          #   notification_ui =
+          #     icon_notification_ui(
+          #       icon_name = "skull-crossbones",
+          #       tagList(
+          #         "Memory Error: RAM is insufficient for analyzing the specified
+          #     subset. Please narrow down the subset scope using the
+          #     restriction criteria to the left, and feel free to",
+          #     github_link(display_text = "let us know"),
+          #     " ", # Space after link
+          #     "if you repeatedly recieve this error.") #End tagList
+          #     ), # End icon_notification_ui
+          #   notification_id = "subset_error_1"
+          # ), # End error_data
 
-            # Error 2: Vector memory exhausted
-            # error_data(
-            #   message = "vector memory exhausted",
-            #   notification_ui =
-            #     icon_notification_ui(
-            #       icon_name = "skull-crossbones",
-            #       "Error: vector memory exhausted. If this issue persists, please ",
-            #       github_link("contact us"),
-            #       " with a screenshot of the response criteria selected. For now,
-            #   narrowing down the subset criteria may resolve the error."
-            #     ), # End icon_notification_ui
-            #   notification_id = "subset_error_2"
-            # ),
+          # Error 2: Vector memory exhausted
+          # error_data(
+          #   message = "vector memory exhausted",
+          #   notification_ui =
+          #     icon_notification_ui(
+          #       icon_name = "skull-crossbones",
+          #       "Error: vector memory exhausted. If this issue persists, please ",
+          #       github_link("contact us"),
+          #       " with a screenshot of the response criteria selected. For now,
+          #   narrowing down the subset criteria may resolve the error."
+          #     ), # End icon_notification_ui
+          #   notification_id = "subset_error_2"
+          # ),
 
-            # Error 3: No Cells in Subset
-            error_data(
-              message = "No cells found",
-              notification_ui =
-                icon_notification_ui(
-                  icon_name = "skull-crossbones",
-                  "No cells were found matching the defined subset criteria. Please
+          # Error 3: No Cells in Subset
+          error_data(
+            message = "No cells found",
+            notification_ui = icon_notification_ui(
+              icon_name = "skull-crossbones",
+              "No cells were found matching the defined subset criteria. Please
               check the subset dropdowns for mutually exclusive selections. If
               you the error persists for combinations that should be valid,
               please ",
               github_link("contact us"),
               # Period at end of link
               "."
-                ), # End icon_notification_ui
-              notification_id = "subset_error_3"
-            ),
+            ), # End icon_notification_ui
+            notification_id = "subset_error_3"
+          ),
 
-            # Error 4: User-defined subset string has unclosed parentheses
-            error_data(
-              message = "unexpected end of input",
-              notification_ui =
-                icon_notification_ui(
-                  icon_name = "skull-crossbones",
-                  "Invalid format for string subsetting entry. Please check that all
+          # Error 4: User-defined subset string has unclosed parentheses
+          error_data(
+            message = "unexpected end of input",
+            notification_ui = icon_notification_ui(
+              icon_name = "skull-crossbones",
+              "Invalid format for string subsetting entry. Please check that all
               opened parentheses have been closed and try again. If the issue
               persists, please email us with the following information:",
               tags$br(),
@@ -481,17 +482,16 @@ run_cellDIVER <-
               tags$br(),
               "2. The desired subset, or question that prompted the selection of
               this subset"
-                ),
-              notification_id = "subset_error_4"
             ),
+            notification_id = "subset_error_4"
+          ),
 
-            # Error 5: User-defined subset string has incomplete string
-            error_data(
-              message = "INCOMPLETE_STRING",
-              notification_ui =
-                icon_notification_ui(
-                  icon_name = "skull-crossbones",
-                  "String subsetting entry has an incomplete string. Please make
+          # Error 5: User-defined subset string has incomplete string
+          error_data(
+            message = "INCOMPLETE_STRING",
+            notification_ui = icon_notification_ui(
+              icon_name = "skull-crossbones",
+              "String subsetting entry has an incomplete string. Please make
               sure all opening quotation marks have a matching closing quotation
               and try again. If the issue persists, please email us with the
               following information:",
@@ -500,17 +500,16 @@ run_cellDIVER <-
               tags$br(),
               "2. The desired subset, or question that prompted the selection of
               this subset"
-                ),
-              notification_id = "subset_error_5"
             ),
+            notification_id = "subset_error_5"
+          ),
 
-            # Error 6: User-defined subset string uses improper formatting (generic)
-            error_data(
-              message = "unexpected",
-              notification_ui =
-                icon_notification_ui(
-                  icon_name = "skull-crossbones",
-                  "Invalid format for string subsetting entry. Please check your
+          # Error 6: User-defined subset string uses improper formatting (generic)
+          error_data(
+            message = "unexpected",
+            notification_ui = icon_notification_ui(
+              icon_name = "skull-crossbones",
+              "Invalid format for string subsetting entry. Please check your
               entry and try again. If the issue persists, please email us with
               the following information:",
               tags$br(),
@@ -518,82 +517,82 @@ run_cellDIVER <-
               tags$br(),
               "2. The desired subset, or question that prompted the selection of
               this subset"
-                ),
-              notification_id = "subset_error_6"
-            )
-          ) # End subset error sub-list
-      )# End list of error definitions
+            ),
+            notification_id = "subset_error_6"
+          )
+        ) # End subset error sub-list
+      ) # End list of error definitions
 
     # Initialize app based on mode ####
     # (broswer mode, single object mode)
-    
+
     ## Define Datasets ####
     log_info("R process initialization: loading datasets")
 
     # Construct list of datasets using config file provided by user
     datasets <-
-      if (browser_mode){
+      if (browser_mode) {
         browser_config$datasets
       } else if (local_single_object_mode) {
         # For local mode with an object path and the config file specified,
         # create a one-object list with the object and a config file
         list(
-          `object` =
-            list(
-              `object` =
-                object_path,
-              `config` =
-                config_path,
-              `object_description` = 
-                object_description_path
-              )
+          `object` = list(
+            `object` = object_path,
+            `config` = config_path,
+            `object_description` = object_description_path
           )
+        )
       } else if (local_mode) {
         list()
       }
 
     ## Compile info on app admin, deployment name ####
     admin_info <-
-      if (browser_mode){
+      if (browser_mode) {
         list(
-          `name` = 
-            if (!is.null(browser_config$admin$name)){
-              browser_config$admin$name
-              } else NULL,
-          `email` =
-            if (!is.null(browser_config$admin$email)){
-              browser_config$admin$email
-            } else NULL,
-          `slack_channel` =
-            if (!is.null(browser_config$admin$slack_channel)){
-              browser_config$admin$slack_channel
-            } else NULL,
-          `other` =
-            if (!is.null(browser_config$admin$other)){
-              browser_config$admin$other
-            } else NULL
+          `name` = if (!is.null(browser_config$admin$name)) {
+            browser_config$admin$name
+          } else {
+            NULL
+          },
+          `email` = if (!is.null(browser_config$admin$email)) {
+            browser_config$admin$email
+          } else {
+            NULL
+          },
+          `slack_channel` = if (!is.null(browser_config$admin$slack_channel)) {
+            browser_config$admin$slack_channel
+          } else {
+            NULL
+          },
+          `other` = if (!is.null(browser_config$admin$other)) {
+            browser_config$admin$other
+          } else {
+            NULL
+          }
         )
-      } else if (local_single_object_mode){
+      } else if (local_single_object_mode) {
         # Single-object apps: get contact info from list
         list(
           `name` = contact_info$name,
           `email` = contact_info$email,
           `slack_channel` = contact_info$slack_channel,
           `other` = contact_info$other
-          )
-      } else if (local_mode){
+        )
+      } else if (local_mode) {
         NULL
       }
-    
+
     deployment_name <-
-      if (browser_mode){
-        # Multi-object deployment: use deployment_name property of 
+      if (browser_mode) {
+        # Multi-object deployment: use deployment_name property of
         # browser config file
         browser_config$deployment_name
-      } else if (local_single_object_mode){
+      } else if (local_single_object_mode) {
         # Single-object mode: use deployment name parameter
         deployment_name
-      } else if (local_mode){
+      } else if (local_mode) {
         NULL
       }
 
@@ -603,16 +602,18 @@ run_cellDIVER <-
     # Each dataset is loaded below. The "object" variable in the YAML file is a
     # path to the dataset, and the corresponding "object" element in the R list will
     # be replaced with the dataset itself.
-    for (data_key in names(datasets)){
+    for (data_key in names(datasets)) {
       # Load config files first
       path <- datasets[[data_key]]$config
 
       # Add informative error message when a non-yaml config file is loaded
-      if (!grepl("\\.yaml$", tolower(path))){
-        stop("Only .yaml config files are supported as of version v0.5.0.
+      if (!grepl("\\.yaml$", tolower(path))) {
+        stop(
+          "Only .yaml config files are supported as of version v0.5.0.
          Existing .rds config files can be converted to .yaml files by
-         loading them into config_app.R and then re-saving as a .yaml file.")
-        }
+         loading them into config_app.R and then re-saving as a .yaml file."
+        )
+      }
 
       # Load config YAML using defined path (file is converted to an R list)
       config_r <- read_yaml(path)
@@ -620,7 +621,7 @@ run_cellDIVER <-
       # Convert the "adt_thresholds" section to a tibble (when converting from R to
       # YAML, tibble formats are converted to a YAML format that generates a named
       # list when loading back to R)
-      if (isTruthy(config_r$adt_thresholds)){
+      if (isTruthy(config_r$adt_thresholds)) {
         config_r$adt_thresholds <-
           as_tibble(config_r$adt_thresholds)
       }
@@ -631,60 +632,60 @@ run_cellDIVER <-
       is_HDF5SummarizedExperiment <-
         # Fetch is_HDF5SummarizedExperiment from the selected object's
         # config entry
-       config_r$is_HDF5SummarizedExperiment
-      
+        config_r$is_HDF5SummarizedExperiment
+
       # Set prefix for HDF5 SingleCellExperiment files
       # The default for the `prefix` arg to loadHDF5SummarizedExperiment
-      # is an empty string "" 
-      HDF5_prefix = ""
+      # is an empty string ""
+      HDF5_prefix <- ""
       if ("HDF5_prefix" %in% names(config_r)) {
         HDF5_prefix <- config_r$HDF5_prefix
       }
-        
+
       # Store config file in datasets
       datasets[[data_key]]$config <- config_r
 
       # Load object: different loading code for SingleCellExperiment objects
       # saved via HDF5 storage
-      if (isTruthy(is_HDF5SummarizedExperiment)){
+      if (isTruthy(is_HDF5SummarizedExperiment)) {
         datasets[[data_key]]$object <-
           tryCatch(
-            error =
-              function(cnd){
-                cat("Error when loading SCE object \n")
-                #print(sys.calls(), sep = "\n")
-                print(cnd)
-                
-                stop(
-                  "There was an error loading the object at path\n",
-                  datasets[[data_key]]$object,
-                  ": \n\n",
-                  "Specific error:\n",
-                  cnd,
-                  "\nSuggestions:\n",
-                  "Loading was attempted via `HDF5Array::loadHDF5SummarizedExperiment`.",
-                  "Please check that the config file for the object corresponds ",
-                  "to the object.",
-                  "\n",
-                  "For HDF5-enabled SingleCellExperiment objects, the object ",
-                  "path should be set to the folder containing the assays.h5 ",
-                  "and the se.rds file. ",
-                  "This is the same folder that was created ",
-                  "when the object was saved via `HDF5Array::saveHDF5SummarizedExperiment()`. ",
-                  "A prefix for these files can be supplied in",
-                  "the config app using the HDF5_prefix argument",
-                  "\n",
-                  "If this object is not an HDF5-enabled SingleCellExperiment ",
-                  "object, please ensure that is_HDF5SummarizedExperiment is set ",
-                  "to `FALSE` when run_config_app() is called."
-                  )
-              },
+            error = function(cnd) {
+              cat("Error when loading SCE object \n")
+              #print(sys.calls(), sep = "\n")
+              print(cnd)
+
+              stop(
+                "There was an error loading the object at path\n",
+                datasets[[data_key]]$object,
+                ": \n\n",
+                "Specific error:\n",
+                cnd,
+                "\nSuggestions:\n",
+                "Loading was attempted via `HDF5Array::loadHDF5SummarizedExperiment`.",
+                "Please check that the config file for the object corresponds ",
+                "to the object.",
+                "\n",
+                "For HDF5-enabled SingleCellExperiment objects, the object ",
+                "path should be set to the folder containing the assays.h5 ",
+                "and the se.rds file. ",
+                "This is the same folder that was created ",
+                "when the object was saved via `HDF5Array::saveHDF5SummarizedExperiment()`. ",
+                "A prefix for these files can be supplied in",
+                "the config app using the HDF5_prefix argument",
+                "\n",
+                "If this object is not an HDF5-enabled SingleCellExperiment ",
+                "object, please ensure that is_HDF5SummarizedExperiment is set ",
+                "to `FALSE` when run_config_app() is called."
+              )
+            },
             {
               HDF5Array::loadHDF5SummarizedExperiment(
                 datasets[[data_key]]$object,
                 prefix = HDF5_prefix
-                )
-            })
+              )
+            }
+          )
       } else {
         # All other objects: load based on file extension
         path <- datasets[[data_key]]$object
@@ -694,32 +695,31 @@ run_cellDIVER <-
         extension <-
           tolower(
             tools::file_ext(path)
-            )
+          )
 
         if (extension == "rds") {
           datasets[[data_key]]$object <-
             tryCatch(
-              error =
-                function(cnd){
-                  stop(
-                    "There was an error loading the object at path \n",
-                    datasets[[data_key]]$object,
-                    ": \n\n",
-                    "Specific error:\n",
-                    cnd,
-                    "\nSuggestions:\nLoading was attempted via `readRDS()`. \n",
-                    "Please check that the config file for the object corresponds \n",
-                    "to the object, and that the object path points to a .rds file.\n",
-                    "\n",
-                    "If an object is an HDF5-enabled SingleCellExperiment\n",
-                    "object, the config file must specify this. This is done\n",
-                    "automatically for files produced using cellDIVER version\n",
-                    "0.7.0. and later. To update an older config file, call\n",
-                    "run_config_app() using the object and the config file,\n",
-                    "with `isHDF5SummarizedExperiment` set to `TRUE`. Load the\n",
-                    "config file in the config app, and then save the file."
-                  )
-                },
+              error = function(cnd) {
+                stop(
+                  "There was an error loading the object at path \n",
+                  datasets[[data_key]]$object,
+                  ": \n\n",
+                  "Specific error:\n",
+                  cnd,
+                  "\nSuggestions:\nLoading was attempted via `readRDS()`. \n",
+                  "Please check that the config file for the object corresponds \n",
+                  "to the object, and that the object path points to a .rds file.\n",
+                  "\n",
+                  "If an object is an HDF5-enabled SingleCellExperiment\n",
+                  "object, the config file must specify this. This is done\n",
+                  "automatically for files produced using cellDIVER version\n",
+                  "0.7.0. and later. To update an older config file, call\n",
+                  "run_config_app() using the object and the config file,\n",
+                  "with `isHDF5SummarizedExperiment` set to `TRUE`. Load the\n",
+                  "config file in the config app, and then save the file."
+                )
+              },
               {
                 # Define path and load object
                 path <- datasets[[data_key]]$object
@@ -737,19 +737,19 @@ run_cellDIVER <-
 
                 # Return object from TryCatch statement
                 object
-              })
+              }
+            )
         } else if (extension == "h5ad") {
           # .h5ad anndata::read_h5ad
           datasets[[data_key]]$object <-
             tryCatch(
-              error =
-                function(cnd){
-                  stop(
-                    "There was an error loading the object at path \n",
-                    datasets[[data_key]]$object,
-                    "\nLoading was attempted via `anndata::read_h5ad()`."
-                  )
-                },
+              error = function(cnd) {
+                stop(
+                  "There was an error loading the object at path \n",
+                  datasets[[data_key]]$object,
+                  "\nLoading was attempted via `anndata::read_h5ad()`."
+                )
+              },
               {
                 # Define path and load object
                 path <- datasets[[data_key]]$object
@@ -767,38 +767,39 @@ run_cellDIVER <-
 
                 # Return object from TryCatch statement
                 object
-              })
-        } else if (extension == "h5mu"){
+              }
+            )
+        } else if (extension == "h5mu") {
           # MuData objects: import Mudata python package and run read_h5mu
           datasets[[data_key]]$object <-
             tryCatch(
-              error =
-                function(cnd){
-                  stop(
-                    "There was an error loading the object at path \n",
-                    datasets[[data_key]]$object,
-                    "\nLoading was attempted via `read_h5mu` from the Python package."
-                  )
-                },
+              error = function(cnd) {
+                stop(
+                  "There was an error loading the object at path \n",
+                  datasets[[data_key]]$object,
+                  "\nLoading was attempted via `read_h5mu` from the Python package."
+                )
+              },
               {
                 # Define path and load object
                 path <- datasets[[data_key]]$object
-                
+
                 py_require("mudata>=0.3.1")
-                
+
                 md <- reticulate::import("mudata", as = "md", convert = TRUE)
-                
+
                 object <- md$read_h5mu(path)
-                
+
                 # Check object for valid classes
                 check_dataset(
                   object,
                   path = path
                 )
-                
+
                 # Return object from TryCatch statement
                 object
-              })
+              }
+            )
         } else {
           # Unrecognized file extensions
           stop(
@@ -806,11 +807,9 @@ run_cellDIVER <-
             extension,
             "not recognized. Currently supported extensions:\n",
             ".rds, and .h5ad."
-            )
+          )
         }
       }
-
-
     }
 
     # Tests for location of general dataset info ####
@@ -819,44 +818,56 @@ run_cellDIVER <-
     # throw an error to the config user.
     if (
       !(browser_config_has_info(datasets) | dataset_config_has_info(datasets))
-    ){
-      stop("Inconsistent format detected for general dataset info (label,
+    ) {
+      stop(
+        "Inconsistent format detected for general dataset info (label,
          description, and plot or image). This must be defined in either the
          browser config file for all datasets, or the dataset config file for
          all datasets. If the config file does not have general information
          defined, please load them into the config app and define those fields.
-         The browser config file should not have this information.")
+         The browser config file should not have this information."
+      )
     }
 
     # Also throw an error if data is defined in both the browser config and dataset
     # config files.
-    if (browser_config_has_info(datasets) & dataset_config_has_info(datasets)){
-      stop('General dataset info is defined both in the browser config file and the
+    if (browser_config_has_info(datasets) & dataset_config_has_info(datasets)) {
+      stop(
+        'General dataset info is defined both in the browser config file and the
        dataset config files. Please remove the sections "label", "description",
        and "plot" from the browser config file for all datasets, and keep this
-       information in the config file for each datset.')
+       information in the config file for each datset.'
+      )
     }
 
     # And an error if data is in neither source
-    if (!browser_config_has_info(datasets) & !dataset_config_has_info(datasets)){
-      stop('General dataset info (dataset label, description, and plot or image) is
+    if (
+      !browser_config_has_info(datasets) & !dataset_config_has_info(datasets)
+    ) {
+      stop(
+        'General dataset info (dataset label, description, and plot or image) is
        not defined for all datasets. For each config file that does not have the
        sections "label", "description", or "preview", load the config file into
        the config app and fill out these fields in the "general" tab (or simply
        re-save them to leave these fields defined in the config file, but as
-       empty entries).')
+       empty entries).'
+      )
     }
 
     # Warning if the data is in the browser config but not the dataset config
-    if (browser_config_has_info(datasets) & !dataset_config_has_info(datasets)){
-      log_warn("The placement of general dataset info (label, description,
+    if (
+      browser_config_has_info(datasets) & !dataset_config_has_info(datasets)
+    ) {
+      log_warn(
+        "The placement of general dataset info (label, description,
            plot/image) in the browser config file is depricated. Please load the
            config files for each dataset into the latest version of the config
-           app and add this infomation in the 'general' tab.")
+           app and add this infomation in the 'general' tab."
+      )
     }
 
     log_info("Datasets successfully loaded.")
-    
+
     # Table of Contents ------------------------------------------------------------
 
     # Main UI ----------------------------------------------------------------------
@@ -873,14 +884,11 @@ run_cellDIVER <-
       useShinyjs(),
       # Import custom ShinyJS functions from js folder
       shinyjs::extendShinyjs(
-        script =
-          system.file(
-            "js/cellDIVER_shinyJS.js",
-            package = "cellDIVER"
-            ),
-        functions =
-          c("getTopScroll",
-            "setTopScroll")
+        script = system.file(
+          "js/cellDIVER_shinyJS.js",
+          package = "cellDIVER"
+        ),
+        functions = c("getTopScroll", "setTopScroll")
       ),
       # CSS and JS for collapsible panel
       navbarPage(
@@ -894,146 +902,145 @@ run_cellDIVER <-
           "Info",
           value = "info",
           sidebarLayout(
-            sidebarPanel = 
-              sidebarPanel(
-                fluid = FALSE,
-                # Navigation menu for *information pages*
-                tags$label(
-                  `for` = "info-nav",
-                  "Select a page below to view info:"
+            sidebarPanel = sidebarPanel(
+              fluid = FALSE,
+              # Navigation menu for *information pages*
+              tags$label(
+                `for` = "info-nav",
+                "Select a page below to view info:"
+              ),
+              tags$nav(
+                # Apply info-nav class to avoid conflicts with the
+                # main navbar
+                id = "info-nav",
+                class = "info-nav",
+                `aria-label` = "Navigation panel for information pages",
+                tags$ul(
+                  tags$li(
+                    class = "tab-button active",
+                    id = "tab_app_info",
+                    onClick = "openTab(event, 'tab_content_app_info')",
+                    span("General Information")
                   ),
-                tags$nav(
-                  # Apply info-nav class to avoid conflicts with the
-                  # main navbar
-                  id = "info-nav",
-                  class = "info-nav",
-                  `aria-label` = "Navigation panel for information pages",
-                  tags$ul(
-                    tags$li(
-                      class = "tab-button active",
-                      id = "tab_app_info",
-                      onClick = "openTab(event, 'tab_content_app_info')",
-                      span("General Information")
-                    ),
-                    tags$li(
-                      class = "tab-button",
-                      id = "tab_object_info",
-                      onClick = "openTab(event, 'tab_content_object_info')",
-                      span("Dataset Information")
-                    ),
-                    tags$li(
-                      class = "tab-button",
-                      id = "tab_object_metadata",
-                      onClick = 
-                        "openTab(event, 'tab_content_object_metadata')",
-                      span("Dataset Contents")
-                    )
+                  tags$li(
+                    class = "tab-button",
+                    id = "tab_object_info",
+                    onClick = "openTab(event, 'tab_content_object_info')",
+                    span("Dataset Information")
+                  ),
+                  tags$li(
+                    class = "tab-button",
+                    id = "tab_object_metadata",
+                    onClick = "openTab(event, 'tab_content_object_metadata')",
+                    span("Dataset Contents")
                   )
-                ),
-                # Information on the current deployment, if defined in
-                # the browser config file or run_cellDIVER.
-                if (any(!sapply(admin_info, is.null)) | 
-                    !is.null(deployment_name)){
-                  collapsible_panel(
-                    inputId = "admin_info",
-                    label = "Deployment Info",
-                    active = TRUE,
-                    if (!is.null(deployment_name)){
+                )
+              ),
+              # Information on the current deployment, if defined in
+              # the browser config file or run_cellDIVER.
+              if (
+                any(!sapply(admin_info, is.null)) |
+                  !is.null(deployment_name)
+              ) {
+                collapsible_panel(
+                  inputId = "admin_info",
+                  label = "Deployment Info",
+                  active = TRUE,
+                  if (!is.null(deployment_name)) {
+                    div(
+                      tags$b("Deployment Name:"),
+                      deployment_name
+                    )
+                  },
+                  # Deployment admin information
+                  if (any(!sapply(admin_info, is.null))) {
+                    div(
+                      class = "half-space-top",
                       div(
-                        tags$b("Deployment Name:"),
-                        deployment_name
+                        tags$b(
+                          "Admin Contact Info"
+                        )
+                      ),
+                      if (!is.null(admin_info$name)) {
+                        div(
+                          class = "overflow-cutoff",
+                          tags$b("Name:"),
+                          admin_info$name
                         )
                       },
-                    # Deployment admin information 
-                    if (any(!sapply(admin_info, is.null))){
-                      div(
-                        class = "half-space-top",
+                      if (!is.null(admin_info$email)) {
                         div(
-                          tags$b(
-                            "Admin Contact Info"
-                            )
-                          ),
-                        if (!is.null(admin_info$name)){
-                          div(
-                            class = "overflow-cutoff",
-                            tags$b("Name:"),
-                            admin_info$name
+                          class = "overflow-cutoff",
+                          tags$b("Email:"),
+                          admin_info$email
+                        )
+                      },
+                      if (!is.null(admin_info$slack_channel)) {
+                        div(
+                          tags$a(
+                            href = admin_info$slack_channel,
+                            target = "_blank",
+                            rel = "noopener noreferrer",
+                            class = "slack-link",
+                            icon(name = "slack"),
+                            "Leave Feedback on Slack"
                           )
-                        },
-                        if (!is.null(admin_info$email)){
-                          div(
-                            class = "overflow-cutoff",
-                            tags$b("Email:"),
-                            admin_info$email
-                          )
-                        },
-                        if (!is.null(admin_info$slack_channel)){ 
-                          div(
-                            tags$a(
-                              href = admin_info$slack_channel,
-                              target = "_blank",
-                              rel = "noopener noreferrer",
-                              class = "slack-link",
-                              icon(name = "slack"),
-                              "Leave Feedback on Slack"
-                              )
-                            )
-                          }
                         )
                       }
                     )
                   }
-                ),
-            mainPanel = 
-              mainPanel(
-                id = "info_tab_main",
-                div(
-                  class = "tab-window active",
-                  id = "tab_content_app_info",
-                  # App info page
-                  # Welcome statement
-                  tags$h1("Welcome to cellDIVER!"),
-                  includeMarkdown(
-                    system.file(
-                      "www",
-                      "intro_page.qmd",
-                      package = "cellDIVER"
-                      )
-                    )
-                  ),
-                div(
-                  class = "tab-window",
-                  id = "tab_content_object_info",
-                  uiOutput(
-                    outputId = "object_info_page"
-                    )
-                  ),
-                div(
-                  class = "tab-window",
-                  id = "tab_content_object_metadata",
-                  object_contents_info_ui(
-                    id = "object_contents_info_tab"
-                    )
+                )
+              }
+            ),
+            mainPanel = mainPanel(
+              id = "info_tab_main",
+              div(
+                class = "tab-window active",
+                id = "tab_content_app_info",
+                # App info page
+                # Welcome statement
+                tags$h1("Welcome to cellDIVER!"),
+                includeMarkdown(
+                  system.file(
+                    "www",
+                    "intro_page.qmd",
+                    package = "cellDIVER"
                   )
                 )
+              ),
+              div(
+                class = "tab-window",
+                id = "tab_content_object_info",
+                uiOutput(
+                  outputId = "object_info_page"
+                )
+              ),
+              div(
+                class = "tab-window",
+                id = "tab_content_object_metadata",
+                object_contents_info_ui(
+                  id = "object_contents_info_tab"
+                )
               )
-          ),
+            )
+          )
+        ),
         # Plots Tab
         tabPanel(
           "Plots",
           value = "plots",
           uiOutput(
             outputId = "plots_dynamic_ui"
-            )
-          ),
+          )
+        ),
         # Differential Expression Tab
         tabPanel(
           "Differential Expression",
-           value = "dge",
-           uiOutput(
-             outputId = "dge_dynamic_ui"
-             )
-           )#,
+          value = "dge",
+          uiOutput(
+            outputId = "dge_dynamic_ui"
+          )
+        ) #,
         # tabPanel(
         #   "Gene Correlations",
         #   value = "corr",
@@ -1061,90 +1068,86 @@ run_cellDIVER <-
           # Header
           tags$p(
             "Help and Background",
-            style =
-              "color: #888888;
+            style = "color: #888888;
               margin-bottom: 0px;
               font-size: 1.17em;"
-              ),
+          ),
 
           # Link to auto-generated object dictionary
           # dictionary is created at a temp file, so href must reactively point
           # to the file
           uiOutput(
             outputId = "auto_dictionary_link"
-            ),
+          ),
 
           # Interpreting scRNA-seq plots
           tags$a(
             "Single-Cell Visualizations",
-            href =
-              paste0(
-                "https://amc-heme.github.io/cellDIVER/articles/",
-                "scRNA_Plots_Explained.html"
-                ),
-              # file.path(
-              #   "resources",
-              #   "scRNA_Plots_Explained.html"
-              # ),
+            href = paste0(
+              "https://amc-heme.github.io/cellDIVER/articles/",
+              "scRNA_Plots_Explained.html"
+            ),
+            # file.path(
+            #   "resources",
+            #   "scRNA_Plots_Explained.html"
+            # ),
             class = "blue_hover",
             # Opens link in new tab
             target = "_blank",
             # Cybersecurity measure for links that
             # open in new tab: prevents tabnapping
             rel = "noopener noreferrer"
-            ),
+          ),
 
-        # Tutorial Document
-        tags$a(
-          "Tutorial Vignette",
-          href =
-            "https://amc-heme.github.io/cellDIVER/articles/tutorial.html",
+          # Tutorial Document
+          tags$a(
+            "Tutorial Vignette",
+            href = "https://amc-heme.github.io/cellDIVER/articles/tutorial.html",
             # file.path(
             #   "resources",
             #   "cellDIVER_Tutorial.html"
             # ),
-          class = "blue_hover",
-          # Opens link in new tab
-          target = "_blank",
-          rel = "noopener noreferrer"
+            class = "blue_hover",
+            # Opens link in new tab
+            target = "_blank",
+            rel = "noopener noreferrer"
           ), # End link
 
-        # Full Feature Documentation
-        tags$a(
-          "Full Documentation",
-          href = 
-            paste0(
+          # Full Feature Documentation
+          tags$a(
+            "Full Documentation",
+            href = paste0(
               "https://amc-heme.github.io/cellDIVER/articles/",
               "full_documentation.html"
-              ),
+            ),
             #full_documentation_path,
-          class = "blue_hover",
-          # Opens link in new tab
-          target = "_blank",
-          rel = "noopener noreferrer"
+            class = "blue_hover",
+            # Opens link in new tab
+            target = "_blank",
+            rel = "noopener noreferrer"
           ), # End link
 
-        # File issue on github
-        tags$a(
-          "Report a Bug",
-          href = "https://github.com/amc-heme/cellDIVER/issues",
-          class = "blue_hover",
-          # Opens link in new tab
-          target = "_blank",
-          rel = "noopener noreferrer"
+          # File issue on github
+          tags$a(
+            "Report a Bug",
+            href = "https://github.com/amc-heme/cellDIVER/issues",
+            class = "blue_hover",
+            # Opens link in new tab
+            target = "_blank",
+            rel = "noopener noreferrer"
           ),
 
-        # Link to Genecards
-        tags$a(
-          "GeneCards",
-          href = "https://www.genecards.org/",
-          class = "blue_hover",
-          target = "_blank",
-          rel = "noopener noreferrer"
+          # Link to Genecards
+          tags$a(
+            "GeneCards",
+            href = "https://www.genecards.org/",
+            class = "blue_hover",
+            target = "_blank",
+            rel = "noopener noreferrer"
           ),
-        
-        # Version of cellDIVER
-        tags$p(
+
+          # Version of cellDIVER
+          tags$p(
             class = "small",
             style = "color: #888888AA;",
             paste0("version ", packageVersion("cellDIVER"))
@@ -1166,28 +1169,28 @@ run_cellDIVER <-
             inputId = "open_dataset_window",
             label = "Choose Dataset",
             class = "blue_hover"
-            ),
-          # Add metadata: only available when explicitly enabled via the 
+          ),
+          # Add metadata: only available when explicitly enabled via the
           # browser config file or run_cellDIVER.
-          if (enable_metadata_addition == TRUE){
+          if (enable_metadata_addition == TRUE) {
             actionLink(
               inputId = "new_metadata_modal",
               label = "Add Metadata to Object",
               class = "blue_hover"
-              )
-            }
-          )
-        ),
+            )
+          }
+        )
+      ),
 
       # Include list of scripts built from .js files in www/ directory
       js_list
     )
 
     # Main Server function ---------------------------------------------------------
-    server <- function(input, output, session){
-      # Record whether app is in dev mode (signals modules to display more 
+    server <- function(input, output, session) {
+      # Record whether app is in dev mode (signals modules to display more
       # information for testing and development)
-      session$userData$dev_mode = dev_mode
+      session$userData$dev_mode <- dev_mode
 
       # *Filename* for storing the object dictionary (goes in tempdir())
       auto_dictionary_filename <-
@@ -1195,7 +1198,7 @@ run_cellDIVER <-
           "auto_dictionary_",
           session$token,
           ".html"
-          )
+        )
 
       # *Path* used to access object dictionary
       auto_dictionary_path <-
@@ -1211,13 +1214,13 @@ run_cellDIVER <-
           # When the ID is null, the waiter is applied to the
           # <body> element (entire app)
           id = NULL,
-          html =
-            tagList(
-              spin_loaders(id = 2, color = "#555588"),
-              div(
-                class = "spinner_text",
-                "Loading dataset, please wait...")
-            ),
+          html = tagList(
+            spin_loaders(id = 2, color = "#555588"),
+            div(
+              class = "spinner_text",
+              "Loading dataset, please wait..."
+            )
+          ),
           color = "#FFFFFF",
           #Gives manual control of showing/hiding spinner
           hide_on_render = FALSE
@@ -1228,50 +1231,50 @@ run_cellDIVER <-
           # When the ID is null, the waiter is applied to the
           # <body> element (entire app)
           id = NULL,
-          html =
-            tagList(
-              spin_loaders(id = 2, color = "#555588"),
-              div(
-                class = "spinner_text",
-                "Updating menus to match new dataset...")
-            ),
+          html = tagList(
+            spin_loaders(id = 2, color = "#555588"),
+            div(
+              class = "spinner_text",
+              "Updating menus to match new dataset..."
+            )
+          ),
           color = "#FFFFFF",
           #Gives manual control of showing/hiding spinner
           hide_on_render = FALSE
         )
-      
+
       # Spinner with a generic message that displays over the full screen
       full_page_spinner <-
         Waiter$new(
           # When the ID is null, the waiter is applied to the
           # <body> element (entire app)
           id = NULL,
-          html =
-            tagList(
-              spin_loaders(id = 2, color = "#555588"),
-              div(
-                class = "spinner_text",
-                "Loading, please wait...")
-            ),
+          html = tagList(
+            spin_loaders(id = 2, color = "#555588"),
+            div(
+              class = "spinner_text",
+              "Loading, please wait..."
+            )
+          ),
           color = "#FFFFFF",
           #Gives manual control of showing/hiding spinner
           hide_on_render = FALSE
         )
-      
+
       object_info_page_spinner <-
         Waiter$new(
           id = "tab_content_object_info",
-          html =
-            tagList(
-              spin_loaders(id = 2, color = "#555588"),
-              div(
-                class = "spinner_text",
-                "Loading information page for dataset...")
-            ),
+          html = tagList(
+            spin_loaders(id = 2, color = "#555588"),
+            div(
+              class = "spinner_text",
+              "Loading information page for dataset..."
+            )
+          ),
           color = "#FFFFFF",
           #Gives manual control of showing/hiding spinner
           hide_on_render = FALSE
-          )
+        )
 
       # Create a reactive trigger to run the feature text box update after
       # the UI is created (originally the UI always ran first, but now it does
@@ -1327,7 +1330,8 @@ run_cellDIVER <-
               selected_key = selected_key
             )
           )
-        })
+        }
+      )
 
       ## 1.2. When the "confirm selection" button is selected, close the window ####
       close_dataset_modal <-
@@ -1343,7 +1347,8 @@ run_cellDIVER <-
             # the dataset is computed, and that the window only closes when the
             # "confirm selection" button is pressed)
             input$confirm_selection
-          })
+          }
+        )
 
       ## 1.3. Loading Conditional ####
       # Detects when the selected dataset has changed after the selection window
@@ -1353,22 +1358,21 @@ run_cellDIVER <-
       dataset_change <- makeReactiveTrigger()
 
       observeEvent(
-        eventExpr =
-          {
-            # eventExpr: observer executes when this expression evaluates to 
-            # TRUE Observer should execute at startup (when 
-            # input$confirm_selection is NULL) and when the window to change
-            # datasets is closed.
-            if (is.null(input$confirm_selection)){
-              # Before the dataset window is created for the first time,
-              # respond to startup()
-              isTruthy(startup())
-            } else {
-              # When the button to close the window is defined for the first 
-              # time, execute in response to the button
-              isTruthy(close_dataset_modal())
-            }
-          },
+        eventExpr = {
+          # eventExpr: observer executes when this expression evaluates to
+          # TRUE Observer should execute at startup (when
+          # input$confirm_selection is NULL) and when the window to change
+          # datasets is closed.
+          if (is.null(input$confirm_selection)) {
+            # Before the dataset window is created for the first time,
+            # respond to startup()
+            isTruthy(startup())
+          } else {
+            # When the button to close the window is defined for the first
+            # time, execute in response to the button
+            isTruthy(close_dataset_modal())
+          }
+        },
         label = "Loading Conditional",
         ignoreNULL = FALSE,
         {
@@ -1382,12 +1386,12 @@ run_cellDIVER <-
           previous_key <- dataset_info$last_object_key
 
           # a. startup (previous_key == NULL)
-          if (is.null(previous_key)){
+          if (is.null(previous_key)) {
             # Activate Reactive trigger to load dataset
             dataset_change$trigger()
           } else {
             # b. Dataset requested is different
-            if (previous_key != selected_key()){
+            if (previous_key != selected_key()) {
               # Activate Reactive trigger to load dataset
               print("Dataset change trigger")
               dataset_change$trigger()
@@ -1397,7 +1401,8 @@ run_cellDIVER <-
             # the dataset is the same. Do not proceed with dataset loading
             # in this case
           }
-        })
+        }
+      )
 
       # TEMP: Inspect dataset trigger
       observeEvent(
@@ -1412,7 +1417,8 @@ run_cellDIVER <-
         {
           print("Dataset trigger in main server ")
           print(dataset_change$depend())
-        })
+        }
+      )
 
       ## 1.4. Load/update object ####
       observeEvent(
@@ -1427,7 +1433,8 @@ run_cellDIVER <-
           object(datasets[[selected_key()]]$object)
 
           app_spinner$hide()
-        })
+        }
+      )
 
       ## 1.5. Config file
       ### 1.5.1. Load/update config file ####
@@ -1439,7 +1446,8 @@ run_cellDIVER <-
         ignoreNULL = FALSE,
         {
           config(datasets[[selected_key()]]$config)
-        })
+        }
+      )
 
       ### 1.5.2. Check version of config file ####
       # observeEvent(
@@ -1458,13 +1466,13 @@ run_cellDIVER <-
         ignoreNULL = TRUE,
         #ignoreInit = TRUE,
         {
-          if (!is.null(config()$adt_thresholds)){
+          if (!is.null(config()$adt_thresholds)) {
             # First, determine which assay is designated as the ADT assay
             # Method depends on version of config file
             # Older versions have this info in the assays section
             # Newer versions have the info in other_assay_options$adt_assay
             # Test for new version (older versions do not have this section)
-            if (isTruthy(config()$other_assay_options)){
+            if (isTruthy(config()$other_assay_options)) {
               # For new version, simply fetch the designated assay from this section
               designated_ADT_assay <- config()$other_assay_options$adt_assay
             } else {
@@ -1480,18 +1488,15 @@ run_cellDIVER <-
               designated_ADT_assay <- names(config()$assays)[is_designated]
             }
 
-
             # Only proceed if one assay has been designated (not possible to
             # designate multiple in app, but file could be modified to do so)
-            if (!is.null(designated_ADT_assay)){
-              if (length(designated_ADT_assay) == 1){
+            if (!is.null(designated_ADT_assay)) {
+              if (length(designated_ADT_assay) == 1) {
                 adt_threshold_assay(
                   object(),
-                  threshold_table =
-                    config()$adt_thresholds,
-                  designated_adt_assay =
-                    designated_ADT_assay
-                  ) |>
+                  threshold_table = config()$adt_thresholds,
+                  designated_adt_assay = designated_ADT_assay
+                ) |>
                   # Update object with output of adt_threshold_assay
                   object()
 
@@ -1535,7 +1540,8 @@ run_cellDIVER <-
               }
             }
           }
-        })
+        }
+      )
 
       ## 1.6. Save Key of Dataset Selected When Window is Closed ####
       # Save the selected key for the next time the window is opened (the
@@ -1544,25 +1550,24 @@ run_cellDIVER <-
         eventReactive(
           # Must run at startup (to load dataset initially) and in response
           # to the "confirm selection" button
-          eventExpr =
-            {
-              # eventExpr: observer executes when this expression evaluates to TRUE
-              # at startup, input$confirm_selection is NULL and
-              # close_dataset_modal() will not run. To get observer to run at
-              # startup, a conditional is used to respond to startup() when
-              # input$confirm_selection is NULL.
-              if (is.null(input$confirm_selection)){
-                isTruthy(startup())
-              } else {
-                # When close_dataset_modal is defined, execute in response to the
-                # variable
-                isTruthy(close_dataset_modal())
-              }
-            },
+          eventExpr = {
+            # eventExpr: observer executes when this expression evaluates to TRUE
+            # at startup, input$confirm_selection is NULL and
+            # close_dataset_modal() will not run. To get observer to run at
+            # startup, a conditional is used to respond to startup() when
+            # input$confirm_selection is NULL.
+            if (is.null(input$confirm_selection)) {
+              isTruthy(startup())
+            } else {
+              # When close_dataset_modal is defined, execute in response to the
+              # variable
+              isTruthy(close_dataset_modal())
+            }
+          },
           label = "Save Data Key",
           ignoreNULL = FALSE,
           {
-            if (!is.null(input$data_key)){
+            if (!is.null(input$data_key)) {
               # Log and record value of input$data_key
               rlog::log_info(paste0("Dataset selected: ", input$data_key))
 
@@ -1573,7 +1578,8 @@ run_cellDIVER <-
               rlog::log_info(paste0("Dataset selected: ", names(datasets)[1]))
               names(datasets)[1]
             }
-          })
+          }
+        )
 
       ## 1.7. Key of Last Dataset Loaded ####
       # Save the key of the last dataset loaded into the app.
@@ -1588,116 +1594,119 @@ run_cellDIVER <-
           # dataset is changed, or at startup (when "Loading Conditional" triggers
           # dataset_change)
           dataset_info$last_object_key <- selected_key()
-        })
+        }
+      )
 
       # 1.8. Upload new metadata ####
       ### 1.8.1. UI for uploading metadata from a table ####
       # Modal is created from the add_metadata module
-      new_metadata_module <- 
+      new_metadata_module <-
         add_metadata_server(
-          id = "add_metadata", 
-          modal_open_button = 
-            reactive(
-              label = "add_metadata-input-modal_open_button",
-              {input$new_metadata_modal}),
+          id = "add_metadata",
+          modal_open_button = reactive(label = "add_metadata-input-modal_open_button", {
+            input$new_metadata_modal
+          }),
           object = object,
-          object_meta_varnames = 
-            reactive(
-              label = "add_metadata-input-object_meta_varnames",
-              {
-                # Named vector of variables in config file
-                # Values are the columns as named in the object, names are the
-                # labels defined in the config file
-                var_labels <- 
-                  sapply(
-                    config()$metadata, 
-                    function(category){category$label}
-                    )
-                
-                var_choices <-
-                  sapply(
-                    config()$metadata, 
-                    function(category){category$meta_colname}
-                    )
-                
-                names(var_choices) <- var_labels
-                
-                var_choices
-                })
+          object_meta_varnames = reactive(label = "add_metadata-input-object_meta_varnames", {
+            # Named vector of variables in config file
+            # Values are the columns as named in the object, names are the
+            # labels defined in the config file
+            var_labels <-
+              sapply(
+                config()$metadata,
+                function(category) {
+                  category$label
+                }
+              )
+
+            var_choices <-
+              sapply(
+                config()$metadata,
+                function(category) {
+                  category$meta_colname
+                }
+              )
+
+            names(var_choices) <- var_labels
+
+            var_choices
+          })
         )
-      
+
       ### 1.8.2. Update object in response to uploaded metadata ####
-      observe(
-        label = "Add uploaded metadata to object",
-        {
+      observe(label = "Add uploaded metadata to object", {
         req(new_metadata_module$uploaded_table())
         req(new_metadata_module$join_instructions())
-        
+
         uploaded_table <- new_metadata_module$uploaded_table()
-        
+
         # Pull full metadata table
         object_metadata <-
-          fetch_metadata(
-            isolate({object()}),
+          SCUBA::fetch_metadata(
+            isolate({
+              object()
+            }),
             full_table = TRUE
-            )
-        
+          )
+
         # Do the join
         new_object_metadata <- tryCatch(
-          error = function(cnd){
+          error = function(cnd) {
             # If an error occurs during the join, log results
             print(paste0("Join error:", cnd))
-            
+
             # Return NULL (which will stop downstream computation)
             return(NULL)
-            },
-            {
-              new_object_metadata <- 
-                left_join(
-                  # Must preserve cell names (rownames), which are overrided 
-                  # by the join
-                  tibble::rownames_to_column(
-                    object_metadata, 
-                    var = "cellDIVER_cell_id"
-                    ), 
-                  uploaded_table,
-                  by = new_metadata_module$join_instructions()
-                  )
-              
-              # Restore cell IDs after join
-              new_object_metadata <- 
-                new_object_metadata |> 
-                tibble::column_to_rownames("cellDIVER_cell_id")
-              
-              # Return new table form tryCatch statement 
-              new_object_metadata
-            })
-        
-        
-        if (!is.null(new_object_metadata)){
+          },
+          {
+            new_object_metadata <-
+              left_join(
+                # Must preserve cell names (rownames), which are overrided
+                # by the join
+                tibble::rownames_to_column(
+                  object_metadata,
+                  var = "cellDIVER_cell_id"
+                ),
+                uploaded_table,
+                by = new_metadata_module$join_instructions()
+              )
+
+            # Restore cell IDs after join
+            new_object_metadata <-
+              new_object_metadata |>
+              tibble::column_to_rownames("cellDIVER_cell_id")
+
+            # Return new table form tryCatch statement
+            new_object_metadata
+          }
+        )
+
+        if (!is.null(new_object_metadata)) {
           # Replace NAs in the new columns with "undefined"
           # For each added variable, replace NA values with "Undefined"
-          for (meta_var in new_metadata_module$vars_added()){
-            new_object_metadata[,meta_var] <-
+          for (meta_var in new_metadata_module$vars_added()) {
+            new_object_metadata[, meta_var] <-
               case_when(
-                is.na(new_object_metadata[,meta_var]) ~ "Undefined",
-                TRUE ~ new_object_metadata[,meta_var]
-                )
+                is.na(new_object_metadata[, meta_var]) ~ "Undefined",
+                TRUE ~ new_object_metadata[, meta_var]
+              )
           }
-          
+
           # Apply the new metadata table to the object, and save the resulting
           # object to the object() reactive variable
           print("Update object with new metadata")
           object(
             cellDIVER:::update_object_metadata(
-              object = isolate({object()}), 
+              object = isolate({
+                object()
+              }),
               table = new_object_metadata
-              )
             )
+          )
           print("Object updated with new metadata.")
-          }
+        }
       })
-      
+
       # 2. Initialize Variables specific to object and config file -------------
       # Split config file into metadata and assay lists for use downstream
       ## 2.1. Metadata_config ####
@@ -1709,31 +1718,31 @@ run_cellDIVER <-
           ignoreNULL = FALSE,
           {
             metadata_config <- config()$metadata
-            
+
             # Metadata added by user
             # If metadata has been added, create config entries for the new
             # metadata variables
-            if (isTruthy(new_metadata_module$vars_added())){
-              for (meta_var in new_metadata_module$vars_added()){
+            if (isTruthy(new_metadata_module$vars_added())) {
+              for (meta_var in new_metadata_module$vars_added()) {
                 metadata_config[[meta_var]] <-
                   list(
-                    # Label and colname are the same for now. These are 
+                    # Label and colname are the same for now. These are
                     # determined by the table
                     `meta_colname` = meta_var,
                     `label` = meta_var,
-                    `description` = 
-                      paste0(
-                        'This variable was added using ',
-                        'the "Add Metadata" window.'
-                        ),
+                    `description` = paste0(
+                      'This variable was added using ',
+                      'the "Add Metadata" window.'
+                    ),
                     `groups` = NULL
                   )
-                }
               }
-            
+            }
+
             metadata_config
-          })
-      
+          }
+        )
+
       ## 2.2. Assay Information ####
       ### 2.2.1. Assay_config ####
       # Assay-specific options in config file
@@ -1744,7 +1753,8 @@ run_cellDIVER <-
           ignoreNULL = FALSE,
           {
             config()$assays
-          })
+          }
+        )
 
       ### 2.2.2. Designated genes assay ####
       # Only in newer config files. If not found, NULL is passed forward and
@@ -1756,7 +1766,8 @@ run_cellDIVER <-
           ignoreNULL = FALSE,
           {
             config()$other_assay_options$gene_assay
-          })
+          }
+        )
 
       ## 2.3. Valid features Expressions ####
       # Create a list of valid features using the assays defined above
@@ -1769,8 +1780,8 @@ run_cellDIVER <-
           label = "include_numeric_metadata",
           ignoreNULL = FALSE,
           {
-            if (isTruthy(config())){
-              if (!is.null(config()$include_numeric_metadata)){
+            if (isTruthy(config())) {
+              if (!is.null(config()$include_numeric_metadata)) {
                 config()$include_numeric_metadata
               } else {
                 # If the include_metadata field does not exist in
@@ -1778,7 +1789,8 @@ run_cellDIVER <-
                 TRUE
               }
             }
-          })
+          }
+        )
 
       # Header text for numeric metadata features in selection menu
       # May be set in the config app in the future
@@ -1803,25 +1815,28 @@ run_cellDIVER <-
                 numeric_metadata_title = numeric_metadata_title,
                 # ADT thresholds: add to list if the ADT_threshold assay
                 # has been created in the object
-                adt_threshold_features =
-                  if ("adtThreshold" %in% cellDIVER:::assay_names(object())){
-                    TRUE
-                  } else {
-                    FALSE
-                  },
+                adt_threshold_features = if (
+                  "adtThreshold" %in% cellDIVER:::assay_names(object())
+                ) {
+                  TRUE
+                } else {
+                  FALSE
+                },
                 # Display name for threshold features (can be set in the
                 # browser config file)
-                adt_threshold_title =
-                  if (!is.null(adt_threshold_dropdown_title)){
-                    adt_threshold_dropdown_title
-                  } else {
-                    # Supply default if the value is undefined
-                    "ADT Values (Threshold Applied)"
-                  }
-                )
+                adt_threshold_title = if (
+                  !is.null(adt_threshold_dropdown_title)
+                ) {
+                  adt_threshold_dropdown_title
+                } else {
+                  # Supply default if the value is undefined
+                  "ADT Values (Threshold Applied)"
+                }
+              )
 
             valid_features
-          })
+          }
+        )
 
       ## 2.4. meta_categories ####
       # meta_categories: a vector giving the IDs of each of the categories defined
@@ -1829,11 +1844,12 @@ run_cellDIVER <-
       meta_categories <-
         eventReactive(
           metadata_config(),
-          label= "meta_categories",
+          label = "meta_categories",
           ignoreNULL = FALSE,
           {
             names(metadata_config())
-          })
+          }
+        )
 
       ## 2.5. category_labels ####
       # Create a list of labels for each metadata category (names are the
@@ -1841,11 +1857,14 @@ run_cellDIVER <-
       category_labels <-
         eventReactive(
           metadata_config(),
-          label= "category_labels",
+          label = "category_labels",
           ignoreNULL = FALSE,
           {
-            lapply(metadata_config(), function(category){category$label})
-          })
+            lapply(metadata_config(), function(category) {
+              category$label
+            })
+          }
+        )
 
       ## 2.6 Metadata categories in dropdown menus ####
       # meta_choices: a named vector with name-value pairs for the display name of
@@ -1860,22 +1879,23 @@ run_cellDIVER <-
           {
             # Base vector: contains the "none" option
             meta_choices <- c("None" = "none")
-            # Iteratively populate vector using entries in the 
+            # Iteratively populate vector using entries in the
             # metadata section of the config file
-            for (meta_var in meta_categories()){
-              # Form name-value pair for each added metadata variable 
+            for (meta_var in meta_categories()) {
+              # Form name-value pair for each added metadata variable
               # Value: the `colname` entry in the config file
               var_add <- metadata_config()[[meta_var]]$meta_colname
-              # Name: `label` field in config file 
+              # Name: `label` field in config file
               names(var_add) <- metadata_config()[[meta_var]]$label
-              
+
               # Append name-value pair to vector
               meta_choices <- c(meta_choices, var_add)
-              }
-            
+            }
+
             # Return meta_choices vector generated above
             meta_choices
-          })
+          }
+        )
 
       ## 2.7. Unique values for each metadata variable ####
       unique_metadata <-
@@ -1890,26 +1910,27 @@ run_cellDIVER <-
             unique_metadata <- list()
 
             # Store unique values for each metadata variable entered
-            for (meta_var in names(metadata_config())){
+            for (meta_var in names(metadata_config())) {
               # Use sobj@meta.data[[category]] instead of object()[[category]]
               # to return a vector (sobj[[category]] returns a dataframe)
               unique_metadata[[meta_var]] <-
                 SCUBA::unique_values(
                   object = object(),
                   var = meta_var
-                  )
+                )
 
               # If the metadata variable is a factor, convert to a vector with
               # levels to avoid integers appearing in place of the
               # unique values themselves
-              if (class(unique_metadata[[meta_var]]) == "factor"){
+              if (class(unique_metadata[[meta_var]]) == "factor") {
                 unique_metadata[[meta_var]] <-
                   levels(unique_metadata[[meta_var]])
-                }
+              }
             }
-            
+
             unique_metadata
-          })
+          }
+        )
 
       ## 2.8. Reductions in object ####
       reductions <-
@@ -1918,13 +1939,13 @@ run_cellDIVER <-
 
           # If a reductions section exists in the config file, use the config file
           # to determine the reductions to include
-          if (isTruthy(config()$reductions)){
+          if (isTruthy(config()$reductions)) {
             # Machine-readable names for reductions, in the order selected
             # in the config file
             ids <-
               sapply(
                 config()$reductions,
-                function(reduction_entry){
+                function(reduction_entry) {
                   reduction_entry$reduction
                 }
               )
@@ -1932,7 +1953,7 @@ run_cellDIVER <-
             labels <-
               sapply(
                 config()$reductions,
-                function(reduction_entry){
+                function(reduction_entry) {
                   reduction_entry$label
                 }
               )
@@ -1941,18 +1962,17 @@ run_cellDIVER <-
             # names, and names are human-readable reduction names
             reductions <- ids
             names(reductions) <- labels
-
           } else {
             # Otherwise, get reductions in object and use display names
             # equal to how they are named in the object
             reductions <- cellDIVER:::reduction_names(object())
 
             # If the "umap" reduction exists, place it first
-            if ("umap" %in% reductions){
+            if ("umap" %in% reductions) {
               reductions <-
                 c(
-                  reductions[reductions=="umap"],
-                  reductions[!reductions=="umap"]
+                  reductions[reductions == "umap"],
+                  reductions[!reductions == "umap"]
                 )
             }
           }
@@ -1979,7 +1999,7 @@ run_cellDIVER <-
             lim_orig <-
               lapply(
                 reductions(),
-                function(reduction, object){
+                function(reduction, object) {
                   # limits calculation: uses cell embeddings
                   # Fetch coordinates, then determine min/max values
                   reduction_coords <-
@@ -1987,12 +2007,12 @@ run_cellDIVER <-
                       object = object(),
                       reduction = reduction,
                       dims = c(1, 2)
-                      )
+                    )
 
-                  xmin <- min(reduction_coords[,1])
-                  xmax <- max(reduction_coords[,1])
-                  ymin <- min(reduction_coords[,2])
-                  ymax <- max(reduction_coords[,2])
+                  xmin <- min(reduction_coords[, 1])
+                  xmax <- max(reduction_coords[, 1])
+                  ymin <- min(reduction_coords[, 2])
+                  ymax <- max(reduction_coords[, 2])
 
                   return(
                     list(
@@ -2011,17 +2031,18 @@ run_cellDIVER <-
 
             # Return list of original limits
             lim_orig
-          })
+          }
+        )
 
       ## 2.10. Store number of cells in full object ####
       # used to determine if a subset is selected.
-      # It was previously commented here that this may not apply to 
+      # It was previously commented here that this may not apply to
       # non-CITE-seq datasets, but I don't see how this would be the case
 
       n_cells_original <-
         reactive({
           req(object())
-          SCUBA::get_all_cells(object()) |> 
+          SCUBA::get_all_cells(object()) |>
             length()
         })
 
@@ -2038,32 +2059,32 @@ run_cellDIVER <-
         {
           # Show spinner over app while dictionary renders
           full_page_spinner$show()
-          
+
           # Gather parameters used by document
           params <-
             list(
               object = object(),
               config = config(),
               valid_features = valid_features()
-              )
+            )
 
           # PANDOC: path to pandoc needs to be defined in browser mode, on a
           # Linux server
           # Execute Rmarkdown document
-          if (browser_mode){
+          if (browser_mode) {
             if (any(names(browser_config) == "RSTUDIO_PANDOC")) {
-              if (!is.null(browser_config$RSTUDIO_PANDOC)){
+              if (!is.null(browser_config$RSTUDIO_PANDOC)) {
                 tryCatch(
                   Sys.setenv(RSTUDIO_PANDOC = browser_config$RSTUDIO_PANDOC),
-                  error = function(error){
+                  error = function(error) {
                     stop(
                       "Error in RSTUDIO_PANDOC in app (browser) config file. ",
                       "Please check the path to PANDOC. If you already have ",
                       "pandoc installed, please enter '~' for RSTUDIO_PANDOC ",
                       "in the app config file."
-                      )
+                    )
                   }
-                  )
+                )
               }
             }
           }
@@ -2073,12 +2094,11 @@ run_cellDIVER <-
             input = auto_dictionary_markdown_path,
             # Export path
             #output_dir = "resources/",
-            output_file =
-              paste0(
-                tempdir(),
-                "/",
-                auto_dictionary_filename
-                ),
+            output_file = paste0(
+              tempdir(),
+              "/",
+              auto_dictionary_filename
+            ),
             # pass parameters to report
             params = params,
             # Set up a new environment that is the child of the global
@@ -2087,9 +2107,10 @@ run_cellDIVER <-
             # Do not print rendering messages to console
             quiet = TRUE
           )
-          
+
           full_page_spinner$hide()
-        })
+        }
+      )
 
       ## 2.12. Patient/sample level metadata category ####
       patient_colname <-
@@ -2100,16 +2121,16 @@ run_cellDIVER <-
         })
 
       ## 2.13. Object class testing ####
-      # Slight modifications to app behavior are required based on the 
+      # Slight modifications to app behavior are required based on the
       # class of the object. The expressions in this section test for specific
       # classes and report to downstream expressions.
       ### 2.13.1. Object is a Seurat object ####
       is_seurat <-
         reactive({
           req(config())
-          
-          if (!is.null(config()$object_class)){
-            if (config()$object_class %in% c("Seurat")){
+
+          if (!is.null(config()$object_class)) {
+            if (config()$object_class %in% c("Seurat")) {
               TRUE
             } else {
               FALSE
@@ -2118,7 +2139,7 @@ run_cellDIVER <-
             FALSE
           }
         })
-      
+
       ### 2.13.2. Object is a SCE object with HDF5 Storage ####
       is_HDF5SummarizedExperiment <-
         reactive({
@@ -2131,9 +2152,9 @@ run_cellDIVER <-
       is_anndata <-
         reactive({
           req(config())
-          
-          if (!is.null(config()$object_class)){
-            if ("AnnDataR6" %in% config()$object_class){
+
+          if (!is.null(config()$object_class)) {
+            if ("AnnDataR6" %in% config()$object_class) {
               TRUE
             } else {
               FALSE
@@ -2142,14 +2163,14 @@ run_cellDIVER <-
             FALSE
           }
         })
-      
+
       ### 2.13.4. Object is a MuData object ####
       is_mudata <-
         reactive({
           req(config())
-          
-          if (!is.null(config()$object_class)){
-            if ("md._core.mudata.MuData" %in% config()$object_class){
+
+          if (!is.null(config()$object_class)) {
+            if ("md._core.mudata.MuData" %in% config()$object_class) {
               TRUE
             } else {
               FALSE
@@ -2158,48 +2179,48 @@ run_cellDIVER <-
             FALSE
           }
         })
-      
+
       ## 2.14. Object info page ####
       # If an information page has been created by the user and provided in
-      # the browser config file or via the `object_description_path` parameter, 
+      # the browser config file or via the `object_description_path` parameter,
       # load the page and display in the info tab.
       output$object_info_page <-
         renderUI({
           object_info_page_spinner$show()
-          
-          if (!is.null(datasets[[selected_key()]]$object_description)){
+
+          if (!is.null(datasets[[selected_key()]]$object_description)) {
             # If a path to a md/rmd/qmd file is provided (either in the browser
             # config or via the object_description_path parameter for single
             # object instances), render the markdown content.
             info_page_ui <-
               htmltools::includeMarkdown(
                 datasets[[selected_key()]]$object_description
-                )
+              )
           } else {
-            # Otherwise, render a message saying the page has not been 
+            # Otherwise, render a message saying the page has not been
             # provided by the app admin
             info_page_ui <-
               div(
                 tags$h1(
                   paste0(
                     "No information page available"
-                    )
-                  ),
+                  )
+                ),
                 div(
                   style = "font-size: 18px;",
                   paste0(
                     "The admin of this app deployment has not included an ",
                     "information page for this dataset."
-                    )
                   )
                 )
+              )
           }
-          
+
           object_info_page_spinner$hide()
-          
+
           info_page_ui
         })
-      
+
       outputOptions(output, "object_info_page", suspendWhenHidden = FALSE)
 
       # 3. Initialize Modules --------------------------------------------------
@@ -2241,15 +2262,14 @@ run_cellDIVER <-
             render_UI_spinner$hide()
 
             ui
-          })
+          }
+        )
 
       ### 3.1.2. DGE tab UI ####
       dge_tab_ui_dynamic <-
         eventReactive(
           # UI should only update when the object and config files are switched
-          c(config(),
-            object()
-            ),
+          c(config(), object()),
           label = "DGE Tab Dynamic UI",
           ignoreNULL = FALSE,
           {
@@ -2262,7 +2282,8 @@ run_cellDIVER <-
               auto_dictionary_path = auto_dictionary_path,
               string_subsetting_href = string_subsetting_href
             )
-          })
+          }
+        )
 
       ### 3.1.3. Correlations tab UI ####
       # corr_tab_ui_dynamic <-
@@ -2310,46 +2331,46 @@ run_cellDIVER <-
       # been created.
 
       ### 3.2.1. Plots tab server ####
-      observe(
-        label = "Create Module Servers",
-        {
-          current_key <- dataset_info$last_object_key
+      observe(label = "Create Module Servers", {
+        current_key <- dataset_info$last_object_key
 
-          # If the current key is not in the list of module servers created, create
-          # server instances for each tab.
-          if (!current_key %in% main_server$modules_created){
-            print(glue("New module for plots tab (key = {current_key})"))
+        # If the current key is not in the list of module servers created, create
+        # server instances for each tab.
+        if (!current_key %in% main_server$modules_created) {
+          print(glue("New module for plots tab (key = {current_key})"))
 
-            plots_tab_server(
-              id = glue("{current_key}_plots"),
-              object = object,
-              metadata_config = metadata_config,
-              assay_config = assay_config,
-              meta_categories = meta_categories,
-              category_labels = category_labels,
-              unique_metadata = unique_metadata,
-              valid_features = valid_features,
-              error_list = error_list,
-              n_cells_original = n_cells_original,
-              lim_orig = lim_orig,
-              categorical_palettes = categorical_palettes,
-              continuous_palettes = continuous_palettes,
-              blend_palettes = blend_palettes,
-              patient_colname = patient_colname,
-              current_tab = reactive({input$navigator})
-              )
+          plots_tab_server(
+            id = glue("{current_key}_plots"),
+            object = object,
+            metadata_config = metadata_config,
+            assay_config = assay_config,
+            meta_categories = meta_categories,
+            category_labels = category_labels,
+            unique_metadata = unique_metadata,
+            valid_features = valid_features,
+            error_list = error_list,
+            n_cells_original = n_cells_original,
+            lim_orig = lim_orig,
+            categorical_palettes = categorical_palettes,
+            continuous_palettes = continuous_palettes,
+            blend_palettes = blend_palettes,
+            patient_colname = patient_colname,
+            current_tab = reactive({
+              input$navigator
+            })
+          )
 
-            # Add current key to list of modules created so module is not re-created
-            main_server$modules_created <-
-              c(main_server$modules_created, current_key)
-          }
-        })
+          # Add current key to list of modules created so module is not re-created
+          main_server$modules_created <-
+            c(main_server$modules_created, current_key)
+        }
+      })
 
       ### 3.2.2. DGE Tab Server ####
       observe({
         current_key <- dataset_info$last_object_key
 
-        if (!current_key %in% main_server$dge_modules_created){
+        if (!current_key %in% main_server$dge_modules_created) {
           print(glue("New module for dge tab (key = {current_key})"))
           dge_tab_server(
             id = glue("{current_key}_dge"),
@@ -2399,18 +2420,22 @@ run_cellDIVER <-
       #       c(main_server$corr_modules_created, current_key)
       #   }
       # })
-      
+
       ### 3.2.4 Object Metadata Information Server ####
       object_contents_info_server(
         id = "object_contents_info_tab",
         object = object,
         meta_choices = meta_choices,
         metadata_config = metadata_config,
-        include_numeric_metadata = reactive({config()$include_numeric_metadata}),
+        include_numeric_metadata = reactive({
+          config()$include_numeric_metadata
+        }),
         assay_config = assay_config,
-        reduction_config = reactive({config()$reductions}),
+        reduction_config = reactive({
+          config()$reductions
+        }),
         is_seurat = is_seurat
-        )
+      )
 
       # 4. Dataset preview in modal UI -----------------------------------------
       ## 4.1. Description ####
@@ -2422,7 +2447,7 @@ run_cellDIVER <-
 
           # Use config file for description (newer version), or description from
           # browser config file, in datasets (depricated version)
-          if (dataset_config_has_info(datasets)){
+          if (dataset_config_has_info(datasets)) {
             # (key = input$data_key)
             datasets[[input$data_key]]$config$description
           } else {
@@ -2433,7 +2458,7 @@ run_cellDIVER <-
 
       ## 4.2. Plot or image ####
       # Render plots from info in config file: new version only (0.5.0 and greater)
-      if (dataset_config_has_info(datasets)){
+      if (dataset_config_has_info(datasets)) {
         output$dataset_dimplot <-
           renderPlot(
             width = 290,
@@ -2462,34 +2487,36 @@ run_cellDIVER <-
                 is_subset = FALSE,
                 original_limits = NULL
               )
-            })
+            }
+          )
       }
 
       # Image: new and depricated versions
       output$dataset_image <-
-        renderImage({
-          req(input$data_key)
+        renderImage(
+          {
+            req(input$data_key)
 
-          # Path to image: depends on version of config file
-          if (dataset_config_has_info(datasets)){
-            # Version v0.5.0 and later: use preview section of config file
+            # Path to image: depends on version of config file
+            if (dataset_config_has_info(datasets)) {
+              # Version v0.5.0 and later: use preview section of config file
 
-            # The type of preview in the config file must be an image for the
-            # render function to proceed
-            req(datasets[[input$data_key]]$config$preview$type == "image")
-          } else {
-            # Older versions: use browser config information stored in `datasets`
-            path <- datasets[[input$data_key]]$plot
-          }
+              # The type of preview in the config file must be an image for the
+              # render function to proceed
+              req(datasets[[input$data_key]]$config$preview$type == "image")
+            } else {
+              # Older versions: use browser config information stored in `datasets`
+              path <- datasets[[input$data_key]]$plot
+            }
 
-          print("Proceeding to image render list")
-          list(
-            `src` = path,
-            `width` = 290,
-            `height` = 218
-          )
-        },
-        deleteFile=FALSE
+            print("Proceeding to image render list")
+            list(
+              `src` = path,
+              `width` = 290,
+              `height` = 218
+            )
+          },
+          deleteFile = FALSE
         )
 
       # Set suspendWhenHidden to false so the plot and image can render before
@@ -2514,7 +2541,7 @@ run_cellDIVER <-
 
       ## 4.3. Show plot or image output for dataset ####
       # For config files produced with version v0.5.0 and later.
-      if (dataset_config_has_info(datasets)){
+      if (dataset_config_has_info(datasets)) {
         observe({
           # Observer requires input$data_key to be defined before running
           req(input$data_key)
@@ -2529,7 +2556,7 @@ run_cellDIVER <-
 
           # If an image is the chosen preview type, show the image container and not
           # the plot container.
-          if (datasets[[input$data_key]]$config$preview$type == "image"){
+          if (datasets[[input$data_key]]$config$preview$type == "image") {
             showElement(
               id = image_id
             )
@@ -2537,7 +2564,9 @@ run_cellDIVER <-
             hideElement(
               id = plot_id
             )
-          } else if (datasets[[input$data_key]]$config$preview$type == "dimplot"){
+          } else if (
+            datasets[[input$data_key]]$config$preview$type == "dimplot"
+          ) {
             # If a plot is the chosen preview type, show the plot container and
             # not the image container.
             hideElement(
@@ -2547,7 +2576,7 @@ run_cellDIVER <-
             showElement(
               id = plot_id
             )
-          } else if (datasets[[input$data_key]]$config$preview$type == "none"){
+          } else if (datasets[[input$data_key]]$config$preview$type == "none") {
             # If the type of preview is "none", hide both containers (only the
             # description will display in the dataset selection window)
             hideElement(
@@ -2573,9 +2602,12 @@ run_cellDIVER <-
         object(),
         {
           log_info(
-            glue("Memory used after loading current object: {to_GB(mem_used())}")
+            glue(
+              "Memory used after loading current object: {to_GB(mem_used())}"
+            )
           )
-        })
+        }
+      )
 
       # 5. Link to auto-generated object dictionary ----------------------------
       output$auto_dictionary_link <-
@@ -2592,27 +2624,25 @@ run_cellDIVER <-
 
       # 6. Enable/Disable Tabs -------------------------------------------------
       ## 6.1. DGE Tab ####
-      observe(
-        label = "Enable/Disable DGE tab, SCE Objects",
-        {
-          # jQuery selector for the DGE navbar button
-          dge_tab_button <- "nav [data-value = 'dge']"
+      observe(label = "Enable/Disable DGE tab, SCE Objects", {
+        # jQuery selector for the DGE navbar button
+        dge_tab_button <- "nav [data-value = 'dge']"
 
-          # Disable the DGE tab (for now) if the object is an SCE object with
-          # DelayedArray (HDF5-enabled) matrices
-          # DGE is also currently disabled for MuData objects
-          if (isTruthy(is_HDF5SummarizedExperiment()) | isTruthy(is_mudata())){
-            shinyjs::addClass(
-              selector = dge_tab_button,
-              class = "navbar-hide"
-            )
-          } else {
-            shinyjs::removeClass(
-              selector = dge_tab_button,
-              class = "navbar-hide"
-            )
-          }
-        })
+        # Disable the DGE tab (for now) if the object is an SCE object with
+        # DelayedArray (HDF5-enabled) matrices
+        # DGE is also currently disabled for MuData objects
+        if (isTruthy(is_HDF5SummarizedExperiment()) | isTruthy(is_mudata())) {
+          shinyjs::addClass(
+            selector = dge_tab_button,
+            class = "navbar-hide"
+          )
+        } else {
+          shinyjs::removeClass(
+            selector = dge_tab_button,
+            class = "navbar-hide"
+          )
+        }
+      })
 
       ## 6.2. Correlations Tab ####
       # The correlations tab will be hidden for anndata and
@@ -2638,11 +2668,10 @@ run_cellDIVER <-
       #     # }
       #   })
 
-
       # 7. Callbacks -----------------------------------------------------------
       ## 7.1. Code to run when the user disconnects ####
       onSessionEnded(
-        function(){
+        function() {
           log_info(glue("Session {session$token} disconnected."))
           log_info(glue("Memory usage upon disconnection: {to_GB(mem_used())}"))
         }
@@ -2708,18 +2737,14 @@ run_cellDIVER <-
     shinyApp(
       ui = ui,
       server = server,
-      options =
-        list(
-          "port" =
-            if (!is.null(port)) port else getOption("shiny.port"),
-          "host" =
-            if (!is.null(host)) host else "127.0.0.1",
-          "launch.browser" =
-            if (!is.null(launch_browser)){
-              launch_browser
-            } else {
-                getOption("shiny.launch.browser", interactive())
-              }
-          )
+      options = list(
+        "port" = if (!is.null(port)) port else getOption("shiny.port"),
+        "host" = if (!is.null(host)) host else "127.0.0.1",
+        "launch.browser" = if (!is.null(launch_browser)) {
+          launch_browser
+        } else {
+          getOption("shiny.launch.browser", interactive())
+        }
       )
-    }
+    )
+  }

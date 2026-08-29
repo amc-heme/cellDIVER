@@ -63,10 +63,10 @@ plot_scatter <-
   ){
     # 1. Process parameters and define defaults
     ## 1.1. cells to use: if unspecified, plot all cells
-    cells <- cells %||% get_all_cells(object)
+    cells <- cells %||% SCUBA::get_all_cells(object)
     
     ## 1.2. Slot: use default slot if undefined
-    slot <- slot %||% default_layer(object)
+    slot <- slot %||% SCUBA::default_layer(object)
     
     ## 1.3. Process shuffle settings
     if (isTRUE(x = shuffle)) {
@@ -77,7 +77,7 @@ plot_scatter <-
     # 2. Fetch data
     ## 2.1. Group by data
     groups <-
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object,
         # There can be multiple group_by variables
         vars = group_by,
