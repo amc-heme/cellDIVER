@@ -127,10 +127,10 @@ plot_dot <-
     cells <-
       if (is.null(idents)){
         # If `idents` is NULL, pull all cells
-        get_all_cells(object)
+        SCUBA::get_all_cells(object)
       } else {
         # Otherwise, use fetch_cells method to specify included cells
-        fetch_cells(
+        SCUBA::fetch_cells(
           object = object,
           meta_var = group_by,
           meta_levels = idents
@@ -139,7 +139,7 @@ plot_dot <-
     
     ## 2.2. group_by data
     group_by_data <-
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object,
         vars = group_by,
         cells = cells,
@@ -153,14 +153,14 @@ plot_dot <-
     
     ## 2.3. Expression data for each feature
     expr_data <-
-      fetch_data(
+      SCUBA::fetch_data(
         object = object,
         vars = features,
         cells = cells,
         # Seurat::DotPlot always pulls from the "data" layer. plot_dot exhibits
         # similar behavior by pulling the layer equivalent to "data" using
         # `default_layer`.
-        layer = default_layer(object)
+        layer = SCUBA::default_layer(object)
       )
     
     # 3. Add group_by metadata to table
@@ -175,7 +175,7 @@ plot_dot <-
     if (!is.null(x = split_by)) {
       ## 4.1. Pull split_by metadata
       splits <-
-        fetch_metadata(
+        SCUBA::fetch_metadata(
           object = object,
           vars = split_by,
           cells = cells,
