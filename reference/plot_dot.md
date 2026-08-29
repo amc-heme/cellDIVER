@@ -119,5 +119,5 @@ plot_dot(
      group_by = "condensed_cell_type", 
      features = c("X_UNG", "X_GAPDH", "X_CCR5")
    )
-#> Error in get_all_cells(object): could not find function "get_all_cells"
+#> Error in AML_h5ad(): could not find function "AML_h5ad"
 ```

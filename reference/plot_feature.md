@@ -233,5 +233,5 @@ For the old `do.hover` and `do.identify` functionality, please see
 
 ``` r
 plot_feature(AML_Seurat, features = "PC_1")
-#> Error in default_reduction(object): could not find function "default_reduction"
+#> Error: object 'AML_Seurat' not found
 ```

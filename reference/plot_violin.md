@@ -146,5 +146,5 @@ ggplot object if `combine = TRUE`; otherwise, a list of ggplot objects
 
 ``` r
 plot_violin(AML_Seurat, features = "PC_1", group_by = "condensed_cell_type")
-#> Error in default_layer(object): could not find function "default_layer"
+#> Error: object 'AML_Seurat' not found
 ```
