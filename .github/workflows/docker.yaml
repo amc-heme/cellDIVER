@@ -100,6 +100,14 @@ jobs:
       # own slot so that change stays purely additive.
       # ------------------------------------------------------------------------
 
+      # KNOWN TRANSIENT (not a Dockerfile bug): the image installs cellDIVER via
+      # the GitHub API (BiocManager -> remotes::install_github), which is rate
+      # limited to 60 req/hr for UNAUTHENTICATED callers. GitHub-hosted runners
+      # share outbound IPs, so several builds at once (a push-to-main build
+      # racing a PR build, or approving multiple queued runs together) can hit a
+      # transient "HTTP error 403" on this install step. Fix: just re-run the
+      # job. If it recurs often, pass GITHUB_TOKEN into the build as a secret to
+      # lift the limit -- kept out of Phase 2 to stay tokenless and additive.
       - name: Build image (linux/amd64, no registry push)
         uses: docker/build-push-action@v7
         with:
