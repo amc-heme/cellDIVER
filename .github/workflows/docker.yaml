@@ -1,0 +1,188 @@
+# ---------------------------------------------------------------------------
+# Docker PR build-validation workflow (Phase 2).
+#
+# WHAT THIS DOES
+#   Builds the repo's Dockerfile (the cellDIVER shiny-server image) on every
+#   pull request to main and then smoke-tests the running container. It NEVER
+#   pushes to a registry — publishing to GHCR is Phase 3 and is deliberately out
+#   of scope here.
+#
+# IMPORTANT LIMITATION — do NOT read a green check as "my R code was tested"
+#   The Dockerfile installs cellDIVER from amc-heme/cellDIVER on GitHub `main`,
+#   NOT from this PR's checkout. So this gate validates the Dockerfile and the
+#   dependency tree only; it does NOT exercise the R code changes in the PR
+#   being built. That GitHub-main-vs-PR-checkout behavior is the intended
+#   Phase 1 design and is out of scope to change here.
+#
+# PHASE 3 (registry publish) is a small ADDITIVE diff on top of this file: add
+#   docker/login-action + docker/metadata-action, flip `push` to a conditional,
+#   add `permissions: { contents: read, packages: write }`, and widen
+#   `platforms` to linux/amd64,linux/arm64 on the publish path. The steps below
+#   are laid out (single-expression `platforms`/`push`, plus a marked slot for
+#   the login/metadata steps) so those slot in without a rewrite.
+# ---------------------------------------------------------------------------
+name: Docker
+
+# WHY THESE TRIGGERS
+#   pull_request -> main : the actual gate. Build + smoke test, never push.
+#   push -> main         : NOT a Phase-2 publish. It exists purely to warm the
+#                          GitHub Actions layer cache on the default branch. The
+#                          GHA cache is branch-scoped: a PR branch can restore
+#                          cache written by its BASE branch (main) but not cache
+#                          from other PR branches. Without a build on main there
+#                          is no cache for PRs to restore, so every PR would pay
+#                          a full ~30-45 min cold build. Phase 3 converts this
+#                          same push path into the GHCR publish step.
+#   workflow_dispatch    : lets us run the build manually while iterating.
+# No `paths:` filter on purpose: every PR should pass the gate. With a warm
+# cache an unchanged Dockerfile is a fast cache-hit rebuild, so gating every PR
+# is cheap.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel a stale in-progress build when a newer commit lands on the same ref, so
+# a rapid series of PR pushes doesn't queue redundant ~30 min builds. Keyed on
+# workflow + ref so main's cache-warming build and PR builds never cancel each
+# other (different refs => different concurrency groups).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # A cold build of this full Seurat/Bioconductor tree is ~30-45 min. Cap the
+    # job so a hung build fails cleanly instead of burning the 6-hour default.
+    timeout-minutes: 120
+    steps:
+      # Checkout provides the Dockerfile, shiny-server.conf and docker/ build
+      # context. (It does NOT provide the R sources the image runs — those are
+      # installed from GitHub main inside the Dockerfile; see the limitation
+      # note at the top of this file.)
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # ubuntu-latest ships with only ~14 GB free, but this image (full Seurat +
+      # Bioconductor) plus the mode=max cache export and `load: true` need far
+      # more. Reclaim ~25 GB by deleting preinstalled toolchains we never use.
+      # "no space left on device" mid apt-get / install.packages is the single
+      # most likely CI failure here, so free space BEFORE building.
+      - name: Free up runner disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/local/.ghcup /usr/share/swift
+          echo "Disk after cleanup:"
+          df -h /
+
+      # setup-buildx-action switches to the docker-container build driver, which
+      # is what makes `cache-from/to type=gha` and `load: true` available — the
+      # default docker driver supports neither.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # --- PHASE 3 SLOT -------------------------------------------------------
+      # Registry publish (Phase 3) adds docker/login-action (authenticate to
+      # GHCR) and docker/metadata-action (compute tags/labels) HERE, then feeds
+      # the metadata outputs into the build step's `tags`/`labels`. Kept as its
+      # own slot so that change stays purely additive.
+      # ------------------------------------------------------------------------
+
+      - name: Build image (linux/amd64, no registry push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          # Single-arch by design. linux/arm64 is Phase 3 and would ~double CI
+          # time for no extra signal on this gate. Kept as ONE expression so
+          # Phase 3 can widen it to "linux/amd64,linux/arm64" in one edit.
+          platforms: linux/amd64
+          # Phase 2 never pushes. Phase 3 flips this to a conditional such as
+          # `${{ github.event_name != 'pull_request' }}`. Kept as ONE expression
+          # for exactly that.
+          push: false
+          # Load the built image into the local Docker daemon so the smoke test
+          # below can `docker run` it. `load: true` requires a single-platform
+          # build (it is incompatible with multi-arch) — another reason arm64 is
+          # deferred to Phase 3's push path.
+          load: true
+          # Local-only tag for the smoke test; NOT a registry reference. Phase 3
+          # replaces this with docker/metadata-action outputs.
+          tags: celldiver:ci
+          # The docker exporter used by `load: true` cannot carry provenance
+          # attestations; disabling them avoids a "manifest list" export error
+          # and keeps the loaded image a plain single-platform image.
+          provenance: false
+          # GHA layer cache. mode=max caches EVERY intermediate layer (not just
+          # the final image), which is what makes a warm rebuild of this deep R
+          # dependency tree fast. NOTE: GHA cache is ~10 GB per repo and this
+          # tree is large; if you observe cache thrashing (repeated ~40 min
+          # builds with no cache hits) the export is evicted — fall back to
+          # `cache-to: type=gha,mode=min` here and note why.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Start the freshly built image. shiny-server binds :3838 immediately for
+      # the directory indexes, but each Shiny app boots LAZILY on first request
+      # (loading Seurat + the demo object), which is why the app routes get
+      # a generous retry budget rather than a fixed sleep.
+      - name: Start container
+        run: |
+          docker run -d --name celldiver_smoke -p 3838:3838 celldiver:ci
+          docker ps
+
+      # Poll every served route until it returns HTTP 2xx. --retry-all-errors +
+      # 30 x 5 s covers both the brief connection-refused window before
+      # shiny-server binds and the couple of minutes an app needs to boot on
+      # first hit. NOTE the layout is /demo/browser + /demo/config, NOT /demo.
+      # CAVEAT: shiny-server can serve an HTML *error* page with a 200 status
+      # when an app fails to start, so a passing curl here is necessary but NOT
+      # sufficient — the log check in the next step is the real health gate.
+      - name: Smoke test served routes
+        run: |
+          set -euo pipefail
+          for route in / /demo/ /demo/browser/ /demo/config/; do
+            echo "== GET http://localhost:3838${route} =="
+            curl --fail -sS --retry 30 --retry-delay 5 --retry-all-errors \
+              -o /dev/null "http://localhost:3838${route}"
+            echo "  -> 2xx OK"
+          done
+
+      # THE REAL HEALTH GATE. App-level startup errors are written to
+      # /var/log/shiny-server/ INSIDE the container and never appear in
+      # `docker logs`. A healthy app prints a "Listening on" line once its R
+      # process is up (before it serves any request), so requiring both the
+      # browser and config apps to have logged it rules out the 200-error-page
+      # trap noted above. shiny-server names each log "<app-dir>-shiny-<ts>-
+      # <port>.log", i.e. browser-*.log and config-*.log for the two demo apps.
+      - name: Verify both apps started cleanly
+        run: |
+          set -euo pipefail
+          for app in browser config; do
+            # Match this app's shiny-server log(s) for the "Listening on" line.
+            if docker exec celldiver_smoke \
+                sh -c "grep -lq 'Listening on' \
+                  /var/log/shiny-server/${app}-*.log 2>/dev/null"; then
+              echo "OK: '${app}' app logged 'Listening on'"
+            else
+              echo "FAIL: '${app}' app never logged 'Listening on'" >&2
+              exit 1
+            fi
+          done
+
+      # Always dump BOTH log sources so any failure above is debuggable. `docker
+      # logs` shows shiny-server's own stdout; the per-app logs under
+      # /var/log/shiny-server/ hold the R startup errors that never reach
+      # `docker logs`. Without this step you would be debugging blind.
+      - name: Dump shiny-server logs
+        if: always()
+        run: |
+          echo "===== docker logs celldiver_smoke ====="
+          docker logs celldiver_smoke || true
+          echo "===== /var/log/shiny-server/*.log (inside container) ====="
+          docker exec celldiver_smoke \
+            sh -c 'cat /var/log/shiny-server/*.log' || true
