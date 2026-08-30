@@ -8,8 +8,6 @@
   Documentation](https://amc-heme.github.io/cellDIVER/articles/config_documentation.md):
 - [App Setup
   Walkthrough](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.md):
-- [Running cellDIVER with
-  Docker](https://amc-heme.github.io/cellDIVER/articles/docker.md):
 - [cellDIVER
   Documentation](https://amc-heme.github.io/cellDIVER/articles/full_documentation.md):
 - [HDF5 Storage

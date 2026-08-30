@@ -5,13 +5,12 @@ articles:
   advanced_subsetting_documentation: advanced_subsetting_documentation.html
   config_documentation: config_documentation.html
   dataset_setup_walkthrough: dataset_setup_walkthrough.html
-  docker: docker.html
   full_documentation: full_documentation.html
   hdf5_storage: hdf5_storage.html
   object_guidelines: object_guidelines.html
   scRNA_Plots_Explained: scRNA_Plots_Explained.html
   tutorial: tutorial.html
-last_built: 2026-08-29T20:54Z
+last_built: 2026-08-30T03:04Z
 urls:
   reference: https://amc-heme.github.io/cellDIVER/reference
   article: https://amc-heme.github.io/cellDIVER/articles

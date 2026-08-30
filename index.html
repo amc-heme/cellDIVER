@@ -40,7 +40,6 @@
     <li><a class="dropdown-item" href="articles/dataset_setup_walkthrough.html">App Setup Walkthrough</a></li>
     <li><a class="dropdown-item" href="articles/tutorial.html">Exploring your Data</a></li>
     <li><a class="dropdown-item" href="articles/object_guidelines.html">Object Preparation Guidelines</a></li>
-    <li><a class="dropdown-item" href="articles/docker.html">Deploying With Docker</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Additional Information</h6></li>
     <li><a class="dropdown-item" href="articles/scRNA_Plots_Explained.html">Guide to scRNA-Seq Plots</a></li>
@@ -123,6 +122,38 @@
     )</code></pre>
 </li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="docker-installation">Docker Installation<a class="anchor" aria-label="anchor" href="#docker-installation"></a>
+</h2>
+<p>cellDIVER ships a self-contained Docker image (shiny-server) that serves a bundled demo dataset out of the box.</p>
+<pre><code>docker pull ghcr.io/amc-heme/celldiver:latest
+docker run --rm -p 3838:3838 ghcr.io/amc-heme/celldiver:latest</code></pre>
+<blockquote>
+<p><code>ghcr.io/amc-heme/celldiver:latest</code> is a placeholder — the image is not yet published. Until then, <a href="#docker-details">build it locally</a>.</p>
+</blockquote>
+<p>Open <a href="http://localhost:3838/" class="external-link uri">http://localhost:3838/</a> for the directory index. The demo data browser is at <code>/demo/browser</code> and its config editor at <code>/demo/config</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="docker-details">Docker Details<a class="anchor" aria-label="anchor" href="#docker-details"></a>
+</h2>
+<p><strong>Build and run locally:</strong></p>
+<pre><code>docker build --platform=linux/amd64 -t celldiver .
+docker run --rm -p 3838:3838 celldiver</code></pre>
+<p>(<code>--platform=linux/amd64</code> is only needed on Apple-Silicon/ARM hosts.)</p>
+<p><strong>PR approval smoke test (concise):</strong> 1. Build from a clean state: <code>docker build --platform=linux/amd64 -t celldiver .</code> 2. Run the container: <code>docker run --rm -p 3838:3838 celldiver</code> 3. Confirm these routes load: - <code>/</code> (directory index) - <code>/demo/</code> (dataset folder index) - <code>/demo/browser/</code> (<code>cellDIVER</code> app) - <code>/demo/config/</code> (<code>Configure Seurat Object</code> app) 4. Confirm both apps log <code>Listening on</code> without startup errors.</p>
+<p><strong>Deploy your own data:</strong> mount a host folder of per-dataset subdirectories at <code>/srv/shiny-server</code>:</p>
+<pre><code>docker run --rm -p 3838:3838 -v /path/to/apps:/srv/shiny-server celldiver</code></pre>
+<p>Use <a href="docker/shiny-server/demo">docker/shiny-server/demo</a> as the per-dataset template. Because shiny-server cannot serve an app nested inside another app, the data browser and config editor are sibling sub-apps (<code>browser/</code> and <code>config/</code>), not the dataset folder itself. For each dataset:</p>
+<ol style="list-style-type: decimal">
+<li>Copy the <code>demo/</code> folder and rename it (e.g. <code>mydata/</code>).</li>
+<li>Place your Seurat object in that folder as <code>object.rds</code> and its config as <code>object-config.yaml</code>, alongside the <code>browser/</code> and <code>config/</code> sub-apps. These two names are required. (The demo’s copies are <em>not</em> in the repo — they are baked into the image from the bundled package data — so for your own data you supply them.)</li>
+<li>No edits to <code>app.R</code> are needed: both sub-apps resolve the dataset directory from their own location, so a renamed copy works as-is.</li>
+<li>Ensure the mounted files are readable by the in-container <code>shiny</code> user (UID 999): a bind mount keeps host ownership and shadows the image’s build-time <code>chown</code>, so run <code>chmod -R a+rX /path/to/apps</code> if they are not already world-readable, otherwise the apps will not start.</li>
+</ol>
+<p>Then browse to <code>localhost:3838/mydata/browser</code>, and generate or edit its config at <code>localhost:3838/mydata/config</code>.</p>
+<p>Seurat v5 objects with BPCells assays work out of the box. anndata / MuData (<code>.h5ad</code>) support requires uncommenting the Python block in the <a href="Dockerfile">Dockerfile</a> and rebuilding (see below).</p>
+<p><strong>Image Notes:</strong> * <strong>BPCells</strong>: installed by default (from r-universe, since it isn’t on CRAN/Bioconductor) so that Seurat v5 objects with BPCells assays open out of the box — the install is cheap and needs no extra system dependencies. r-universe serves the latest build, so this floats; for a reproducible rebuild, install a specific source ref instead, e.g. <code>remotes::install_github('bnprks/BPCells/r@&lt;sha&gt;')</code>. * <strong>anndata / MuData / Python support is off by default.</strong> Enabling it (the commented block in the Dockerfile) pulls in a uv-managed Python environment via SCUBA, which <code>py_require()</code>s anndata/pandas/numpy/scipy (plus mudata for MuData) — this path has been fragile in practice (“minimum uv version” / “python not found” errors). If you enable it, pin a known-good <code>uv</code> version and pre-bake the environment as the runtime <code>shiny</code> user at build time, rather than letting it fetch on first request.</p>
 </div>
 <div class="section level2">
 <h2 id="future-goals">Future Goals<a class="anchor" aria-label="anchor" href="#future-goals"></a>
