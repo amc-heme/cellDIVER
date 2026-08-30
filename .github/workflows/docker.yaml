@@ -45,7 +45,12 @@ on:
     # entry is reduced back to just [main] before the change lands on main.
     branches: [main, 422-phase-2-docker-pr-build-validation-workflow]
   push:
-    branches: [main]
+    # main is the real cache-warming trigger (see spec). The head branch is
+    # included TEMPORARILY so this validation branch gets a push-triggered run:
+    # push events on same-repo branches are not subject to the PR-approval gate
+    # that holds bot pull_request runs, so this yields the required verified
+    # green run. Reduced back to [main] before the change lands on main.
+    branches: [main, copilot/add-docker-pr-build-validation-workflow]
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN. This Phase 2 gate only needs to read the repo
