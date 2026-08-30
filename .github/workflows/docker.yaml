@@ -39,7 +39,11 @@ name: Docker
 # is cheap.
 on:
   pull_request:
-    branches: [main]
+    # main is the real gate (see spec). The task integration branch is included
+    # TEMPORARILY so this gate actually runs on THIS PR — whose base is the task
+    # branch, not main — to produce the required verified-green run. This second
+    # entry is reduced back to just [main] before the change lands on main.
+    branches: [main, 422-phase-2-docker-pr-build-validation-workflow]
   push:
     branches: [main]
   workflow_dispatch:
