@@ -74,6 +74,56 @@ cellDIVER::run_config(
   </li>
 </ul>
 
+## Docker Installation
+
+cellDIVER ships a self-contained Docker image (shiny-server) that serves a bundled demo dataset out of the box.
+
+```
+docker pull ghcr.io/amc-heme/celldiver:latest
+docker run --rm -p 3838:3838 ghcr.io/amc-heme/celldiver:latest
+```
+> `ghcr.io/amc-heme/celldiver:latest` is a placeholder — the image is not yet published. Until then, [build it locally](#docker-details).
+
+Open <http://localhost:3838/> for the directory index. The demo data browser is at `/demo/browser` and its config editor at `/demo/config`.
+
+## Docker Details
+
+**Build and run locally:**
+```
+docker build --platform=linux/amd64 -t celldiver .
+docker run --rm -p 3838:3838 celldiver
+```
+(`--platform=linux/amd64` is only needed on Apple-Silicon/ARM hosts.)
+
+**PR approval smoke test (concise):**
+1. Build from a clean state: `docker build --platform=linux/amd64 -t celldiver .`
+2. Run the container: `docker run --rm -p 3838:3838 celldiver`
+3. Confirm these routes load:
+   - `/` (directory index)
+   - `/demo/` (dataset folder index)
+   - `/demo/browser/` (`cellDIVER` app)
+   - `/demo/config/` (`Configure Seurat Object` app)
+4. Confirm both apps log `Listening on` without startup errors.
+
+**Deploy your own data:** mount a host folder of per-dataset subdirectories at `/srv/shiny-server`:
+```
+docker run --rm -p 3838:3838 -v /path/to/apps:/srv/shiny-server celldiver
+```
+Use [docker/shiny-server/demo](docker/shiny-server/demo) as the per-dataset template. Because shiny-server cannot serve an app nested inside another app, the data browser and config editor are sibling sub-apps (`browser/` and `config/`), not the dataset folder itself. For each dataset:
+
+1. Copy the `demo/` folder and rename it (e.g. `mydata/`).
+2. Place your Seurat object in that folder as `object.rds` and its config as `object-config.yaml`, alongside the `browser/` and `config/` sub-apps. These two names are required. (The demo's copies are *not* in the repo — they are baked into the image from the bundled package data — so for your own data you supply them.)
+3. No edits to `app.R` are needed: both sub-apps resolve the dataset directory from their own location, so a renamed copy works as-is.
+4. Ensure the mounted files are readable by the in-container `shiny` user (UID 999): a bind mount keeps host ownership and shadows the image's build-time `chown`, so run `chmod -R a+rX /path/to/apps` if they are not already world-readable, otherwise the apps will not start.
+
+Then browse to `localhost:3838/mydata/browser`, and generate or edit its config at `localhost:3838/mydata/config`.
+
+Seurat v5 objects with BPCells assays work out of the box. anndata / MuData (`.h5ad`) support requires uncommenting the Python block in the [Dockerfile](Dockerfile) and rebuilding (see below).
+
+**Image Notes:**
+* **BPCells**: installed by default (from r-universe, since it isn't on CRAN/Bioconductor) so that Seurat v5 objects with BPCells assays open out of the box — the install is cheap and needs no extra system dependencies. r-universe serves the latest build, so this floats; for a reproducible rebuild, install a specific source ref instead, e.g. `remotes::install_github('bnprks/BPCells/r@<sha>')`.
+* **anndata / MuData / Python support is off by default.** Enabling it (the commented block in the Dockerfile) pulls in a uv-managed Python environment via SCUBA, which `py_require()`s anndata/pandas/numpy/scipy (plus mudata for MuData) — this path has been fragile in practice ("minimum uv version" / "python not found" errors). If you enable it, pin a known-good `uv` version and pre-bake the environment as the runtime `shiny` user at build time, rather than letting it fetch on first request.
+
 ## Future Goals
 
 <!-- As stated above, the current version of the app requires manually fitting each new object to its own specific version of the app. Future versions of the app will be able to accept *any* Seurat object, automatically detect (or user specified) metadata values of interest, and build the app to provide exploration of that object. 
