@@ -126,13 +126,14 @@
 <div class="section level2">
 <h2 id="docker-installation">Docker Installation<a class="anchor" aria-label="anchor" href="#docker-installation"></a>
 </h2>
-<p>cellDIVER ships a self-contained Docker image (shiny-server) that serves a bundled demo dataset out of the box.</p>
+<p>cellDIVER ships a self-contained Docker image (shiny-server) that serves a bundled demo dataset out of the box. The quickest way to run it is to pull the pre-built image from the GitHub Container Registry (GHCR):</p>
 <pre><code>docker pull ghcr.io/amc-heme/celldiver:latest
 docker run --rm -p 3838:3838 ghcr.io/amc-heme/celldiver:latest</code></pre>
 <blockquote>
-<p><code>ghcr.io/amc-heme/celldiver:latest</code> is a placeholder — the image is not yet published. Until then, <a href="#docker-details">build it locally</a>.</p>
+<p><strong>Pending image visibility — delete this line once the package is public.</strong> The image publishes automatically on merge to <code>main</code>, but a newly-created GHCR package is private by default, so an anonymous <code>docker pull</code> returns <code>denied</code> / <code>unauthorized</code> until an org admin sets <code>ghcr.io/amc-heme/celldiver</code> to Public. Until then, <a href="#docker-details">build the image locally</a>.</p>
 </blockquote>
 <p>Open <a href="http://localhost:3838/" class="external-link uri">http://localhost:3838/</a> for the directory index. The demo data browser is at <code>/demo/browser</code> and its config editor at <code>/demo/config</code>.</p>
+<p>Prefer to build from source, pin versions, or enable anndata/MuData support? See <a href="#docker-details">Docker Details</a> for the local-build alternative.</p>
 </div>
 <div class="section level2">
 <h2 id="docker-details">Docker Details<a class="anchor" aria-label="anchor" href="#docker-details"></a>
@@ -143,7 +144,7 @@ docker run --rm -p 3838:3838 celldiver</code></pre>
 <p>(<code>--platform=linux/amd64</code> is only needed on Apple-Silicon/ARM hosts.)</p>
 <p><strong>PR approval smoke test (concise):</strong> 1. Build from a clean state: <code>docker build --platform=linux/amd64 -t celldiver .</code> 2. Run the container: <code>docker run --rm -p 3838:3838 celldiver</code> 3. Confirm these routes load: - <code>/</code> (directory index) - <code>/demo/</code> (dataset folder index) - <code>/demo/browser/</code> (<code>cellDIVER</code> app) - <code>/demo/config/</code> (<code>Configure Seurat Object</code> app) 4. Confirm both apps log <code>Listening on</code> without startup errors.</p>
 <p><strong>Deploy your own data:</strong> mount a host folder of per-dataset subdirectories at <code>/srv/shiny-server</code>:</p>
-<pre><code>docker run --rm -p 3838:3838 -v /path/to/apps:/srv/shiny-server celldiver</code></pre>
+<pre><code>docker run --rm -p 3838:3838 -v /path/to/apps:/srv/shiny-server ghcr.io/amc-heme/celldiver:latest</code></pre>
 <p>Use <a href="docker/shiny-server/demo">docker/shiny-server/demo</a> as the per-dataset template. Because shiny-server cannot serve an app nested inside another app, the data browser and config editor are sibling sub-apps (<code>browser/</code> and <code>config/</code>), not the dataset folder itself. For each dataset:</p>
 <ol style="list-style-type: decimal">
 <li>Copy the <code>demo/</code> folder and rename it (e.g. <code>mydata/</code>).</li>
@@ -153,7 +154,7 @@ docker run --rm -p 3838:3838 celldiver</code></pre>
 </ol>
 <p>Then browse to <code>localhost:3838/mydata/browser</code>, and generate or edit its config at <code>localhost:3838/mydata/config</code>.</p>
 <p>Seurat v5 objects with BPCells assays work out of the box. anndata / MuData (<code>.h5ad</code>) support requires uncommenting the Python block in the <a href="Dockerfile">Dockerfile</a> and rebuilding (see below).</p>
-<p><strong>Image Notes:</strong> * <strong>BPCells</strong>: installed by default (from r-universe, since it isn’t on CRAN/Bioconductor) so that Seurat v5 objects with BPCells assays open out of the box — the install is cheap and needs no extra system dependencies. r-universe serves the latest build, so this floats; for a reproducible rebuild, install a specific source ref instead, e.g. <code>remotes::install_github('bnprks/BPCells/r@&lt;sha&gt;')</code>. * <strong>anndata / MuData / Python support is off by default.</strong> Enabling it (the commented block in the Dockerfile) pulls in a uv-managed Python environment via SCUBA, which <code>py_require()</code>s anndata/pandas/numpy/scipy (plus mudata for MuData) — this path has been fragile in practice (“minimum uv version” / “python not found” errors). If you enable it, pin a known-good <code>uv</code> version and pre-bake the environment as the runtime <code>shiny</code> user at build time, rather than letting it fetch on first request.</p>
+<p><strong>Image Notes:</strong> * <strong>Architecture: <code>linux/amd64</code> only.</strong> The base image (<code>rocker/shiny-verse</code>) publishes no <code>arm64</code> manifest, so there is no arm64 base to build <code>FROM</code> — the image is amd64-only by necessity, not choice. On Apple-Silicon / ARM hosts it runs under emulation (Rosetta / QEMU); if Docker does not select it automatically you may need <code>--platform=linux/amd64</code> on <code>docker run</code> (as well as on <code>docker build</code> when building locally). * <strong>BPCells</strong>: installed by default (from r-universe, since it isn’t on CRAN/Bioconductor) so that Seurat v5 objects with BPCells assays open out of the box — the install is cheap and needs no extra system dependencies. r-universe serves the latest build, so this floats; for a reproducible rebuild, install a specific source ref instead, e.g. <code>remotes::install_github('bnprks/BPCells/r@&lt;sha&gt;')</code>. * <strong>anndata / MuData / Python support is off by default.</strong> Enabling it (the commented block in the Dockerfile) pulls in a uv-managed Python environment via SCUBA, which <code>py_require()</code>s anndata/pandas/numpy/scipy (plus mudata for MuData) — this path has been fragile in practice (“minimum uv version” / “python not found” errors). If you enable it, pin a known-good <code>uv</code> version and pre-bake the environment as the runtime <code>shiny</code> user at build time, rather than letting it fetch on first request.</p>
 </div>
 <div class="section level2">
 <h2 id="future-goals">Future Goals<a class="anchor" aria-label="anchor" href="#future-goals"></a>
