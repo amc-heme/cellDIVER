@@ -1,11 +1,12 @@
 # ---------------------------------------------------------------------------
-# Docker PR build-validation workflow (Phase 2).
+# Docker build-validation + GHCR publish workflow.
 #
 # WHAT THIS DOES
-#   Builds the repo's Dockerfile (the cellDIVER shiny-server image) on every
-#   pull request to main and then smoke-tests the running container. It NEVER
-#   pushes to a registry — publishing to GHCR is Phase 3 and is deliberately out
-#   of scope here.
+#   pull_request -> main : builds the repo's Dockerfile (the cellDIVER shiny-
+#     server image) and smoke-tests the running container. PR runs NEVER push.
+#   push -> main / v* tag : the same build + smoke test, then publishes the
+#     validated image to ghcr.io/amc-heme/celldiver. Publishing happens ONLY
+#     after the smoke test passes (see the push step near the bottom).
 #
 # IMPORTANT LIMITATION — do NOT read a green check as "my R code was tested"
 #   The Dockerfile installs cellDIVER from amc-heme/cellDIVER on GitHub `main`,
@@ -14,25 +15,31 @@
 #   being built. That GitHub-main-vs-PR-checkout behavior is the intended
 #   Phase 1 design and is out of scope to change here.
 #
-# PHASE 3 (registry publish) is a small ADDITIVE diff on top of this file: add
-#   docker/login-action + docker/metadata-action, flip `push` to a conditional,
-#   add `permissions: { contents: read, packages: write }`, and widen
-#   `platforms` to linux/amd64,linux/arm64 on the publish path. The steps below
-#   are laid out (single-expression `platforms`/`push`, plus a marked slot for
-#   the login/metadata steps) so those slot in without a rewrite.
+# WHY amd64-ONLY (deliberate, not a TODO — do not "fix" this to multi-arch)
+#   The base image rocker/shiny-verse publishes an amd64 manifest ONLY; there
+#   is no arm64 base to build FROM (verified against Docker Hub 2026-08-30).
+#   arm64 exists further down the rocker stack (r-ver, tidyverse) but disappears
+#   once shiny-server is layered on, so a linux/arm64 build would fail instantly
+#   with "no match for platform in manifest". Hence: no QEMU, no platforms list,
+#   no manifest merging. Apple-Silicon users run the amd64 image under emulation
+#   (see README "Image Notes").
 # ---------------------------------------------------------------------------
 name: Docker
 
 # WHY THESE TRIGGERS
-#   pull_request -> main : the actual gate. Build + smoke test, never push.
-#   push -> main         : NOT a Phase-2 publish. It exists purely to warm the
-#                          GitHub Actions layer cache on the default branch. The
-#                          GHA cache is branch-scoped: a PR branch can restore
-#                          cache written by its BASE branch (main) but not cache
-#                          from other PR branches. Without a build on main there
-#                          is no cache for PRs to restore, so every PR would pay
-#                          a full ~30-45 min cold build. Phase 3 converts this
-#                          same push path into the GHCR publish step.
+#   pull_request -> main : the build + smoke-test gate. Never pushes.
+#   push -> main         : builds, smoke-tests, then PUBLISHES
+#                          ghcr.io/amc-heme/celldiver:latest + a sha- tag. This
+#                          build also keeps the default-branch GHA layer cache
+#                          warm. That cache is branch-scoped: a PR branch can
+#                          restore cache written by its BASE branch (main) but
+#                          not cache from other PR branches. Without a build on
+#                          main there is no cache for PRs to restore, so every
+#                          PR would pay a full ~30-45 min cold build.
+#   push -> v* tags      : publishes the semver release images (v1.2.3 ->
+#                          1.2.3 / 1.2 / 1). Additive and safe: pre-existing v*
+#                          tags do NOT fire retroactively — only tags pushed
+#                          after this trigger lands will publish.
 #   workflow_dispatch    : lets us run the build manually while iterating.
 # No `paths:` filter on purpose: every PR should pass the gate. With a warm
 # cache an unchanged Dockerfile is a fast cache-hit rebuild, so gating every PR
@@ -42,19 +49,23 @@ on:
     branches: [main]
   push:
     branches: [main]
+    # Publish release images on version tags. Additive: existing v* tags do
+    # not fire retroactively, only tags pushed after this lands.
+    tags: ['v*']
   workflow_dispatch:
 
-# Least-privilege GITHUB_TOKEN. This Phase 2 gate only needs to read the repo
-# for checkout; the GHA cache authenticates with the Actions runtime token, not
-# GITHUB_TOKEN, so no extra scope is required. Phase 3 adds `packages: write`
-# here to publish the image to GHCR.
+# Workflow-level default: least privilege (checkout only). The GHA cache
+# authenticates with the Actions runtime token, not GITHUB_TOKEN, so the build
+# needs no extra scope. The build JOB widens this to `packages: write` at the
+# job level (below) so ONLY that job can publish to GHCR — and PR runs still
+# push nothing because the login/push steps are gated off pull_request.
 permissions:
   contents: read
 
 # Cancel a stale in-progress build when a newer commit lands on the same ref, so
 # a rapid series of PR pushes doesn't queue redundant ~30 min builds. Keyed on
-# workflow + ref so main's cache-warming build and PR builds never cancel each
-# other (different refs => different concurrency groups).
+# workflow + ref so main's publish build and PR builds never cancel each other
+# (different refs => different concurrency groups).
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -65,6 +76,12 @@ jobs:
     # A cold build of this full Seurat/Bioconductor tree is ~30-45 min. Cap the
     # job so a hung build fails cleanly instead of burning the 6-hour default.
     timeout-minutes: 120
+    # Grant packages: write ONLY on this job (least privilege) so the login +
+    # push steps can create/update the GHCR package via the repo's
+    # GITHUB_TOKEN. contents: read is still needed for actions/checkout.
+    permissions:
+      contents: read
+      packages: write
     steps:
       # Checkout provides the Dockerfile, shiny-server.conf and docker/ build
       # context. (It does NOT provide the R sources the image runs — those are
@@ -93,12 +110,52 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      # --- PHASE 3 SLOT -------------------------------------------------------
-      # Registry publish (Phase 3) adds docker/login-action (authenticate to
-      # GHCR) and docker/metadata-action (compute tags/labels) HERE, then feeds
-      # the metadata outputs into the build step's `tags`/`labels`. Kept as its
-      # own slot so that change stays purely additive.
-      # ------------------------------------------------------------------------
+      # Authenticate to GHCR so the push step can publish. Gated OFF pull
+      # requests so a PR never even attempts a registry login — that keeps the
+      # PR path provably push-free. github.actor + the repo's GITHUB_TOKEN act
+      # on behalf of the repository (no personal PAT), which is what lets the
+      # workflow create the org-owned package on the first main build.
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Compute the image tags + OCI labels consumed by the push step. This runs
+      # on EVERY event, PRs included: it only computes strings and has NO
+      # registry side effects, so leaving it ungated is safe. Running it on PRs
+      # is deliberate — a reviewer can read steps.meta.outputs.tags out of the
+      # PR run log to confirm the tag logic (no `latest` off the default branch,
+      # correct sha- format) without anything being pushed.
+      #
+      # The image name is HARD-CODED lowercase on purpose. GHCR rejects
+      # uppercase image names, and this repo is "amc-heme/cellDIVER" (capital
+      # D-I-V-E-R); interpolating ${{ github.repository }} would emit an invalid
+      # uppercase reference. Hardcoding the lowercase name sidesteps that.
+      - name: Compute image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/amc-heme/celldiver
+          # latest=false disables the action's default "auto latest on a semver
+          # tag" behavior, so `latest` is controlled explicitly below. We want
+          # latest to track main, NOT the newest release tag.
+          flavor: |
+            latest=false
+          tags: |
+            # `latest` only on the default branch (main); never on tags or PRs.
+            type=raw,value=latest,enable={{is_default_branch}}
+            # Semver tags fire only on v* git tags: v1.2.3 -> 1.2.3, 1.2, 1.
+            # (Pre-releases like v1.2.3-rc1 only extend {{version}}, so they
+            # never move the shared 1.2 / 1 tags.)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # Short commit SHA (sha-<7 hex>) on every build for exact
+            # provenance, independent of branch or tag.
+            type=sha
 
       # KNOWN TRANSIENT (not a Dockerfile bug): the image installs cellDIVER via
       # the GitHub API (BiocManager -> remotes::install_github), which is rate
@@ -107,26 +164,27 @@ jobs:
       # racing a PR build, or approving multiple queued runs together) can hit a
       # transient "HTTP error 403" on this install step. Fix: just re-run the
       # job. If it recurs often, pass GITHUB_TOKEN into the build as a secret to
-      # lift the limit -- kept out of Phase 2 to stay tokenless and additive.
-      - name: Build image (linux/amd64, no registry push)
+      # lift the limit -- kept out for now to stay tokenless.
+      #
+      # This step ALWAYS builds with push: false + load: true so the smoke test
+      # can `docker run` the exact image. Publishing is a SEPARATE step that
+      # runs AFTER the smoke test (see "Push image to GHCR" below), so a broken
+      # image can never reach the registry.
+      - name: Build image (linux/amd64, load for smoke test)
         uses: docker/build-push-action@v7
         with:
           context: .
-          # Single-arch by design. linux/arm64 is Phase 3 and would ~double CI
-          # time for no extra signal on this gate. Kept as ONE expression so
-          # Phase 3 can widen it to "linux/amd64,linux/arm64" in one edit.
+          # Single-arch by design; see "WHY amd64-ONLY" at the top of the file.
           platforms: linux/amd64
-          # Phase 2 never pushes. Phase 3 flips this to a conditional such as
-          # `${{ github.event_name != 'pull_request' }}`. Kept as ONE expression
-          # for exactly that.
+          # Never push here. The publish step below pushes only after the smoke
+          # test passes.
           push: false
           # Load the built image into the local Docker daemon so the smoke test
           # below can `docker run` it. `load: true` requires a single-platform
-          # build (it is incompatible with multi-arch) — another reason arm64 is
-          # deferred to Phase 3's push path.
+          # build (incompatible with multi-arch) — consistent with amd64-only.
           load: true
-          # Local-only tag for the smoke test; NOT a registry reference. Phase 3
-          # replaces this with docker/metadata-action outputs.
+          # Local-only tag for the smoke test; NOT a registry reference. The
+          # publish step uses the docker/metadata-action tags instead.
           tags: celldiver:ci
           # The docker exporter used by `load: true` cannot carry provenance
           # attestations; disabling them avoids a "manifest list" export error
@@ -188,6 +246,37 @@ jobs:
               exit 1
             fi
           done
+
+      # Publish the validated image to GHCR. This is the ONLY step that writes
+      # to a registry, and it is gated OFF pull requests, so the PR path
+      # provably pushes nothing. GitHub applies an implicit success() to any
+      # `if:` that lacks a status function, so this step ALSO runs only when
+      # every smoke-test step above passed — i.e. a broken image never reaches
+      # the registry (which matters: the person running this cannot delete
+      # package versions, so a bad publish could not be cleaned up).
+      #
+      # WHY a second build-push-action rather than pushing from the build step:
+      # buildx cannot both `load` (docker exporter, needed for the smoke test)
+      # and `push` (registry exporter) in one step. By the time we reach here
+      # every layer is in the buildx cache, so this "rebuild" is just cache hits
+      # plus the registry upload — cheap. It reuses the metadata-action
+      # tags/labels; provenance: false keeps the package listing free of extra
+      # attestation manifests.
+      - name: Push image to GHCR (after smoke test passes)
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          # Single-arch by design; see "WHY amd64-ONLY" at the top of the file.
+          platforms: linux/amd64
+          push: true
+          # Registry tags + OCI labels computed by docker/metadata-action above.
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          # Reuse the warm cache the build step just wrote; no cache-to needed
+          # (the build step already exported mode=max).
+          cache-from: type=gha
 
       # Always dump BOTH log sources so any failure above is debuggable. `docker
       # logs` shows shiny-server's own stdout; the per-app logs under
