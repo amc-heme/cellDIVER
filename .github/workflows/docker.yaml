@@ -44,6 +44,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least-privilege GITHUB_TOKEN. This Phase 2 gate only needs to read the repo
+# for checkout; the GHA cache authenticates with the Actions runtime token, not
+# GITHUB_TOKEN, so no extra scope is required. Phase 3 adds `packages: write`
+# here to publish the image to GHCR.
+permissions:
+  contents: read
+
 # Cancel a stale in-progress build when a newer commit lands on the same ref, so
 # a rapid series of PR pushes doesn't queue redundant ~30 min builds. Keyed on
 # workflow + ref so main's cache-warming build and PR builds never cancel each
