@@ -29,3 +29,8 @@ background_script.R
 execution_scripts.Rmd
 resources/Auto_Dictionary.html
 cellDIVER_docker_plan.md
+# Demo dataset staged next to the browser app by the Dockerfile build step and
+# by the Posit Connect Cloud workflow — not committed, see
+# docker/shiny-server/demo/browser/app.R.
+docker/shiny-server/demo/browser/object.rds
+docker/shiny-server/demo/browser/object-config.yaml

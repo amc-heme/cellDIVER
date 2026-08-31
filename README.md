@@ -128,6 +128,18 @@ Seurat v5 objects with BPCells assays work out of the box. anndata / MuData (`.h
 * **BPCells**: installed by default (from r-universe, since it isn't on CRAN/Bioconductor) so that Seurat v5 objects with BPCells assays open out of the box — the install is cheap and needs no extra system dependencies. r-universe serves the latest build, so this floats; for a reproducible rebuild, install a specific source ref instead, e.g. `remotes::install_github('bnprks/BPCells/r@<sha>')`.
 * **anndata / MuData / Python support is off by default.** Enabling it (the commented block in the Dockerfile) pulls in a uv-managed Python environment via SCUBA, which `py_require()`s anndata/pandas/numpy/scipy (plus mudata for MuData) — this path has been fragile in practice ("minimum uv version" / "python not found" errors). If you enable it, pin a known-good `uv` version and pre-bake the environment as the runtime `shiny` user at build time, rather than letting it fetch on first request.
 
+## Posit Connect Cloud
+
+A GitHub Actions workflow, [`posit-connect-cloud.yaml`](.github/workflows/posit-connect-cloud.yaml), publishes the bundled demo dataset to [Posit Connect Cloud](https://connect.posit.cloud/). It is **manual only** (`workflow_dispatch`): start it from the repository's **Actions** tab. The workflow installs cellDIVER from `main`, stages the demo dataset alongside the existing demo browser app ([`docker/shiny-server/demo/browser/app.R`](docker/shiny-server/demo/browser/app.R) — the same app.R shiny-server serves in the Docker image), then uses [`rsconnect`](https://rstudio.github.io/rsconnect/) to bundle that directory and push it to Connect Cloud, which reinstalls cellDIVER and its dependencies to serve the app.
+
+Publishing authenticates non-interactively with three repository secrets (all prefixed `POSIT_`):
+
+* `POSIT_CLIENT_ID` — OAuth client id for a Connect Cloud service account
+* `POSIT_CLIENT_SECRET` — the OAuth client secret paired with `POSIT_CLIENT_ID`
+* `POSIT_ACCOUNT` — the Connect Cloud account name to publish to
+
+These feed `rsconnect::connectCloudClientCredentials()`; see the Posit docs on [publishing from a console or terminal](https://docs.posit.co/connect-cloud/user/publish/console-or-terminal.html) for how to obtain the client credentials.
+
 ## Future Goals
 
 <!-- As stated above, the current version of the app requires manually fitting each new object to its own specific version of the app. Future versions of the app will be able to accept *any* Seurat object, automatically detect (or user specified) metadata values of interest, and build the app to provide exploration of that object. 
