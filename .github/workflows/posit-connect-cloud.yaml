@@ -141,10 +141,33 @@ jobs:
           POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLOUD_CLIENT_SECRET }}
           POSIT_ACCOUNT: ${{ secrets.POSIT_CLOUD_ACCOUNT }}
         run: |
-          account <- Sys.getenv("POSIT_ACCOUNT")
+          # trimws() strips stray surrounding whitespace/newlines. GitHub does
+          # not trim secret values, so a client id/secret pasted with a trailing
+          # newline reaches the OAuth token exchange verbatim and is rejected as
+          # `invalid_client` (HTTP 401). Trimming here makes auth robust to that.
+          client_id <- trimws(Sys.getenv("POSIT_CLIENT_ID"))
+          client_secret <- trimws(Sys.getenv("POSIT_CLIENT_SECRET"))
+          account <- trimws(Sys.getenv("POSIT_ACCOUNT"))
+
+          # Fail fast with a clear, value-free message if any credential is
+          # empty (missing secret, or whitespace-only) so the operator knows
+          # exactly which secret to fix instead of decoding an OAuth error.
+          missing <- c(
+            POSIT_CLOUD_CLIENT_ID = nzchar(client_id),
+            POSIT_CLOUD_CLIENT_SECRET = nzchar(client_secret),
+            POSIT_CLOUD_ACCOUNT = nzchar(account)
+          )
+          if (!all(missing)) {
+            stop(
+              "Missing required repository secret(s): ",
+              paste(names(missing)[!missing], collapse = ", "),
+              call. = FALSE
+            )
+          }
+
           rsconnect::connectCloudClientCredentials(
-            clientId = Sys.getenv("POSIT_CLIENT_ID"),
-            clientSecret = Sys.getenv("POSIT_CLIENT_SECRET"),
+            clientId = client_id,
+            clientSecret = client_secret,
             accountName = account
           )
           rsconnect::deployApp(
