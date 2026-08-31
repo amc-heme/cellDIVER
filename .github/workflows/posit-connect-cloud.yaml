@@ -15,10 +15,10 @@
 #   endpoint, so it is never triggered automatically by push or pull_request —
 #   an operator starts it by hand from the Actions tab.
 #
-# CREDENTIALS (repository secrets, all prefixed POSIT_)
-#   POSIT_CLIENT_ID      OAuth client id for a Connect Cloud service account
-#   POSIT_CLIENT_SECRET  OAuth client secret paired with POSIT_CLIENT_ID
-#   POSIT_ACCOUNT        Connect Cloud account name to publish to
+# CREDENTIALS (repository secrets, all prefixed POSIT_CLOUD_)
+#   POSIT_CLOUD_CLIENT_ID      OAuth client id for a Connect Cloud service account
+#   POSIT_CLOUD_CLIENT_SECRET  OAuth client secret paired with POSIT_CLOUD_CLIENT_ID
+#   POSIT_CLOUD_ACCOUNT        Connect Cloud account name to publish to
 #   These feed rsconnect::connectCloudClientCredentials() (added in rsconnect
 #   1.10.0), the non-interactive auth path documented at
 #   https://docs.posit.co/connect-cloud/user/publish/console-or-terminal.html
@@ -137,9 +137,9 @@ jobs:
       # human-readable label.
       - name: Deploy to Posit Connect Cloud
         env:
-          POSIT_CLIENT_ID: ${{ secrets.POSIT_CLIENT_ID }}
-          POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLIENT_SECRET }}
-          POSIT_ACCOUNT: ${{ secrets.POSIT_ACCOUNT }}
+          POSIT_CLIENT_ID: ${{ secrets.POSIT_CLOUD_CLIENT_ID }}
+          POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLOUD_CLIENT_SECRET }}
+          POSIT_ACCOUNT: ${{ secrets.POSIT_CLOUD_ACCOUNT }}
         run: |
           account <- Sys.getenv("POSIT_ACCOUNT")
           rsconnect::connectCloudClientCredentials(
