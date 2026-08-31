@@ -110,7 +110,9 @@ jobs:
       # Connect Cloud server rsconnect stores the account under; forceUpdate =
       # TRUE skips the interactive "update existing content?" prompt on
       # re-deploys, and launch.browser = FALSE keeps the headless runner from
-      # trying to open a browser.
+      # trying to open a browser. appName is the stable lowercase content slug
+      # (matches the "celldiver" GHCR image name and avoids any server-side
+      # case-folding across re-deploys); appTitle is the human-readable label.
       - name: Deploy to Posit Connect Cloud
         env:
           POSIT_CLIENT_ID: ${{ secrets.POSIT_CLIENT_ID }}
@@ -125,7 +127,8 @@ jobs:
           )
           rsconnect::deployApp(
             appDir = "connect",
-            appName = "cellDIVER",
+            appName = "celldiver",
+            appTitle = "cellDIVER",
             account = account,
             server = "connect.posit.cloud",
             forceUpdate = TRUE,
