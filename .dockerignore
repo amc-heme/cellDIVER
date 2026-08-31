@@ -31,6 +31,10 @@ cellDIVER_docker_plan.md
 config.yaml
 Rplots.pdf
 
+# Posit Connect Cloud deploy app — published by the posit-connect-cloud
+# workflow, not used by this image (which serves docker/shiny-server/ instead).
+connect
+
 # Editor / IDE / OS cruft
 *.Rproj
 .Rproj.user
