@@ -50,6 +50,34 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      # Fail fast — and clearly — if the publish credentials are missing. Without
+      # this, an unset/empty POSIT_* secret only surfaces ~15 minutes later as a
+      # cryptic "oauth/token failed with HTTP status 401 invalid_client" from
+      # connectCloudClientCredentials(). Checking here, before the slow
+      # Bioconductor/Seurat install, names exactly which repository secret needs
+      # to be set. Values are consumed via env (not inlined) so GitHub keeps them
+      # masked; we only ever test whether each is non-empty.
+      - name: Verify Posit Connect Cloud credentials are configured
+        env:
+          POSIT_CLIENT_ID: ${{ secrets.POSIT_CLIENT_ID }}
+          POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLIENT_SECRET }}
+          POSIT_ACCOUNT: ${{ secrets.POSIT_ACCOUNT }}
+        run: |
+          missing=()
+          [ -z "$POSIT_CLIENT_ID" ] && missing+=("POSIT_CLIENT_ID")
+          [ -z "$POSIT_CLIENT_SECRET" ] && missing+=("POSIT_CLIENT_SECRET")
+          [ -z "$POSIT_ACCOUNT" ] && missing+=("POSIT_ACCOUNT")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required repository secret(s): ${missing[*]}."
+            echo "Set them under Settings > Secrets and variables > Actions:"
+            echo "  POSIT_CLIENT_ID / POSIT_CLIENT_SECRET  (Connect Cloud service"
+            echo "    account OAuth client id and secret)"
+            echo "  POSIT_ACCOUNT                           (Connect Cloud account"
+            echo "    name to publish to)"
+            exit 1
+          fi
+          echo "All POSIT_* credentials are present."
+
       # Pandoc is pulled in by parts of the R Markdown/Shiny dependency tree; set
       # it up so any install-time or manifest step that needs it succeeds.
       - name: Set up pandoc
