@@ -130,7 +130,7 @@ Seurat v5 objects with BPCells assays work out of the box. anndata / MuData (`.h
 
 ## Posit Connect Cloud
 
-A GitHub Actions workflow, [`posit-connect-cloud.yaml`](.github/workflows/posit-connect-cloud.yaml), publishes the bundled demo dataset to [Posit Connect Cloud](https://connect.posit.cloud/). It is **manual only** (`workflow_dispatch`): start it from the repository's **Actions** tab. The workflow installs cellDIVER from `main`, then uses [`rsconnect`](https://rstudio.github.io/rsconnect/) to bundle the small demo app in [`connect/app.R`](connect/app.R) and push it to Connect Cloud, which reinstalls cellDIVER and its dependencies to serve the app.
+A GitHub Actions workflow, [`posit-connect-cloud.yaml`](.github/workflows/posit-connect-cloud.yaml), publishes the bundled demo dataset to [Posit Connect Cloud](https://connect.posit.cloud/). It is **manual only** (`workflow_dispatch`): start it from the repository's **Actions** tab. The workflow installs cellDIVER from `main`, stages the demo dataset alongside the existing demo browser app ([`docker/shiny-server/demo/browser/app.R`](docker/shiny-server/demo/browser/app.R) — the same app.R shiny-server serves in the Docker image), then uses [`rsconnect`](https://rstudio.github.io/rsconnect/) to bundle that directory and push it to Connect Cloud, which reinstalls cellDIVER and its dependencies to serve the app.
 
 Publishing authenticates non-interactively with three repository secrets (all prefixed `POSIT_`):
 

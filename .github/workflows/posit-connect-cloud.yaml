@@ -2,10 +2,12 @@
 # Deploy cellDIVER to Posit Connect Cloud.
 #
 # WHAT THIS DOES
-#   On manual dispatch only, this builds the demo cellDIVER Shiny app
-#   (connect/app.R) and publishes it to Posit Connect Cloud using rsconnect's
-#   push-based deploy. rsconnect records cellDIVER plus its full dependency tree
-#   — CRAN, Bioconductor, and the GitHub Remotes SCUBA/scDE — in the generated
+#   On manual dispatch only, this stages the bundled demo dataset alongside the
+#   existing demo browser app (docker/shiny-server/demo/browser/app.R — the
+#   same app.R shiny-server serves in the Docker image) and publishes that
+#   directory to Posit Connect Cloud using rsconnect's push-based deploy.
+#   rsconnect records cellDIVER plus its full dependency tree — CRAN,
+#   Bioconductor, and the GitHub Remotes SCUBA/scDE — in the generated
 #   manifest, and Connect Cloud reinstalls them to run the app.
 #
 # WHY workflow_dispatch ONLY (per issue #429)
@@ -105,14 +107,34 @@ jobs:
           }
         shell: Rscript {0}
 
+      # Stage the bundled demo dataset from the installed package (not the git
+      # repo) directly alongside the browser app, mirroring the Dockerfile's
+      # staging step. rsconnect bundles only the appDir below (no parent
+      # directory), so app.R's "own directory" fallback (see its comments)
+      # picks these up as the dataset root instead of the Docker/shiny-server
+      # parent-directory layout.
+      - name: Stage demo dataset next to the browser app
+        run: |
+          demo_dir <- "docker/shiny-server/demo/browser"
+          if (!file.copy(
+            system.file("extdata", "test_dataset.rds", package = "cellDIVER", mustWork = TRUE),
+            file.path(demo_dir, "object.rds"), overwrite = TRUE
+          )) stop("Failed to stage object.rds")
+          if (!file.copy(
+            system.file("extdata", "test_dataset_config.yaml", package = "cellDIVER", mustWork = TRUE),
+            file.path(demo_dir, "object-config.yaml"), overwrite = TRUE
+          )) stop("Failed to stage object-config.yaml")
+        shell: Rscript {0}
+
       # Register the Connect Cloud account non-interactively, then publish the
-      # demo app under connect/. server = "connect.posit.cloud" is the built-in
-      # Connect Cloud server rsconnect stores the account under; forceUpdate =
-      # TRUE skips the interactive "update existing content?" prompt on
-      # re-deploys, and launch.browser = FALSE keeps the headless runner from
-      # trying to open a browser. appName is the stable lowercase content slug
-      # (matches the "celldiver" GHCR image name and avoids any server-side
-      # case-folding across re-deploys); appTitle is the human-readable label.
+      # demo browser app directory. server = "connect.posit.cloud" is the
+      # built-in Connect Cloud server rsconnect stores the account under;
+      # forceUpdate = TRUE skips the interactive "update existing content?"
+      # prompt on re-deploys, and launch.browser = FALSE keeps the headless
+      # runner from trying to open a browser. appName is the stable lowercase
+      # content slug (matches the "celldiver" GHCR image name and avoids any
+      # server-side case-folding across re-deploys); appTitle is the
+      # human-readable label.
       - name: Deploy to Posit Connect Cloud
         env:
           POSIT_CLIENT_ID: ${{ secrets.POSIT_CLIENT_ID }}
@@ -126,7 +148,7 @@ jobs:
             accountName = account
           )
           rsconnect::deployApp(
-            appDir = "connect",
+            appDir = "docker/shiny-server/demo/browser",
             appName = "celldiver",
             appTitle = "cellDIVER",
             account = account,
