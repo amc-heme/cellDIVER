@@ -190,6 +190,35 @@ MuData) — this path has been fragile in practice (“minimum uv version” /
 version and pre-bake the environment as the runtime `shiny` user at
 build time, rather than letting it fetch on first request.
 
+## Posit Connect Cloud
+
+A GitHub Actions workflow,
+[`posit-connect-cloud.yaml`](https://amc-heme.github.io/cellDIVER/.github/workflows/posit-connect-cloud.yaml),
+publishes the bundled demo dataset to [Posit Connect
+Cloud](https://connect.posit.cloud/). It is **manual only**
+(`workflow_dispatch`): start it from the repository’s **Actions** tab.
+The workflow installs cellDIVER from `main`, stages the demo dataset
+alongside the existing demo browser app
+([`docker/shiny-server/demo/browser/app.R`](https://amc-heme.github.io/cellDIVER/docker/shiny-server/demo/browser/app.R)
+— the same app.R shiny-server serves in the Docker image), then uses
+[`rsconnect`](https://rstudio.github.io/rsconnect/) to bundle that
+directory and push it to Connect Cloud, which reinstalls cellDIVER and
+its dependencies to serve the app.
+
+Publishing authenticates non-interactively with three repository secrets
+(all prefixed `POSIT_`):
+
+- `POSIT_CLIENT_ID` — OAuth client id for a Connect Cloud service
+  account
+- `POSIT_CLIENT_SECRET` — the OAuth client secret paired with
+  `POSIT_CLIENT_ID`
+- `POSIT_ACCOUNT` — the Connect Cloud account name to publish to
+
+These feed `rsconnect::connectCloudClientCredentials()`; see the Posit
+docs on [publishing from a console or
+terminal](https://docs.posit.co/connect-cloud/user/publish/console-or-terminal.html)
+for how to obtain the client credentials.
+
 ## Future Goals
 
 - Additional analyses such as GSEA will be added in the future

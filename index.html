@@ -157,6 +157,22 @@ docker run --rm -p 3838:3838 celldiver</code></pre>
 <p><strong>Image Notes:</strong> * <strong>Architecture: <code>linux/amd64</code> only.</strong> The base image (<code>rocker/shiny-verse</code>) publishes no <code>arm64</code> manifest, so there is no arm64 base to build <code>FROM</code> — the image is amd64-only by necessity, not choice. On Apple-Silicon / ARM hosts it runs under emulation (Rosetta / QEMU); if Docker does not select it automatically you may need <code>--platform=linux/amd64</code> on <code>docker run</code> (as well as on <code>docker build</code> when building locally). * <strong>BPCells</strong>: installed by default (from r-universe, since it isn’t on CRAN/Bioconductor) so that Seurat v5 objects with BPCells assays open out of the box — the install is cheap and needs no extra system dependencies. r-universe serves the latest build, so this floats; for a reproducible rebuild, install a specific source ref instead, e.g. <code>remotes::install_github('bnprks/BPCells/r@&lt;sha&gt;')</code>. * <strong>anndata / MuData / Python support is off by default.</strong> Enabling it (the commented block in the Dockerfile) pulls in a uv-managed Python environment via SCUBA, which <code>py_require()</code>s anndata/pandas/numpy/scipy (plus mudata for MuData) — this path has been fragile in practice (“minimum uv version” / “python not found” errors). If you enable it, pin a known-good <code>uv</code> version and pre-bake the environment as the runtime <code>shiny</code> user at build time, rather than letting it fetch on first request.</p>
 </div>
 <div class="section level2">
+<h2 id="posit-connect-cloud">Posit Connect Cloud<a class="anchor" aria-label="anchor" href="#posit-connect-cloud"></a>
+</h2>
+<p>A GitHub Actions workflow, <a href=".github/workflows/posit-connect-cloud.yaml"><code>posit-connect-cloud.yaml</code></a>, publishes the bundled demo dataset to <a href="https://connect.posit.cloud/" class="external-link">Posit Connect Cloud</a>. It is <strong>manual only</strong> (<code>workflow_dispatch</code>): start it from the repository’s <strong>Actions</strong> tab. The workflow installs cellDIVER from <code>main</code>, stages the demo dataset alongside the existing demo browser app (<a href="docker/shiny-server/demo/browser/app.R"><code>docker/shiny-server/demo/browser/app.R</code></a> — the same app.R shiny-server serves in the Docker image), then uses <a href="https://rstudio.github.io/rsconnect/" class="external-link"><code>rsconnect</code></a> to bundle that directory and push it to Connect Cloud, which reinstalls cellDIVER and its dependencies to serve the app.</p>
+<p>Publishing authenticates non-interactively with three repository secrets (all prefixed <code>POSIT_</code>):</p>
+<ul>
+<li>
+<code>POSIT_CLIENT_ID</code> — OAuth client id for a Connect Cloud service account</li>
+<li>
+<code>POSIT_CLIENT_SECRET</code> — the OAuth client secret paired with <code>POSIT_CLIENT_ID</code>
+</li>
+<li>
+<code>POSIT_ACCOUNT</code> — the Connect Cloud account name to publish to</li>
+</ul>
+<p>These feed <code>rsconnect::connectCloudClientCredentials()</code>; see the Posit docs on <a href="https://docs.posit.co/connect-cloud/user/publish/console-or-terminal.html" class="external-link">publishing from a console or terminal</a> for how to obtain the client credentials.</p>
+</div>
+<div class="section level2">
 <h2 id="future-goals">Future Goals<a class="anchor" aria-label="anchor" href="#future-goals"></a>
 </h2>
 <!-- As stated above, the current version of the app requires manually fitting each new object to its own specific version of the app. Future versions of the app will be able to accept *any* Seurat object, automatically detect (or user specified) metadata values of interest, and build the app to provide exploration of that object.
