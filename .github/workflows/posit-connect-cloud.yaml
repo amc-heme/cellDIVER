@@ -1,0 +1,138 @@
+# ---------------------------------------------------------------------------
+# Deploy cellDIVER to Posit Connect Cloud.
+#
+# WHAT THIS DOES
+#   On manual dispatch only, this builds the demo cellDIVER Shiny app
+#   (connect/app.R) and publishes it to Posit Connect Cloud using rsconnect's
+#   push-based deploy. rsconnect records cellDIVER plus its full dependency tree
+#   — CRAN, Bioconductor, and the GitHub Remotes SCUBA/scDE — in the generated
+#   manifest, and Connect Cloud reinstalls them to run the app.
+#
+# WHY workflow_dispatch ONLY (per issue #429)
+#   Publishing is a deliberate, credentialed action against a shared public
+#   endpoint, so it is never triggered automatically by push or pull_request —
+#   an operator starts it by hand from the Actions tab.
+#
+# CREDENTIALS (repository secrets, all prefixed POSIT_)
+#   POSIT_CLIENT_ID      OAuth client id for a Connect Cloud service account
+#   POSIT_CLIENT_SECRET  OAuth client secret paired with POSIT_CLIENT_ID
+#   POSIT_ACCOUNT        Connect Cloud account name to publish to
+#   These feed rsconnect::connectCloudClientCredentials() (added in rsconnect
+#   1.10.0), the non-interactive auth path documented at
+#   https://docs.posit.co/connect-cloud/user/publish/console-or-terminal.html
+# ---------------------------------------------------------------------------
+name: Posit Connect Cloud
+
+# Manual only — see "WHY workflow_dispatch ONLY" above.
+on:
+  workflow_dispatch:
+
+# Least privilege: the job only reads the repo to build the bundle. Publishing
+# authenticates with the POSIT_* secrets, not the GITHUB_TOKEN, so no write
+# scope is needed.
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Installing cellDIVER's full Seurat/Bioconductor tree from source is slow;
+    # cap the job so a hung install fails cleanly instead of burning the 6-hour
+    # default.
+    timeout-minutes: 120
+    env:
+      # Lift GitHub's 60 req/hr unauthenticated API limit so BiocManager/remotes
+      # can resolve the GitHub Remotes (SCUBA, scDE) without transient 403s.
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Pandoc is pulled in by parts of the R Markdown/Shiny dependency tree; set
+      # it up so any install-time or manifest step that needs it succeeds.
+      - name: Set up pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      # System libraries cellDIVER's compiled dependencies need: glpk for
+      # igraph/Seurat and hdf5 for HDF5Array (mirrors the Dockerfile's apt block),
+      # plus the usual curl/ssl/xml and font/image libraries for the wider tree.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglpk-dev libhdf5-dev libcurl4-openssl-dev libssl-dev \
+            libxml2-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
+            libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
+
+      # Installer tooling. rsconnect >= 1.10.0 provides
+      # connectCloudClientCredentials() (the non-interactive Connect Cloud auth
+      # used below); BiocManager resolves cellDIVER's Bioconductor deps. Fail
+      # early with a clear message if an older rsconnect is pinned upstream.
+      - name: Install deployment tooling
+        run: |
+          install.packages(c("BiocManager", "remotes", "rsconnect"))
+          if (packageVersion("rsconnect") < "1.10.0") {
+            stop(
+              "rsconnect >= 1.10.0 is required for ",
+              "connectCloudClientCredentials(); got ",
+              as.character(packageVersion("rsconnect"))
+            )
+          }
+        shell: Rscript {0}
+
+      # cellDIVER plus its hard-dependency tree, tracking main. The Remotes deps
+      # (SCUBA, scDE) install automatically. Installing from GitHub — rather than
+      # the local checkout — records the GitHub source in each package's metadata
+      # so rsconnect writes a manifest Connect Cloud can reinstall from.
+      # options(timeout = 600): the default 60s is too tight for the large source
+      # tarballs on slow build networks (mirrors the Dockerfile).
+      - name: Install cellDIVER from GitHub (main)
+        run: |
+          options(timeout = 600)
+          BiocManager::install(
+            "amc-heme/cellDIVER",
+            update = FALSE,
+            ask = FALSE,
+            dependencies = c("Depends", "Imports", "LinkingTo")
+          )
+          if (!requireNamespace("cellDIVER", quietly = TRUE)) {
+            stop("cellDIVER failed to install")
+          }
+        shell: Rscript {0}
+
+      # Register the Connect Cloud account non-interactively, then publish the
+      # demo app under connect/. server = "connect.posit.cloud" is the built-in
+      # Connect Cloud server rsconnect stores the account under; forceUpdate =
+      # TRUE skips the interactive "update existing content?" prompt on
+      # re-deploys, and launch.browser = FALSE keeps the headless runner from
+      # trying to open a browser. appName is the stable lowercase content slug
+      # (matches the "celldiver" GHCR image name and avoids any server-side
+      # case-folding across re-deploys); appTitle is the human-readable label.
+      - name: Deploy to Posit Connect Cloud
+        env:
+          POSIT_CLIENT_ID: ${{ secrets.POSIT_CLIENT_ID }}
+          POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLIENT_SECRET }}
+          POSIT_ACCOUNT: ${{ secrets.POSIT_ACCOUNT }}
+        run: |
+          account <- Sys.getenv("POSIT_ACCOUNT")
+          rsconnect::connectCloudClientCredentials(
+            clientId = Sys.getenv("POSIT_CLIENT_ID"),
+            clientSecret = Sys.getenv("POSIT_CLIENT_SECRET"),
+            accountName = account
+          )
+          rsconnect::deployApp(
+            appDir = "connect",
+            appName = "celldiver",
+            appTitle = "cellDIVER",
+            account = account,
+            server = "connect.posit.cloud",
+            forceUpdate = TRUE,
+            launch.browser = FALSE,
+            logLevel = "verbose"
+          )
+        shell: Rscript {0}
