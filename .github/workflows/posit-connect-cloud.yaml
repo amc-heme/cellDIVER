@@ -131,10 +131,11 @@ jobs:
       # built-in Connect Cloud server rsconnect stores the account under;
       # forceUpdate = TRUE skips the interactive "update existing content?"
       # prompt on re-deploys, and launch.browser = FALSE keeps the headless
-      # runner from trying to open a browser. appName is the stable lowercase
-      # content slug (matches the "celldiver" GHCR image name and avoids any
-      # server-side case-folding across re-deploys); appTitle is the
-      # human-readable label.
+      # runner from trying to open a browser. appName is the stable content
+      # slug: rsconnect looks up existing content named "cellDIVER" for this
+      # account, updates it in place when found, and otherwise creates a new
+      # app. No appId/contentId is hardcoded, so the same script handles both
+      # first-time and repeat deploys. appTitle is the human-readable label.
       - name: Deploy to Posit Connect Cloud
         env:
           POSIT_CLIENT_ID: ${{ secrets.POSIT_CLOUD_CLIENT_ID }}
@@ -172,7 +173,7 @@ jobs:
           )
           rsconnect::deployApp(
             appDir = "docker/shiny-server/demo/browser",
-            appName = "celldiver",
+            appName = "cellDIVER",
             appTitle = "cellDIVER",
             account = account,
             server = "connect.posit.cloud",
