@@ -784,7 +784,7 @@ run_cellDIVER <-
                 # Define path and load object
                 path <- datasets[[data_key]]$object
 
-                py_require("mudata>=0.3.1")
+                reticulate::py_require("mudata>=0.3.1")
 
                 md <- reticulate::import("mudata", as = "md", convert = TRUE)
 
