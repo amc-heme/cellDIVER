@@ -1,3 +1,8 @@
+# chromote waits 10 seconds by default for Chrome's debugging port. A loaded CI
+# runner can exceed that, and a failed launch surfaces as a skip - which the
+# workflow treats as a failure. Give the browser room to start.
+options(chromote.timeout = 120)
+
 #' Start an isolated browser fixture
 #'
 #' Launches the current package in shinytest2's child R process. Missing

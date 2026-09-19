@@ -48,10 +48,13 @@ test_that("config preview and downloaded YAML survive a save/load roundtrip", {
   expect_equal(cellDIVER:::load_config(second_path), saved)
   browser_stop(restored)
 
+  # The config written by the config app drives the main browser: it starts
+  # and draws a real DimPlot from it.
+  # TODO: nothing here asserts the dataset *label* reached the browser. The
+  # previous assertion looked for it in the Plots tab body, but the label is
+  # only ever rendered in the dataset-selection modal
+  # (R/modals-data_Modal.R), which single-dataset deployments never open.
   browser <- browser_app("config-main-browser", config_path = config_path)
   browser_open_tab(browser, "plots", "object_plots-make_dimplot")
   browser_plot(browser, "object_plots-dimplot-plot")
-  expect_match(
-    paste(browser$get_text("body"), collapse = " "), saved$label, fixed = TRUE
-  )
 })

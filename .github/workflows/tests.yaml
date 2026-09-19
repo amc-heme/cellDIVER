@@ -61,7 +61,10 @@ jobs:
           dir.create("test-results", showWarnings = FALSE)
           results_directory <- normalizePath("test-results", mustWork = TRUE)
           # Do not stop at testthat's default failure limit: report every test.
+          # set_max_fails() governs when the run aborts; SummaryReporter caps
+          # how many it prints separately, and defaults to 10.
           testthat::set_max_fails(Inf)
+          options(testthat.summary.max_reports = Inf)
           reporter <- testthat::MultiReporter$new(list(
             testthat::SummaryReporter$new(),
             testthat::JunitReporter$new(
