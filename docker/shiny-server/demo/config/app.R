@@ -5,12 +5,6 @@
 # inside another app, so the dataset folder itself is not an app). This config
 # editor edits the config for the same object the /demo/browser app serves.
 
-# Defensive library() attaches — see the note in ../browser/app.R. Removable
-# once all cellDIVER calls are confirmed fully namespaced.
-library(R.devices)
-library(SingleCellExperiment)
-library(tools)
-
 # The object and its config are staged into the parent dataset directory by the
 # Dockerfile build step. Resolve that directory from this app's OWN location
 # rather than hardcoding /srv/shiny-server/demo, so the dataset folder can be

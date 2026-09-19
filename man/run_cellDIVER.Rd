@@ -47,4 +47,11 @@ Initializes the main cellDIVER app.
 }
 \details{
 For more information on setting up an cellDIVER deployment, see the \href{https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html}{dataset setup guide} on our website.
+
+This function does not attach its dependencies to your search path. Earlier
+versions called \code{library()} on around 25 packages as a side effect of being
+called; cellDIVER now declares its imports properly, so the app runs without
+altering the calling environment. If you relied on, say, \code{DimPlot()} being
+available at the console after launching the app, attach the package
+yourself or qualify the call as \code{Seurat::DimPlot()}.
 }

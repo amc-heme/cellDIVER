@@ -62,12 +62,27 @@ adt_threshold_assay.Seurat <-
       adt_assay
     
     #  Subset assay to features for which threshold information exists
-    #  to conserve memory
-    object[["adtThreshold"]] <- 
-      subset(
-        object[["adtThreshold"]], 
-        features = threshold_table$adt
-        )
+    #  to conserve memory.
+    #  SeuratObject warns whenever an assay's features differ from the
+    #  object's, which is exactly what this assay is for - it deliberately
+    #  holds only the thresholded features. Silence that one message rather
+    #  than letting an expected warning sit in every test run, and let any
+    #  other warning through untouched.
+    withCallingHandlers(
+      object[["adtThreshold"]] <-
+        subset(
+          object[["adtThreshold"]],
+          features = threshold_table$adt
+          ),
+      warning = function(condition) {
+        if (grepl(
+          "Different cells and/or features from existing assay",
+          conditionMessage(condition), fixed = TRUE
+        )) {
+          invokeRestart("muffleWarning")
+        }
+      }
+      )
     
     # 2. Apply normalization to ADT threshold assay
     for (i in 1:nrow(threshold_table)){

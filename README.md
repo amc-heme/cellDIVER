@@ -33,6 +33,13 @@ remotes::install_github("amc-heme/cellDIVER")
 
 If this is your first time setting up cellDIVER, we reccomend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html), which applies the process in steps 3-5 to an example object.
 
+> **Behaviour change.** `run_cellDIVER()` and `run_config()` no longer attach
+> their dependencies to your search path. Earlier versions called `library()`
+> on around 25 packages as a side effect of launching the app. If you relied on
+> that — for example calling `DimPlot()` at the console after closing the app —
+> attach the package yourself or qualify the call as `Seurat::DimPlot()`. The
+> apps themselves are unaffected. See `NEWS.md`.
+
 2. Process or obtain a finalized single cell object.
 
 3. Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the [**Full Config App Documentation**](https://amc-heme.github.io/cellDIVER/articles/config_documentation.html) or the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html).

@@ -18,6 +18,14 @@
 #' @param full_stack_trace when TRUE, the full stack trace of errors is logged to the console (FALSE by default).
 #' @param dev_mode used for development and debugging. When this is TRUE, additional logging occurrs, and the status of the app is printed in the UI. This is not reccomended to be used outside of development.
 #'
+#' @details
+#' This function does not attach its dependencies to your search path. Earlier
+#' versions called `library()` on around 25 packages as a side effect of being
+#' called; cellDIVER now declares its imports properly, so the app runs without
+#' altering the calling environment. If you relied on, say, `DimPlot()` being
+#' available at the console after launching the app, attach the package
+#' yourself or qualify the call as `Seurat::DimPlot()`.
+#'
 #' @usage
 #' # Option 1: Single-object deployment with
 #' # an object and an object config file
@@ -56,26 +64,12 @@ run_cellDIVER <-
     dev_mode = FALSE
   ) {
     # Load Libraries and Data ------------------------------------------------------
-    ## Initialize libraries ####
-    library(shiny)
-    library(Seurat, quietly = TRUE, warn.conflicts = FALSE)
-
-    #library(SCUBA, quietly = TRUE, warn.conflicts = FALSE)
-
-    # Shiny add-ons
-    library(shinyWidgets, quietly = TRUE, warn.conflicts = FALSE)
-    library(rintrojs, quietly = TRUE, warn.conflicts = FALSE)
-    library(shinydashboard, quietly = TRUE, warn.conflicts = FALSE)
-    library(waiter, quietly = TRUE, warn.conflicts = FALSE)
-    # shinycssloaders: withSpinner() is called bare (without ::) throughout
-    # the UI after this library() call attaches it to the search path.
-    library(shinycssloaders, quietly = TRUE, warn.conflicts = FALSE)
-    library(shinyjs, quietly = TRUE, warn.conflicts = FALSE)
-    library(sortable, quietly = TRUE, warn.conflicts = FALSE)
-    library(shinyBS, quietly = TRUE, warn.conflicts = FALSE)
-
-    # Reactlog (for debugging): optional dev dependency, listed in Suggests.
-    # Enables the reactive graph visualizer at /reactlog when the app is running.
+    ## Optional dev tooling ####
+    # Every package cellDIVER calls is declared in NAMESPACE (see
+    # R/cellDIVER-imports.R), so nothing needs attaching for the app to work.
+    # The two below are the exception: they are Suggests-only debugging tools
+    # that shiny discovers through the search path, so they are attached rather
+    # than imported, and only when actually installed.
     if (requireNamespace("reactlog", quietly = TRUE)) {
       library(reactlog, quietly = TRUE, warn.conflicts = FALSE)
     }
@@ -84,34 +78,9 @@ run_cellDIVER <-
       shiny.fullstacktrace = full_stack_trace
     )
 
-    # Logging and performance monitoring
-    # profvis is an optional dev dependency listed in Suggests.
     if (requireNamespace("profvis", quietly = TRUE)) {
       library(profvis, quietly = TRUE, warn.conflicts = FALSE)
     }
-    library(rlog, quietly = TRUE, warn.conflicts = FALSE)
-
-    # Tidyverse packages
-    #library(tidyverse, quietly = TRUE, warn.conflicts = FALSE)
-    library(stringr, quietly = TRUE, warn.conflicts = FALSE)
-    library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
-    library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
-    library(glue, quietly = TRUE, warn.conflicts = FALSE)
-    library(DT, quietly = TRUE, warn.conflicts = FALSE)
-
-    # Plotting
-    library(RColorBrewer, quietly = TRUE, warn.conflicts = FALSE)
-    library(viridisLite, quietly = TRUE, warn.conflicts = FALSE)
-    library(colourpicker, quietly = TRUE, warn.conflicts = FALSE)
-    library(ggsci, quietly = TRUE, warn.conflicts = FALSE)
-    library(scales, quietly = TRUE, warn.conflicts = FALSE)
-    library(patchwork, quietly = TRUE, warn.conflicts = FALSE)
-    library(cowplot, quietly = TRUE, warn.conflicts = FALSE)
-
-    # Other packages
-    library(yaml, quietly = TRUE, warn.conflicts = FALSE)
-    library(rlang, quietly = TRUE, warn.conflicts = FALSE)
-    library(gtools, quietly = TRUE, warn.conflicts = FALSE)
 
     # Check inputs to run_cellDIVER ####
     # contact info for admin
@@ -754,6 +723,8 @@ run_cellDIVER <-
                 # Define path and load object
                 path <- datasets[[data_key]]$object
 
+                require_python_support("h5ad")
+
                 object <-
                   anndata::read_h5ad(
                     path
@@ -784,6 +755,7 @@ run_cellDIVER <-
                 # Define path and load object
                 path <- datasets[[data_key]]$object
 
+                require_python_support("h5mu")
                 reticulate::py_require("mudata>=0.3.1")
 
                 md <- reticulate::import("mudata", as = "md", convert = TRUE)
