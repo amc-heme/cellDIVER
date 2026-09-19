@@ -53,15 +53,15 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
     namespace <- paste0("object_plots-", plot_type)
     if (plot_type == "scatter") {
       # Scatter has its own two feature inputs; text_features is not used.
-      browser_set(app, paste0(namespace, "-scatter_1"), "rna_CD34")
-      browser_set(app, paste0(namespace, "-scatter_2"), "rna_CD38")
+      browser_set_feature(app, paste0(namespace, "-scatter_1"), "rna_CD34")
+      browser_set_feature(app, paste0(namespace, "-scatter_2"), "rna_CD38")
     } else if (plot_type == "proportion") {
       # The stacked bar plot compares one metadata category across the levels
       # of another, so it refuses to draw while both default to the same
       # column ("Proportions" and "Proportion Comparison" must differ).
       browser_set(app, paste0(namespace, "-split_by"), "Batch")
     } else {
-      browser_set(app, "object_plots-text_features", "rna_CD34")
+      browser_set_feature(app, "object_plots-text_features", "rna_CD34")
     }
     browser_plot(app, paste0(namespace, "-plot"))
     svg <- browser_svg(app, namespace)

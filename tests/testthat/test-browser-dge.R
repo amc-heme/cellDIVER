@@ -76,7 +76,7 @@ test_that("a real threshold plot click partitions cells and computes DGE", {
   browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_set(app, "object_dge-test_selections-mode", "mode_dge")
   browser_set(app, "object_dge-test_selections-use_feature_expression", TRUE)
-  browser_set(
+  browser_set_feature(
     app, "object_dge-test_selections-simple_threshold_feature", "ab_CD34-AB"
   )
   namespace <- "object_dge-test_selections-simple_threshold"

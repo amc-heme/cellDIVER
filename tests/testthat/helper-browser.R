@@ -160,6 +160,44 @@ browser_set <- function(app, input, value) {
   invisible(app)
 }
 
+#' Choose a value in a server-side selectize input
+#'
+#' The feature pickers are built with `choices = NULL` and `create = FALSE`,
+#' then filled by `updateSelectizeInput(server = TRUE)`, which fetches options
+#' from the server as the user types. Until those options arrive the widget
+#' does not know the value, and selectize discards it - silently, so
+#' `set_inputs()` reports success and the failure only surfaces much later as a
+#' plot that never renders. On a fast machine the options usually win the race,
+#' which is why this passed locally and failed in CI.
+#'
+#' Register the option client-side first, then select it through selectize's
+#' own API so the change event reaches Shiny exactly as a real selection would.
+#'
+#' @param app Running browser driver.
+#' @param input Fully namespaced selectize input ID.
+#' @param values One or more option values to select.
+#' @return The driver, invisibly, once Shiny reports the new value.
+browser_set_feature <- function(app, input, values) {
+  values <- as.character(values)
+  id <- jsonlite::toJSON(input, auto_unbox = TRUE)
+  app$run_js(sprintf(
+    paste0(
+      "(() => { const element = document.getElementById(%s);",
+      " const control = element && element.selectize;",
+      " if (!control) throw new Error('no selectize instance on ' + %s);",
+      " const values = %s;",
+      " values.forEach(value =>",
+      " control.addOption({value: value, label: value}));",
+      " control.setValue(values, false); })()"
+    ),
+    id, id, jsonlite::toJSON(values)
+  ))
+  app$wait_for_idle()
+  # Fail here rather than at a downstream timeout if the value did not stick.
+  testthat::expect_setequal(app$get_value(input = input), values)
+  invisible(app)
+}
+
 #' Click a bound action input and wait for reactive work
 #'
 #' Some buttons only send custom UI messages, not a new output value.
