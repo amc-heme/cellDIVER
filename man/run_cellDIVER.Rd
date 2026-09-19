@@ -4,7 +4,7 @@
 \alias{run_cellDIVER}
 \title{cellDIVER app}
 \usage{
-# Option 1: Single-object deployment with 
+# Option 1: Single-object deployment with
 # an object and an object config file
 run_cellDIVER(
  object = "path_to_object",
@@ -12,9 +12,9 @@ run_cellDIVER(
  )
 
 # Option 2: Multi-object deployment with
-# Browser config file with paths to object, 
+# Browser config file with paths to object,
 # config files for any number of objects
-#  
+#
 run_cellDIVER(
  browser_config = "path_to_browser_config_file.yaml"
  )
@@ -28,7 +28,7 @@ SingleCellExperiment objects with using HDF5 disk-backed storage via
 \link{HDF5Array}, \code{object_path} should be a path to the directory containing
 the se.rds and assays.h5 files for the object.}
 
-\item{config_path}{path to the config file for the single-cell object. This is generated either in the config app via \code{run_config_app}, or by auto-generating a config file via \code{generate_config_yaml} and editing it by hand. For more information on using the config app, see \href{https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4}{here}.}
+\item{config_path}{path to the config file for the single-cell object. This is generated either in the config app via \code{run_config_app}, or by auto-generating a config file via \code{generate_config_yaml} and editing it by hand. For more information on using the config app, see \href{https://amc-heme.github.io/cellDIVER/articles/config_documentation.html}{here}.}
 
 \item{enable_metadata_addition}{when TRUE, users may interactively add metadata to objects in the app. This feature is currently unstable, so it must be opted in to by setting this value to TRUE.}
 

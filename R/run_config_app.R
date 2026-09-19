@@ -191,7 +191,7 @@ run_config <-
         library(anndata)
         object <- anndata::read_h5ad(object_path)
       } else if (extension == "h5mu"){
-        py_require("mudata>=0.3.1")
+        reticulate::py_require("mudata>=0.3.1")
         
         md <- reticulate::import("mudata", as = "md", convert = TRUE)
         
