@@ -1,7 +1,6 @@
 test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
   app <- browser_app("plots-group-split-filter-reset")
-  app$click(selector = "a[data-value='plots']")
-  app$wait_for_idle()
+  browser_open_tab(app, "plots", "object_plots-make_dimplot")
   expect_true(app$get_value(input = "object_plots-make_dimplot"))
   browser_set(app, "object_plots-dimplot-reduction", "umap")
   browser_set(app, "object_plots-dimplot-label", FALSE)
@@ -26,7 +25,10 @@ test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
   }
   expect_equal(browser_point_count(split), nrow(metadata))
 
-  browser_filter(app, "object_plots-subset_selections", "Batch", "BM_200AB")
+  browser_filter(
+    app, "object_plots-subset_selections", "Batch", "BM_200AB",
+    panel = "object_plots-subset_collapsible"
+  )
   browser_click(app, "object_plots-subset_submit")
   browser_plot(app, "object_plots-dimplot-plot")
   filtered <- browser_svg(app, "object_plots-dimplot")
@@ -43,8 +45,7 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
                     "proportion")) {
   test_that(paste("browser renders real", plot_type, "plot content"), {
     app <- browser_app(paste0("plot-", plot_type))
-    app$click(selector = "a[data-value='plots']")
-    app$wait_for_idle()
+    browser_open_tab(app, "plots", "object_plots-make_dimplot")
     switch <- if (plot_type == "violin") "vln" else plot_type
     switch <- paste0("object_plots-make_", switch)
     expect_false(app$get_value(input = switch))
@@ -54,7 +55,12 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
       # Scatter has its own two feature inputs; text_features is not used.
       browser_set(app, paste0(namespace, "-scatter_1"), "rna_CD34")
       browser_set(app, paste0(namespace, "-scatter_2"), "rna_CD38")
-    } else if (plot_type != "proportion") {
+    } else if (plot_type == "proportion") {
+      # The stacked bar plot compares one metadata category across the levels
+      # of another, so it refuses to draw while both default to the same
+      # column ("Proportions" and "Proportion Comparison" must differ).
+      browser_set(app, paste0(namespace, "-split_by"), "Batch")
+    } else {
       browser_set(app, "object_plots-text_features", "rna_CD34")
     }
     browser_plot(app, paste0(namespace, "-plot"))

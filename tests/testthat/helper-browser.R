@@ -111,13 +111,43 @@ browser_object <- function() {
   ))
 }
 
+#' Open a tab and wait for its dynamically rendered body
+#'
+#' The Plots and DGE tab bodies are `renderUI` outputs driven by an
+#' `eventReactive` on the object and config. `wait_for_idle()` alone returns
+#' before that UI arrives, so inputs read immediately after a tab click come
+#' back NULL and `set_inputs()` silently targets elements that are not in the
+#' DOM yet. Wait for a known input of the tab to exist *and* be bound.
+#'
+#' @param app Running browser driver.
+#' @param tab Value of the tab's `data-value` attribute.
+#' @param anchor Fully namespaced ID of an input the tab body must contain.
+#' @return The driver, invisibly, once the tab body is interactive.
+browser_open_tab <- function(app, tab, anchor) {
+  app$click(selector = sprintf("a[data-value='%s']", tab))
+  app$wait_for_js(
+    sprintf("document.querySelector('#%s.shiny-bound-input') !== null", anchor),
+    timeout = 60000
+  )
+  app$wait_for_idle()
+  invisible(app)
+}
+
 #' Set a dynamically named bound browser input
+#'
+#' Fails when the target is absent: `set_inputs()` only logs "Unable to find
+#' input binding" and carries on, which turns a missing element into a
+#' misleading timeout much later in the test.
 #'
 #' @param app Running browser driver.
 #' @param input Fully namespaced input ID.
 #' @param value Value to send through the real input binding.
 #' @return The driver, invisibly, after reactive updates settle.
 browser_set <- function(app, input, value) {
+  testthat::expect_true(
+    app$get_js(sprintf("document.getElementById('%s') !== null", input)),
+    label = paste0("input '", input, "' exists in the DOM")
+  )
   do.call(app$set_inputs, c(
     stats::setNames(list(value), input), list(wait_ = FALSE)
   ))
@@ -138,14 +168,45 @@ browser_click <- function(app, input) {
   invisible(app)
 }
 
+#' Expand a collapsible panel so its outputs are served
+#'
+#' `collapsible_panel()` renders a header button followed by a content div that
+#' is `display: none` until clicked. Shiny suspends outputs inside it, so a
+#' `renderUI` such as the subset filter summary stays empty while collapsed.
+#'
+#' @param app Running browser driver.
+#' @param panel Input ID of the collapsible panel header.
+#' @return The driver, invisibly, once the panel content is displayed.
+browser_expand_panel <- function(app, panel) {
+  visible <- sprintf(
+    paste0(
+      "(() => { const header = document.getElementById('%s');",
+      " if (header === null) return false;",
+      " const content = header.nextElementSibling;",
+      " return content !== null &&",
+      " getComputedStyle(content).display !== 'none'; })()"
+    ),
+    panel
+  )
+  if (!isTRUE(app$get_js(visible))) {
+    app$run_js(sprintf("document.getElementById('%s').click()", panel))
+  }
+  app$wait_for_js(visible, timeout = 30000)
+  app$wait_for_idle()
+  invisible(app)
+}
+
 #' Add a categorical filter through the current filter editor
 #'
 #' @param app Running browser driver.
 #' @param namespace Namespace of the subset selections module.
 #' @param variable Metadata column to filter.
 #' @param values Metadata values to retain.
+#' @param panel Optional collapsible panel that must be open for the filter
+#'   summary output to be served.
 #' @return The driver, invisibly, with the filter saved but not submitted.
-browser_filter <- function(app, namespace, variable, values) {
+browser_filter <- function(app, namespace, variable, values, panel = NULL) {
+  if (!is.null(panel)) browser_expand_panel(app, panel)
   browser_click(app, paste0(namespace, "-add_filter"))
   browser_set(app, paste0(namespace, "-filter_type"), "categorical")
   browser_set(app, paste0(namespace, "-categorical_var"), variable)
@@ -182,6 +243,33 @@ browser_plot <- function(app, output) {
   testthat::expect_gt(value$width, 20)
   testthat::expect_gt(value$height, 20)
   value
+}
+
+#' Open a collapsed dropdown so its download link is served
+#'
+#' Shiny suspends outputs whose element is hidden, so a download control inside
+#' a `shinyWidgets::dropdownButton()` keeps an empty `href` and a `disabled`
+#' class until the dropdown is opened. Downloading before then fails with no
+#' server-side error, because the URL was never issued at all.
+#'
+#' @param app Running browser driver.
+#' @param toggle Input ID of the dropdown button.
+#' @param output Download output ID whose href must become live.
+#' @return The driver, invisibly, once the download URL is available.
+browser_open_dropdown <- function(app, toggle, output) {
+  app$run_js(sprintf("document.getElementById('%s').click()", toggle))
+  app$wait_for_js(
+    sprintf(
+      paste0(
+        "(() => { const link = document.getElementById('%s');",
+        " return link !== null && link.getAttribute('href') !== ''; })()"
+      ),
+      output
+    ),
+    timeout = 30000
+  )
+  app$wait_for_idle()
+  invisible(app)
 }
 
 #' Download a browser result into the R session's temporary directory

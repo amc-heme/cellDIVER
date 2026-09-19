@@ -1,7 +1,6 @@
 test_that("browser marker identification retains numeric DGE regression", {
   app <- browser_app("dge-markers")
-  app$click(selector = "a[data-value='dge']")
-  app$wait_for_idle()
+  browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   expect_equal(
     app$get_value(input = "object_dge-test_selections-group_by"),
     "condensed_cell_type"
@@ -12,8 +11,7 @@ test_that("browser marker identification retains numeric DGE regression", {
 
 test_that("browser pairwise DGE compares independently selected metaclusters", {
   app <- browser_app("dge-pairwise")
-  app$click(selector = "a[data-value='dge']")
-  app$wait_for_idle()
+  browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_set(app, "object_dge-test_selections-mode", "mode_dge")
   browser_set(app, "object_dge-test_selections-group_by", "condensed_cell_type")
   browser_set(app, "object_dge-test_selections-group_1", "Primitive")
@@ -41,8 +39,7 @@ test_that("browser pairwise DGE compares independently selected metaclusters", {
 
 test_that("browser pairwise DGE compares the two recorded sample batches", {
   app <- browser_app("dge-pairwise-batches")
-  app$click(selector = "a[data-value='dge']")
-  app$wait_for_idle()
+  browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_set(app, "object_dge-test_selections-mode", "mode_dge")
   browser_set(app, "object_dge-test_selections-group_by", "Batch")
   browser_set(app, "object_dge-test_selections-group_1", "BM_200AB")
@@ -54,8 +51,7 @@ test_that("browser pairwise DGE compares the two recorded sample batches", {
 
 test_that("browser marker filters affect DGE and reset restores all cells", {
   app <- browser_app("dge-subset-reset")
-  app$click(selector = "a[data-value='dge']")
-  app$wait_for_idle()
+  browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_filter(
     app, "object_dge-subset_selections", "Batch", "BM_200AB"
   )
@@ -77,8 +73,7 @@ test_that("browser marker filters affect DGE and reset restores all cells", {
 
 test_that("a real threshold plot click partitions cells and computes DGE", {
   app <- browser_app("dge-expression-threshold")
-  app$click(selector = "a[data-value='dge']")
-  app$wait_for_idle()
+  browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_set(app, "object_dge-test_selections-mode", "mode_dge")
   browser_set(app, "object_dge-test_selections-use_feature_expression", TRUE)
   browser_set(

@@ -16,6 +16,7 @@ test_that("config preview and downloaded YAML survive a save/load roundtrip", {
   browser_set(app, "dimplot-ncol", 2)
   preview <- browser_plot(app, "preview_dimplot")
   expect_false(identical(preview$src, initial_preview$src))
+  browser_open_dropdown(app, "options", "export_selections")
   config_path <- browser_download(app, "export_selections", ".yaml")
   saved <- cellDIVER:::load_config(config_path)
   expect_equal(saved$label, "Browser roundtrip dataset")
@@ -42,13 +43,13 @@ test_that("config preview and downloaded YAML survive a save/load roundtrip", {
   expect_equal(restored$get_value(input = "dimplot-ncol"), 2)
   expect_false(restored$get_value(input = "dimplot-label"))
   browser_plot(restored, "preview_dimplot")
+  browser_open_dropdown(restored, "options", "export_selections")
   second_path <- browser_download(restored, "export_selections", ".yaml")
   expect_equal(cellDIVER:::load_config(second_path), saved)
   browser_stop(restored)
 
   browser <- browser_app("config-main-browser", config_path = config_path)
-  browser$click(selector = "a[data-value='plots']")
-  browser$wait_for_idle()
+  browser_open_tab(browser, "plots", "object_plots-make_dimplot")
   browser_plot(browser, "object_plots-dimplot-plot")
   expect_match(
     paste(browser$get_text("body"), collapse = " "), saved$label, fixed = TRUE
