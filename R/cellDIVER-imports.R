@@ -22,6 +22,7 @@
 #' @importFrom ggsci pal_d3 pal_jco pal_lancet pal_locuszoom pal_rickandmorty
 #' @importFrom ggsci pal_startrek
 #' @importFrom glue glue
+#' @importFrom methods is
 #' @importFrom patchwork plot_annotation plot_layout
 #' @importFrom rintrojs introjsUI
 #' @importFrom rlog log_error log_info log_warn
@@ -52,10 +53,16 @@
 #' @importFrom shinyWidgets radioGroupButtons updateAwesomeCheckbox
 #' @importFrom shinyWidgets updateMaterialSwitch updateMultiInput
 #' @importFrom shinyWidgets updatePickerInput
-#' @importFrom SingleCellExperiment altExp altExpNames altExps mainExpName
+#' @importFrom SingleCellExperiment altExp "altExp<-" altExpNames altExps
+#' @importFrom SingleCellExperiment mainExpName "mainExpName<-"
 #' @importFrom sortable add_rank_list bucket_list rank_list
+#' @importFrom stats cor
 #' @importFrom stringr str_sort
+#' @importFrom SummarizedExperiment assay "assay<-" "colData<-"
 #' @importFrom tibble add_row as_tibble tibble
+#' @importFrom tools toTitleCase
+#' @importFrom utils globalVariables head object.size packageVersion read.csv
+#' @importFrom utils str write.csv
 #' @importFrom viridisLite cividis inferno mako plasma rocket viridis
 #' @importFrom waiter spin_loaders useWaiter Waiter
 #' @importFrom yaml read_yaml write_yaml
@@ -65,7 +72,7 @@ NULL
 
 # Column names that dplyr and ggplot2 resolve against the data rather than the
 # namespace. Declaring them keeps them from reading as undefined globals.
-utils::globalVariables(c(
-  "auc", "avgExpr", "count", "group", "log2FC", "pct_in", "pct_out",
-  "pval_adj", "size"
+globalVariables(c(
+  "auc", "avg_exp_scaled", "avgExpr", "count", "feature", "group", "log2FC",
+  "pct_in", "pct_out", "pval_adj", "size"
 ))
