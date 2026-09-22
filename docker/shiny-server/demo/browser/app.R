@@ -24,16 +24,6 @@
 # this file before deploying — see the fallback in "Resolve the dataset
 # directory" below.
 
-# Defensive library() attaches. cellDIVER historically made a few unqualified
-# calls (R.devices::suppressGraphics, SingleCellExperiment accessors,
-# tools::toTitleCase); these are being fully namespaced on main. Attaching the
-# packages here guarantees the app runs even if a stray unqualified call
-# remains. These three attaches can be removed once all calls are confirmed
-# namespaced. (`tools` is base R; the other two are package dependencies.)
-library(R.devices)
-library(SingleCellExperiment)
-library(tools)
-
 # Resolve the dataset directory from this app's OWN location rather than
 # hardcoding /srv/shiny-server/demo, so the whole dataset folder can be copied
 # or renamed for a real dataset with no edits to this file. shiny-server runs

@@ -1,6 +1,6 @@
 library(cellDIVER)
 
-run_cellDIVER(
+run_config(
   object_path = system.file(
     "extdata", "test_dataset.rds", package = "cellDIVER", mustWork = TRUE
   ),
@@ -10,6 +10,5 @@ run_cellDIVER(
       "extdata", "test_dataset_config.yaml",
       package = "cellDIVER", mustWork = TRUE
     )
-  ),
-  dev_mode = TRUE
+  )
 )

@@ -1,5 +1,3 @@
-library(yaml)
-
 #' Load config file from YAML
 #'
 #' Loads an cellDIVER object-specific .yaml config file and converts all

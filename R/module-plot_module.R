@@ -4472,5 +4472,15 @@ plot_module_server <- function(id,
                            }
                    ) #End downloadHandler function
 
+                 # The download control lives inside a collapsed
+                 # dropdownButton, whose toggle never gets layout in a headless
+                 # browser. Shiny suspends outputs whose element is hidden, so
+                 # the URL is never issued and the button stays disabled with an
+                 # empty href. Registering a download URL costs nothing, so opt
+                 # this output out of suspension.
+                 outputOptions(
+                   output, "confirm_download", suspendWhenHidden = FALSE
+                 )
+
                  })
   }

@@ -1,7 +1,7 @@
 Package: cellDIVER
 Type: Package
 Title: cellDIVER
-Version: 1.0.0
+Version: 1.0.0.9000
 Date: 2025-06-03
 Authors@R: c(
     person(
@@ -61,9 +61,11 @@ Imports:
     ggplot2,
     ggsci,
     glue,
+    grDevices,
     gtools,
     HDF5Array,
     lifecycle,
+    methods,
     patchwork,
     RColorBrewer,
     R.devices,
@@ -71,19 +73,24 @@ Imports:
     rlang,
     rlog (>= 0.1.0),
     scales,
+    scattermore,
     SCUBA,
     scDE,
     Seurat (>= 3.0.0),
+    SeuratObject,
     shiny (>= 1.6.1),
     shinyBS (>= 0.61.1),
-    shinycssloaders (>= 1.0.0),
-    shinydashboard (>= 0.7.2),
     shinyjs (>= 2.0.0),
     shinyWidgets (>= 0.6.2),
+    SingleCellExperiment,
     sortable (>= 0.4.5),
+    stats,
     stringr,
+    SummarizedExperiment,
     svglite,
     tibble,
+    tools,
+    utils,
     viridisLite,
     waiter (>= 0.2.5),
     yaml
@@ -92,12 +99,17 @@ Remotes:
     github::amc-heme/scDE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.5.0)
 Suggests: 
+    anndata,
+    jsonlite,
     profvis (>= 0.3.7),
     reactlog (>= 1.1.0),
-    shinytest,
-    testthat (>= 3.0.0)
+    reticulate (>= 1.41.0),
+    shinytest2 (>= 0.4.1),
+    testthat (>= 3.0.0),
+    withr
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
+RoxygenNote: 7.3.2

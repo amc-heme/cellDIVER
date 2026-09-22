@@ -42,3 +42,11 @@ to specify the prefixes for the se.rds and assays.h5 files.}
 run_config() will launch a Shiny app used to configure datasets for use in
 the main browser.
 }
+\details{
+This function does not attach its dependencies to your search path. Earlier
+versions called \code{library()} on around 25 packages as a side effect of being
+called; cellDIVER now declares its imports properly, so the app runs without
+altering the calling environment. If you relied on, say, \code{DimPlot()} being
+available at the console after launching the app, attach the package
+yourself or qualify the call as \code{Seurat::DimPlot()}.
+}

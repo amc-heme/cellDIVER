@@ -1,0 +1,115 @@
+name: Tests
+
+# No path or base-branch filters: every PR must produce the required check.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    # Keep this name stable; select it in the branch ruleset's required checks.
+    name: cellDIVER tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      NOT_CRAN: "true"
+      CHROMOTE_CHROME: /usr/bin/google-chrome
+    steps:
+      - name: Check out the proposed code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pandoc
+        uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - name: Verify Chrome
+        run: '"$CHROMOTE_CHROME" --version'
+
+      - name: Install dependencies and the checked-out package
+        uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        env:
+          # Read-only, repository-scoped token; no PAT or deployment secrets
+          # are exposed to code from a PR (including forks).
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          extra-packages: |
+            any::devtools
+            any::xml2
+            local::.
+
+      - name: Run all tests
+        shell: Rscript {0}
+        run: |
+          dir.create("test-results", showWarnings = FALSE)
+          results_directory <- normalizePath("test-results", mustWork = TRUE)
+          # Do not stop at testthat's default failure limit: report every test.
+          # set_max_fails() governs when the run aborts; SummaryReporter caps
+          # how many it prints separately, and defaults to 10.
+          testthat::set_max_fails(Inf)
+          options(testthat.summary.max_reports = Inf)
+          reporter <- testthat::MultiReporter$new(list(
+            testthat::SummaryReporter$new(),
+            testthat::JunitReporter$new(
+              file = file.path(results_directory, "junit.xml")
+            )
+          ))
+          results <- devtools::test(
+            reporter = reporter,
+            stop_on_failure = FALSE
+          )
+          results <- as.data.frame(results)
+          summary <- c(
+            "## cellDIVER test results",
+            "",
+            sprintf("Test blocks: %d", nrow(results)),
+            sprintf("Passed expectations: %d", sum(results$passed)),
+            sprintf("Failed expectations: %d", sum(results$failed)),
+            sprintf("Errors: %d", sum(results$error)),
+            sprintf("Skipped tests: %d", sum(results$skipped)),
+            sprintf("Warnings: %d", sum(results$warning))
+          )
+          writeLines(summary, "test-results/summary.md")
+          cat(
+            paste(summary, collapse = "\n"), "\n",
+            file = Sys.getenv("GITHUB_STEP_SUMMARY"), append = TRUE
+          )
+          # A skipped browser suite or empty run must not satisfy the gate.
+          if (
+            nrow(results) == 0L || sum(results$passed) == 0L ||
+            any(results$failed > 0L | results$error | results$skipped)
+          ) {
+            stop("The complete test suite must pass without skips.")
+          }
+
+      - name: Build package
+        run: R CMD build . --no-build-vignettes --no-manual
+
+      - name: Upload test reports and diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results
+          path: |
+            test-results/
+            tests/testthat/_snaps/
+            tests/testthat/apps/**/tests/
+          if-no-files-found: warn
+          retention-days: 14

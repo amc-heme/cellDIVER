@@ -4,7 +4,7 @@
 \alias{run_cellDIVER}
 \title{cellDIVER app}
 \usage{
-# Option 1: Single-object deployment with 
+# Option 1: Single-object deployment with
 # an object and an object config file
 run_cellDIVER(
  object = "path_to_object",
@@ -12,9 +12,9 @@ run_cellDIVER(
  )
 
 # Option 2: Multi-object deployment with
-# Browser config file with paths to object, 
+# Browser config file with paths to object,
 # config files for any number of objects
-#  
+#
 run_cellDIVER(
  browser_config = "path_to_browser_config_file.yaml"
  )
@@ -28,7 +28,7 @@ SingleCellExperiment objects with using HDF5 disk-backed storage via
 \link{HDF5Array}, \code{object_path} should be a path to the directory containing
 the se.rds and assays.h5 files for the object.}
 
-\item{config_path}{path to the config file for the single-cell object. This is generated either in the config app via \code{run_config_app}, or by auto-generating a config file via \code{generate_config_yaml} and editing it by hand. For more information on using the config app, see \href{https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4}{here}.}
+\item{config_path}{path to the config file for the single-cell object. This is generated either in the config app via \code{run_config_app}, or by auto-generating a config file via \code{generate_config_yaml} and editing it by hand. For more information on using the config app, see \href{https://amc-heme.github.io/cellDIVER/articles/config_documentation.html}{here}.}
 
 \item{enable_metadata_addition}{when TRUE, users may interactively add metadata to objects in the app. This feature is currently unstable, so it must be opted in to by setting this value to TRUE.}
 
@@ -47,4 +47,11 @@ Initializes the main cellDIVER app.
 }
 \details{
 For more information on setting up an cellDIVER deployment, see the \href{https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html}{dataset setup guide} on our website.
+
+This function does not attach its dependencies to your search path. Earlier
+versions called \code{library()} on around 25 packages as a side effect of being
+called; cellDIVER now declares its imports properly, so the app runs without
+altering the calling environment. If you relied on, say, \code{DimPlot()} being
+available at the console after launching the app, attach the package
+yourself or qualify the call as \code{Seurat::DimPlot()}.
 }
