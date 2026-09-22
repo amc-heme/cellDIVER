@@ -24,7 +24,7 @@
 
     <a class="navbar-brand me-2" href="index.html">cellDIVER</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,6 +94,9 @@
 </ol>
 <pre><code><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"amc-heme/cellDIVER"</span><span class="op">)</span></span></code></pre>
 <p>If this is your first time setting up cellDIVER, we reccomend you view the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html"><strong>App Setup Walkthrough</strong></a>, which applies the process in steps 3-5 to an example object.</p>
+<blockquote>
+<p><strong>Behaviour change.</strong> <code><a href="reference/run_cellDIVER.html">run_cellDIVER()</a></code> and <code><a href="reference/run_config.html">run_config()</a></code> no longer attach their dependencies to your search path. Earlier versions called <code><a href="https://rdrr.io/r/base/library.html" class="external-link">library()</a></code> on around 25 packages as a side effect of launching the app. If you relied on that — for example calling <code>DimPlot()</code> at the console after closing the app — attach the package yourself or qualify the call as <code><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">Seurat::DimPlot()</a></code>. The apps themselves are unaffected. See <code>NEWS.md</code>.</p>
+</blockquote>
 <ol start="2" style="list-style-type: decimal">
 <li><p>Process or obtain a finalized single cell object.</p></li>
 <li><p>Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the <a href="https://amc-heme.github.io/cellDIVER/articles/config_documentation.html"><strong>Full Config App Documentation</strong></a> or the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html"><strong>App Setup Walkthrough</strong></a>.</p></li>
@@ -122,6 +125,32 @@
     )</code></pre>
 </li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="automated-testing">Automated testing<a class="anchor" aria-label="anchor" href="#automated-testing"></a>
+</h2>
+<p>The consolidated suite uses testthat (edition 3), <code><a href="https://rdrr.io/pkg/shiny/man/testServer.html" class="external-link">shiny::testServer()</a></code> and shinytest2 with Chrome/Chromium. It adapts the useful coverage from <a href="https://github.com/amc-heme/cellDIVER/tree/187-add-automated-testing-to-app" class="external-link"><code>187-add-automated-testing-to-app</code></a> to the current cellDIVER APIs, rather than merging that older scExploreR branch over newer application code. The old PhantomJS/shinytest recordings are replaced by assertions in the normal testthat suite.</p>
+<p>Install the package’s development dependencies, including Suggests, with <code>remotes::install_deps(dependencies = TRUE)</code>. Install Chrome or Chromium and, if it is not discovered automatically, set <code>CHROMOTE_CHROME</code> to its executable. Run from the repository root:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>NOT_CRAN <span class="op">=</span> <span class="st">"true"</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">test</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>All tests are discovered through <code>tests/testthat.R</code>; browser scenarios use the bundled <code>inst/extdata/test_dataset.rds</code> and configuration, not external datasets or a deployed server. Browser tests are skipped on CRAN, but <strong>not</strong> in CI. Missing browser dependencies or fixtures fail CI instead of silently skipping. Use <code>devtools::test(filter = "unit|module")</code> for a fast non-browser iteration, or <code>devtools::test(filter = "browser")</code> for browser scenarios.</p>
+<p>Coverage includes configuration roundtrips, choices/titles, subset and threshold boundaries, reactive plot controls, DGE filters/statistics, rendered plots and downloads, marker/pairwise/threshold DGE, and subset/reset behavior. Correlation tests exercise the existing module in a dedicated fixture because its tab is currently disabled in the main browser; testing does not re-enable it.</p>
+<div class="section level3">
+<h3 id="pr-results-and-merge-protection">PR results and merge protection<a class="anchor" aria-label="anchor" href="#pr-results-and-merge-protection"></a>
+</h3>
+<p>The <strong>Tests</strong> workflow tests the checked-out PR code on a GitHub-hosted runner when a PR opens, changes, reopens or becomes ready for review. It also supports merge queues, pushes to <code>main</code> and manual runs. Its stable check name is <strong>cellDIVER tests</strong>. All test files run without an early failure limit; failures, errors, skipped tests and empty runs fail the check. The run summary contains counts; the <code>test-results</code> artifact contains JUnit XML and available browser diagnostics. Dependency installation or browser startup failures also fail the check.</p>
+<p>The separate <strong>PR test results</strong> workflow creates or updates one PR comment with the outcome and a link to the detailed results, including failed runs and fork PRs. It uses GitHub job metadata only: it never checks out PR code or executes artifacts with a write token. Outdated revisions do not overwrite newer reports. This reporting workflow must be on the default branch before GitHub will run it; the first PR introducing it still has the normal check and run summary. Fork runs may require a maintainer’s approval under repository Actions settings.</p>
+<p><strong>One-time administrator setup is required to actually block merges.</strong> A workflow cannot enable branch protection by itself:</p>
+<ol style="list-style-type: decimal">
+<li>Run <strong>Tests</strong> once so GitHub discovers <strong>cellDIVER tests</strong>.</li>
+<li>In <strong>Settings → Rules → Rulesets</strong>, create or edit an active branch ruleset targeting <code>main</code> (and any other protected target branches).</li>
+<li>Enable <strong>Require status checks to pass</strong> and add <strong>cellDIVER tests</strong>, choosing GitHub Actions as its source. Require branches to be up to date before merging (or use the merge queue).</li>
+<li>Remove bypass permissions for anyone who must be blocked by failing tests. Do not require <strong>PR test results</strong>: comments are informational, not the gate.</li>
+<li>Verify with a deliberately failing test on a temporary PR that the check fails and merging is disabled, then fix the test and confirm the new run succeeds and updates the comment.</li>
+</ol>
+<p>The PR test job uses only a read-only repository token. Do not add deployment secrets, a cross-repository PAT, or a self-hosted runner to execute untrusted PR code. If a dependency becomes private, arrange a safe dependency distribution before enabling the gate; missing dependency access must remain a failure.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="docker-installation">Docker Installation<a class="anchor" aria-label="anchor" href="#docker-installation"></a>

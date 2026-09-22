@@ -9,7 +9,7 @@ the main browser."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">cellDIVER</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -102,6 +102,15 @@ to specify the prefixes for the se.rds and assays.h5 files.</p></dd>
 <dd><p>Used only for development. If TRUE, the server values for each option chosen by the user will be printed at the bottom of the "general" tab.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>This function does not attach its dependencies to your search path. Earlier
+versions called <code><a href="https://rdrr.io/r/base/library.html" class="external-link">library()</a></code> on around 25 packages as a side effect of being
+called; cellDIVER now declares its imports properly, so the app runs without
+altering the calling environment. If you relied on, say, <code>DimPlot()</code> being
+available at the console after launching the app, attach the package
+yourself or qualify the call as <code><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">Seurat::DimPlot()</a></code>.</p>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

@@ -5,7 +5,7 @@ Initializes the main cellDIVER app.
 ## Usage
 
 ``` r
-# Option 1: Single-object deployment with 
+# Option 1: Single-object deployment with
 # an object and an object config file
 run_cellDIVER(
  object = "path_to_object",
@@ -13,9 +13,9 @@ run_cellDIVER(
  )
 
 # Option 2: Multi-object deployment with
-# Browser config file with paths to object, 
+# Browser config file with paths to object,
 # config files for any number of objects
-#  
+#
 run_cellDIVER(
  browser_config = "path_to_browser_config_file.yaml"
  )
@@ -43,7 +43,7 @@ run_cellDIVER(
   either in the config app via `run_config_app`, or by auto-generating a
   config file via `generate_config_yaml` and editing it by hand. For
   more information on using the config app, see
-  [here](https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4).
+  [here](https://amc-heme.github.io/cellDIVER/articles/config_documentation.html).
 
 - enable_metadata_addition:
 
@@ -90,3 +90,12 @@ For more information on setting up an cellDIVER deployment, see the
 [dataset setup
 guide](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html)
 on our website.
+
+This function does not attach its dependencies to your search path.
+Earlier versions called
+[`library()`](https://rdrr.io/r/base/library.html) on around 25 packages
+as a side effect of being called; cellDIVER now declares its imports
+properly, so the app runs without altering the calling environment. If
+you relied on, say, `DimPlot()` being available at the console after
+launching the app, attach the package yourself or qualify the call as
+[`Seurat::DimPlot()`](https://satijalab.org/seurat/reference/DimPlot.html).

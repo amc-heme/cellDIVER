@@ -56,6 +56,18 @@ the [**App Setup
 Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html),
 which applies the process in steps 3-5 to an example object.
 
+> **Behaviour change.**
+> [`run_cellDIVER()`](https://amc-heme.github.io/cellDIVER/reference/run_cellDIVER.md)
+> and
+> [`run_config()`](https://amc-heme.github.io/cellDIVER/reference/run_config.md)
+> no longer attach their dependencies to your search path. Earlier
+> versions called [`library()`](https://rdrr.io/r/base/library.html) on
+> around 25 packages as a side effect of launching the app. If you
+> relied on that — for example calling `DimPlot()` at the console after
+> closing the app — attach the package yourself or qualify the call as
+> [`Seurat::DimPlot()`](https://satijalab.org/seurat/reference/DimPlot.html).
+> The apps themselves are unaffected. See `NEWS.md`.
+
 2.  Process or obtain a finalized single cell object.
 
 3.  Configure an object for the browser by using the configuration app
@@ -94,6 +106,85 @@ which applies the process in steps 3-5 to an example object.
           object_path = "./object.rds"
           config_path = "./config.yaml"
           )
+
+## Automated testing
+
+The consolidated suite uses testthat (edition 3),
+[`shiny::testServer()`](https://rdrr.io/pkg/shiny/man/testServer.html)
+and shinytest2 with Chrome/Chromium. It adapts the useful coverage from
+[`187-add-automated-testing-to-app`](https://github.com/amc-heme/cellDIVER/tree/187-add-automated-testing-to-app)
+to the current cellDIVER APIs, rather than merging that older scExploreR
+branch over newer application code. The old PhantomJS/shinytest
+recordings are replaced by assertions in the normal testthat suite.
+
+Install the package’s development dependencies, including Suggests, with
+`remotes::install_deps(dependencies = TRUE)`. Install Chrome or Chromium
+and, if it is not discovered automatically, set `CHROMOTE_CHROME` to its
+executable. Run from the repository root:
+
+``` r
+
+Sys.setenv(NOT_CRAN = "true")
+devtools::test()
+```
+
+All tests are discovered through `tests/testthat.R`; browser scenarios
+use the bundled `inst/extdata/test_dataset.rds` and configuration, not
+external datasets or a deployed server. Browser tests are skipped on
+CRAN, but **not** in CI. Missing browser dependencies or fixtures fail
+CI instead of silently skipping. Use
+`devtools::test(filter = "unit|module")` for a fast non-browser
+iteration, or `devtools::test(filter = "browser")` for browser
+scenarios.
+
+Coverage includes configuration roundtrips, choices/titles, subset and
+threshold boundaries, reactive plot controls, DGE filters/statistics,
+rendered plots and downloads, marker/pairwise/threshold DGE, and
+subset/reset behavior. Correlation tests exercise the existing module in
+a dedicated fixture because its tab is currently disabled in the main
+browser; testing does not re-enable it.
+
+### PR results and merge protection
+
+The **Tests** workflow tests the checked-out PR code on a GitHub-hosted
+runner when a PR opens, changes, reopens or becomes ready for review. It
+also supports merge queues, pushes to `main` and manual runs. Its stable
+check name is **cellDIVER tests**. All test files run without an early
+failure limit; failures, errors, skipped tests and empty runs fail the
+check. The run summary contains counts; the `test-results` artifact
+contains JUnit XML and available browser diagnostics. Dependency
+installation or browser startup failures also fail the check.
+
+The separate **PR test results** workflow creates or updates one PR
+comment with the outcome and a link to the detailed results, including
+failed runs and fork PRs. It uses GitHub job metadata only: it never
+checks out PR code or executes artifacts with a write token. Outdated
+revisions do not overwrite newer reports. This reporting workflow must
+be on the default branch before GitHub will run it; the first PR
+introducing it still has the normal check and run summary. Fork runs may
+require a maintainer’s approval under repository Actions settings.
+
+**One-time administrator setup is required to actually block merges.** A
+workflow cannot enable branch protection by itself:
+
+1.  Run **Tests** once so GitHub discovers **cellDIVER tests**.
+2.  In **Settings → Rules → Rulesets**, create or edit an active branch
+    ruleset targeting `main` (and any other protected target branches).
+3.  Enable **Require status checks to pass** and add **cellDIVER
+    tests**, choosing GitHub Actions as its source. Require branches to
+    be up to date before merging (or use the merge queue).
+4.  Remove bypass permissions for anyone who must be blocked by failing
+    tests. Do not require **PR test results**: comments are
+    informational, not the gate.
+5.  Verify with a deliberately failing test on a temporary PR that the
+    check fails and merging is disabled, then fix the test and confirm
+    the new run succeeds and updates the comment.
+
+The PR test job uses only a read-only repository token. Do not add
+deployment secrets, a cross-repository PAT, or a self-hosted runner to
+execute untrusted PR code. If a dependency becomes private, arrange a
+safe dependency distribution before enabling the gate; missing
+dependency access must remain a failure.
 
 ## Docker Installation
 

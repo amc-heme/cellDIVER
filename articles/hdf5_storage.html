@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cellDIVER</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,12 +94,12 @@ even millions of cells on a personal computer.</p>
 <p>Anndata is the preferred object format for HDF5 disk-based storage,
 and it is the easiest to set up. To use HDF5 formatting for an Anndata
 object, simply save it via the <code><a href="https://rdrr.io/r/base/write.html" class="external-link">write()</a></code> method in python. If
-using the Anndata package in R, use <code>write_h5ad()</code>.</p>
+using the Anndata package in R, use <code><a href="https://anndata.dynverse.org/reference/write_h5ad.html" class="external-link">write_h5ad()</a></code>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># adata: an Anndata object preprocessed and clustered using Scanpy</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>adata.write(filename <span class="op">=</span> <span class="st">"output_path.h5ad"</span>)</span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># If saving via the R anndata package</span></span>
-<span><span class="fu">anndata</span><span class="fu">::</span><span class="fu">write_h5ad</span><span class="op">(</span><span class="va">adata</span>, filename <span class="op">=</span> <span class="st">"output_path.h5ad"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">anndata</span><span class="fu">::</span><span class="fu"><a href="https://anndata.dynverse.org/reference/write_h5ad.html" class="external-link">write_h5ad</a></span><span class="op">(</span><span class="va">adata</span>, filename <span class="op">=</span> <span class="st">"output_path.h5ad"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="seurat-objects">Seurat Objects<a class="anchor" aria-label="anchor" href="#seurat-objects"></a>

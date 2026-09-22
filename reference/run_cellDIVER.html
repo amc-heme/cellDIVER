@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cellDIVER</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># Option 1: Single-object deployment with </span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># Option 1: Single-object deployment with</span></span>
 <span><span class="co"># an object and an object config file</span></span>
 <span><span class="fu">run_cellDIVER</span><span class="op">(</span></span>
 <span> object <span class="op">=</span> <span class="st">"path_to_object"</span>,</span>
@@ -59,9 +59,9 @@
 <span> <span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Option 2: Multi-object deployment with</span></span>
-<span><span class="co"># Browser config file with paths to object, </span></span>
+<span><span class="co"># Browser config file with paths to object,</span></span>
 <span><span class="co"># config files for any number of objects</span></span>
-<span><span class="co">#  </span></span>
+<span><span class="co">#</span></span>
 <span><span class="fu">run_cellDIVER</span><span class="op">(</span></span>
 <span> browser_config <span class="op">=</span> <span class="st">"path_to_browser_config_file.yaml"</span></span>
 <span> <span class="op">)</span></span></code></pre></div>
@@ -84,7 +84,7 @@ the se.rds and assays.h5 files for the object.</p></dd>
 
 
 <dt id="arg-config-path">config_path<a class="anchor" aria-label="anchor" href="#arg-config-path"></a></dt>
-<dd><p>path to the config file for the single-cell object. This is generated either in the config app via <code>run_config_app</code>, or by auto-generating a config file via <code>generate_config_yaml</code> and editing it by hand. For more information on using the config app, see <a href="https://amc-heme.github.io/cellDIVER/articles/docker.html#step-4">here</a>.</p></dd>
+<dd><p>path to the config file for the single-cell object. This is generated either in the config app via <code>run_config_app</code>, or by auto-generating a config file via <code>generate_config_yaml</code> and editing it by hand. For more information on using the config app, see <a href="https://amc-heme.github.io/cellDIVER/articles/config_documentation.html">here</a>.</p></dd>
 
 
 <dt id="arg-enable-metadata-addition">enable_metadata_addition<a class="anchor" aria-label="anchor" href="#arg-enable-metadata-addition"></a></dt>
@@ -114,6 +114,12 @@ the se.rds and assays.h5 files for the object.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>For more information on setting up an cellDIVER deployment, see the <a href="https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html">dataset setup guide</a> on our website.</p>
+<p>This function does not attach its dependencies to your search path. Earlier
+versions called <code><a href="https://rdrr.io/r/base/library.html" class="external-link">library()</a></code> on around 25 packages as a side effect of being
+called; cellDIVER now declares its imports properly, so the app runs without
+altering the calling environment. If you relied on, say, <code>DimPlot()</code> being
+available at the console after launching the app, attach the package
+yourself or qualify the call as <code><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">Seurat::DimPlot()</a></code>.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

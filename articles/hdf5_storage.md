@@ -16,7 +16,8 @@ Anndata is the preferred object format for HDF5 disk-based storage, and
 it is the easiest to set up. To use HDF5 formatting for an Anndata
 object, simply save it via the
 [`write()`](https://rdrr.io/r/base/write.html) method in python. If
-using the Anndata package in R, use `write_h5ad()`.
+using the Anndata package in R, use
+[`write_h5ad()`](https://anndata.dynverse.org/reference/write_h5ad.html).
 
 ``` python
 # adata: an Anndata object preprocessed and clustered using Scanpy

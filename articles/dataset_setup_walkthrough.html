@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">cellDIVER</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -175,7 +175,7 @@ the path with the path to the downloaded object.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://anndata.dynverse.org" class="external-link">anndata</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">full_dataset</span> <span class="op">&lt;-</span> </span>
-<span>  <span class="fu">anndata</span><span class="fu">::</span><span class="fu">read_h5ad</span><span class="op">(</span></span>
+<span>  <span class="fu">anndata</span><span class="fu">::</span><span class="fu"><a href="https://anndata.dynverse.org/reference/read_h5ad.html" class="external-link">read_h5ad</a></span><span class="op">(</span></span>
 <span>    <span class="co"># Replace the path below with the path to the downloaded dataset</span></span>
 <span>    <span class="st">"~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad"</span></span>
 <span>    <span class="op">)</span></span></code></pre></div>
@@ -531,7 +531,7 @@ characteristics exposed differ from the combined dataset.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://anndata.dynverse.org" class="external-link">anndata</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sclc_dataset</span> <span class="op">&lt;-</span> </span>
-<span>  <span class="fu">anndata</span><span class="fu">::</span><span class="fu">read_h5ad</span><span class="op">(</span></span>
+<span>  <span class="fu">anndata</span><span class="fu">::</span><span class="fu"><a href="https://anndata.dynverse.org/reference/read_h5ad.html" class="external-link">read_h5ad</a></span><span class="op">(</span></span>
 <span>    <span class="co"># Replace the code below with the path to the downloaded dataset</span></span>
 <span>    <span class="st">"~/datasets/small_cell_lung_cancer/Epithelial_SCLC.h5ad"</span></span>
 <span>    <span class="op">)</span></span></code></pre></div>
@@ -726,12 +726,12 @@ objects.</p>
 <p>After adding the data to <code>uns</code>, make sure to save both
 objects. They can now be loaded into the config app for analysis.</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">anndata</span><span class="fu">::</span><span class="fu">write_h5ad</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="fu">anndata</span><span class="fu">::</span><span class="fu"><a href="https://anndata.dynverse.org/reference/write_h5ad.html" class="external-link">write_h5ad</a></span><span class="op">(</span></span>
 <span>  <span class="va">full_dataset</span>,</span>
 <span>  filename <span class="op">=</span> <span class="st">"~/datasets/small_cell_lung_cancer/SCLC_Full.h5ad"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">anndata</span><span class="fu">::</span><span class="fu">write_h5ad</span><span class="op">(</span></span>
+<span><span class="fu">anndata</span><span class="fu">::</span><span class="fu"><a href="https://anndata.dynverse.org/reference/write_h5ad.html" class="external-link">write_h5ad</a></span><span class="op">(</span></span>
 <span>  <span class="va">sclc_dataset</span>,</span>
 <span>  filename <span class="op">=</span> <span class="st">"~/datasets/small_cell_lung_cancer/Epithelial_SCLC.h5ad"</span></span>
 <span><span class="op">)</span></span></code></pre></div>

@@ -52,3 +52,14 @@ run_config(
 
   Used only for development. If TRUE, the server values for each option
   chosen by the user will be printed at the bottom of the "general" tab.
+
+## Details
+
+This function does not attach its dependencies to your search path.
+Earlier versions called
+[`library()`](https://rdrr.io/r/base/library.html) on around 25 packages
+as a side effect of being called; cellDIVER now declares its imports
+properly, so the app runs without altering the calling environment. If
+you relied on, say, `DimPlot()` being available at the console after
+launching the app, attach the package yourself or qualify the call as
+[`Seurat::DimPlot()`](https://satijalab.org/seurat/reference/DimPlot.html).

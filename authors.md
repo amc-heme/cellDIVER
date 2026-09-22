@@ -24,13 +24,13 @@ Source:
 [`DESCRIPTION`](https://github.com/amc-heme/cellDIVER/blob/main/DESCRIPTION)
 
 Showers W, Desai J, Gipson S, Engel K, Gillen A (2026). *cellDIVER:
-cellDIVER*. R package version 1.0.0,
+cellDIVER*. R package version 1.0.0.9000,
 <https://github.com/amc-heme/cellDIVER>.
 
     @Manual{,
       title = {cellDIVER: cellDIVER},
       author = {William Showers and Jairav Desai and Stephanie Gipson and Krysta Engel and Austin Gillen},
       year = {2026},
-      note = {R package version 1.0.0},
+      note = {R package version 1.0.0.9000},
       url = {https://github.com/amc-heme/cellDIVER},
     }
