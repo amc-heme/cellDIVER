@@ -8,9 +8,6 @@
 .gitattributes
 .github
 
-# Package assets not needed for the runtime image build
-data
-
 # Docs, vignettes (large PNG/GIF assets), pkgdown output
 docs
 vignettes

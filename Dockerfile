@@ -48,7 +48,7 @@ COPY DESCRIPTION /tmp/cellDIVER/DESCRIPTION
 RUN R -e "if (!all(vapply(c('BiocManager', 'devtools'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
 
 # Install cellDIVER's hard dependency tree once into the shared base image.
-RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); devtools::install_deps('/tmp/cellDIVER', dependencies = c('Depends', 'Imports', 'LinkingTo'), upgrade = 'never'); if (!all(vapply(c('SCUBA', 'scDE', 'Seurat', 'SingleCellExperiment', 'HDF5Array'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
+RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); devtools::install_deps('/tmp/cellDIVER', dependencies = c('Depends', 'Imports', 'LinkingTo'), upgrade = 'never'); description <- read.dcf('/tmp/cellDIVER/DESCRIPTION')[1, , drop = FALSE]; dependency_fields <- intersect(c('Depends', 'Imports', 'LinkingTo'), colnames(description)); packages <- unlist(strsplit(paste(description[1, dependency_fields], collapse = ','), ',')); packages <- trimws(gsub('[[:space:]]+', ' ', packages)); packages <- trimws(gsub('\\s*\\(.*\\)', '', packages)); packages <- setdiff(packages[nzchar(packages)], 'R'); missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]; if (length(missing) > 0) stop('Missing runtime dependencies: ', paste(missing, collapse = ', '), call. = FALSE)"
 
 # BPCells (not on CRAN/Bioconductor) for Seurat v5 objects with BPCells assays.
 RUN R -e "options(timeout = 600); options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages('BPCells', repos = c('https://bnprks.r-universe.dev', getOption('repos'))); if (!library(BPCells, logical.return = TRUE)) quit(status = 10)"

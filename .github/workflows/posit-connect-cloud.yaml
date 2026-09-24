@@ -79,6 +79,7 @@ jobs:
           POSIT_CLIENT_ID: ${{ secrets.POSIT_CLOUD_CLIENT_ID }}
           POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLOUD_CLIENT_SECRET }}
           POSIT_ACCOUNT: ${{ secrets.POSIT_CLOUD_ACCOUNT }}
+          CELLDIVER_GITHUB_REPOSITORY: ${{ github.repository }}
           CELLDIVER_GITHUB_SHA: ${{ github.sha }}
         run: |
           docker run --rm \
@@ -86,6 +87,7 @@ jobs:
             -e POSIT_CLIENT_ID \
             -e POSIT_CLIENT_SECRET \
             -e POSIT_ACCOUNT \
+            -e CELLDIVER_GITHUB_REPOSITORY \
             -e CELLDIVER_GITHUB_SHA \
             -v "$PWD":/work \
             -w /work \
@@ -125,7 +127,8 @@ jobs:
           options(timeout = 600)
           devtools::install_github(
             sprintf(
-              "amc-heme/cellDIVER@%s",
+              "%s@%s",
+              Sys.getenv("CELLDIVER_GITHUB_REPOSITORY"),
               Sys.getenv("CELLDIVER_GITHUB_SHA")
             ),
             auth_token = github_token,
