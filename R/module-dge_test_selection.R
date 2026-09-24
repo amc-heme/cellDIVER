@@ -24,7 +24,7 @@ dge_test_selections_ui <-
             a(
               id = ns("mode_tooltip"),
               icon("info-circle"), 
-              href = paste0("https://amc-heme.github.io/scExploreR/articles/", 
+              href = paste0("https://amc-heme.github.io/cellDIVER/articles/", 
                             "full_documentation.html"),  
               target = "_blank"
             )

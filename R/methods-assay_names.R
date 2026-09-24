@@ -65,7 +65,7 @@ assay_names.SingleCellExperiment <-
 #' Anndata objects do not have an exclusive structure for modalities/assays.
 #' Additional modalities are stored in obsm, but this slot is not specific to
 #' modalities. To use assay_names with Anndata objects, a vector of assays
-#' (python list) must be stored in `object.uns["scExploreR_assays"]`. This method
+#' (python list) must be stored in `object.uns["cellDIVER_assays"]`. This method
 #' will return an error if this data is not present in the object.
 #'
 #' @export
@@ -73,13 +73,13 @@ assay_names.AnnDataR6 <-
   function(
     object
   ){
-    if (!is.null(object$uns[["scExploreR_assays"]])){
+    if (!is.null(object$uns[["cellDIVER_assays"]])){
       # Add X matrix to the obsm keys matching modalities
-      c("X", object$uns[["scExploreR_assays"]])
+      c("X", object$uns[["cellDIVER_assays"]])
     } else {
       stop("For anndata objects, the obsm_keys that correspond to modalities ",
-           "must be defined in `uns$scExploreR_assays`. If no modalities are ",
-           "present in obsm, uns$scExploreR_assays should be NULL/None.")
+           "must be defined in `uns$cellDIVER_assays`. If no modalities are ",
+           "present in obsm, uns$cellDIVER_assays should be NULL/None.")
     }
   }
 

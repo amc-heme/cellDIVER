@@ -43,14 +43,14 @@ shiny_scatter <- function(object,
   # The number of colors is equal to the number of unique values in 
   # the group.by category
   n_colors <- 
-    scExploreR:::n_unique(
+    cellDIVER:::n_unique(
       object,
       meta_var = group_by
       )
   
   # Plot: uses FeatureScatter
   plot <- 
-    scExploreR::plot_scatter(
+    cellDIVER::plot_scatter(
       object, 
       feature_1 = feature_1,
       feature_2 = feature_2,

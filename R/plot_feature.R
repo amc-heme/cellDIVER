@@ -134,11 +134,11 @@ plot_feature <- function(
   
   # Reduction: if undefined, use default reduction for the object (fetched
   # via the default_reduction S3 method)
-  reduction <- reduction %||% default_reduction(object)
+  reduction <- reduction %||% SCUBA::default_reduction(object)
   # Set default slot if not defined
-  slot <- slot %||% default_layer(object)
+  slot <- slot %||% SCUBA::default_layer(object)
   # Select all cells if cells is unspecified
-  cells <- cells %||% get_all_cells(object)
+  cells <- cells %||% SCUBA::get_all_cells(object)
   
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
@@ -197,7 +197,7 @@ plot_feature <- function(
   
   # Define names for reductions, for plotting
   dim_names <-
-    reduction_dimnames(
+    SCUBA::reduction_dimnames(
       object,
       reduction = reduction,
       dims = dims
@@ -206,7 +206,7 @@ plot_feature <- function(
   # 2. Get plotting data
   ## 2.1. Fetch reduction coordinates
   data <-
-    fetch_reduction(
+    SCUBA::fetch_reduction(
       object = object,
       reduction = reduction,
       cells = cells,
@@ -218,7 +218,7 @@ plot_feature <- function(
     data <-
       cbind(
         data,
-        fetch_metadata(
+        SCUBA::fetch_metadata(
           object = object,
           vars = label_by,
           cells = cells
@@ -235,7 +235,7 @@ plot_feature <- function(
   data <-
     cbind(
       data,
-      fetch_data(
+      SCUBA::fetch_data(
         object = object,
         vars = features,
         layer = slot,
@@ -393,7 +393,7 @@ plot_feature <- function(
     if (is.null(x = split_by)) {
       SeuratObject::RandomName()
     } else {
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object = object,
         vars = split_by,
         cells = cells,
@@ -409,7 +409,7 @@ plot_feature <- function(
   # 5. Add shape by variable if defined
   if (!is.null(x = shape_by)) {
     data[, shape_by] <-
-      fetch_metadata(
+      SCUBA::fetch_metadata(
         object = object,
         vars = shape_by,
         cells = cells,

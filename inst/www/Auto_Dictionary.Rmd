@@ -26,7 +26,7 @@ library(Seurat)
 library(SingleCellExperiment)
 library(stats)
 library(SCUBA)
-library(scExploreR)
+library(cellDIVER)
 
 library(shiny)
 library(bslib)

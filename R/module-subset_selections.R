@@ -983,7 +983,7 @@ subset_selections_server <- function(id,
                   # },
                 `label` = 
                   # Compute display name using config file
-                  scExploreR:::hr_name(
+                  cellDIVER:::hr_name(
                     machine_readable_name = input$numeric_feature,
                     assay_config = assay_config()
                     ),
@@ -1121,7 +1121,7 @@ subset_selections_server <- function(id,
                               class = "center half-space-bottom"
                             ),
                             tags$p(
-                              scExploreR:::vector_to_text(
+                              cellDIVER:::vector_to_text(
                                 value
                               )
                             )

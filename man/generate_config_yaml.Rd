@@ -17,7 +17,7 @@ auto_config(
  )
 }
 \arguments{
-\item{object}{a single-cell object to be configured for use in scExploreR
+\item{object}{a single-cell object to be configured for use in cellDIVER
 (not the path to the object). Currently, Seurat, SingleCellExperiment, and
 anndata objects are supported.}
 
@@ -44,7 +44,7 @@ is passed to the prefix parameter of HDF5Array::loadHDF5SummarizedExperiment
 to specify the prefixes for the se.rds and assays.h5 files.}
 
 \item{include_numeric_metadata}{If \code{TRUE}, numeric metadata in the object
-will searchable in scExploreR for plotting and subsetting. The default
+will searchable in cellDIVER for plotting and subsetting. The default
 setting is \code{TRUE}.}
 
 \item{genes_assay}{single-length character vector giving the name of the
@@ -60,7 +60,7 @@ convention:
 \item{sample_level_var}{a sample-level metadata variable used to construct
 sample-level pie charts in the plots tab. This should be a sample or patient
 ID, for example. If this is not provided (the default), pie charts will not
-appear in scExploreR.}
+appear in cellDIVER.}
 }
 \value{
 A config file is generated at the path provided to \code{output_yaml}. Nothing is returned from the function.

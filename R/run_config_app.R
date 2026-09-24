@@ -1,4 +1,4 @@
-#' scExploreR config app
+#' cellDIVER config app
 #'
 #' run_config() will launch a Shiny app used to configure datasets for use in
 #' the main browser.
@@ -24,6 +24,13 @@
 #' to specify the prefixes for the se.rds and assays.h5 files. 
 #' @param dev_mode Used only for development. If TRUE, the server values for each option chosen by the user will be printed at the bottom of the "general" tab.
 #'
+#' @details
+#' This function does not attach its dependencies to your search path. Earlier
+#' versions called `library()` on around 25 packages as a side effect of being
+#' called; cellDIVER now declares its imports properly, so the app runs without
+#' altering the calling environment. If you relied on, say, `DimPlot()` being
+#' available at the console after launching the app, attach the package
+#' yourself or qualify the call as `Seurat::DimPlot()`.
 #'
 #' @export
 run_config <-
@@ -34,36 +41,16 @@ run_config <-
     HDF5_prefix = "",
     dev_mode = FALSE
   ){
-    # Initialize libraries ####
-    library(shiny)
-    library(Seurat)
+    # Optional dev tooling ####
+    # Every package cellDIVER calls is declared in NAMESPACE (see
+    # R/cellDIVER-imports.R). reactlog is the exception: it is a Suggests-only
+    # debugging tool that shiny discovers through the search path, so it is
+    # attached rather than imported, and only when actually installed.
+    if (requireNamespace("reactlog", quietly = TRUE)) {
+      library(reactlog)
+    }
+    options(shiny.reactlog = TRUE)
 
-    # Shiny add-ons
-    library(shinyWidgets)
-    library(rintrojs)
-    library(shinydashboard)
-    library(waiter)
-    library(shinycssloaders)
-    library(shinyjs)
-    # library(shinyFeedback)
-    # Sortable.JS: Creates a drag-and-drop menu
-    library(sortable)
-    # ShinyBS tooltips
-    library(shinyBS, quietly = TRUE, warn.conflicts = FALSE)
-
-    # Reactlog (for debugging)
-    library(reactlog)
-    options(shiny.reactlog=TRUE)
-
-    # Tidyverse Packages
-    # library(tidyverse)
-    library(stringr)
-    library(dplyr)
-    library(ggplot2)
-    library(glue)
-    library(DT)
-
-    library(yaml)
     # Load functions in ./R directory ####
     # Get list of files
     # source_files <-
@@ -97,7 +84,7 @@ run_config <-
     # Get list of .css files in www/ directory
     css_files <-
       list.files(
-        path = system.file("css", package = "scExploreR"),
+        path = system.file("css", package = "cellDIVER"),
         pattern = "*.css$",
         full.names = TRUE,
         ignore.case = TRUE
@@ -118,7 +105,7 @@ run_config <-
     # www/applet_js/ directory)
     js_files <-
       list.files(
-        path = system.file("js", package = "scExploreR", mustWork = TRUE),
+        path = system.file("js", package = "cellDIVER", mustWork = TRUE),
         # Use regex to search for files ending in .js (double
         # backslash used to escape '.' character)
         pattern = ".*\\.js",
@@ -136,7 +123,7 @@ run_config <-
           "js", 
           "applet_js", 
           "applet_navbar_wizzard.js", 
-          package = "scExploreR", 
+          package = "cellDIVER", 
           mustWork = TRUE
           )
         )
@@ -179,14 +166,14 @@ run_config <-
       if (tolower(extension) == "rds"){
         object <- readRDS(object_path)
       } else if (tolower(extension) == "h5ad"){
-        # Reticulate should not be loaded unless anndata objects are used
-        # (so users that don't have anndata objects won't need to install it
-        # and set up a Python environment)
-        library(reticulate)
-        library(anndata)
+        # reticulate/anndata are Suggests: users without anndata objects
+        # should not need a Python environment. Fail with an actionable
+        # message rather than a bare "there is no package called 'anndata'".
+        require_python_support("h5ad")
         object <- anndata::read_h5ad(object_path)
       } else if (extension == "h5mu"){
-        py_require("mudata>=0.3.1")
+        require_python_support("h5mu")
+        reticulate::py_require("mudata>=0.3.1")
         
         md <- reticulate::import("mudata", as = "md", convert = TRUE)
         
@@ -221,7 +208,7 @@ run_config <-
     # Printed in config file. Will be used to alert user if they are using a
     # config file that is not compatible with the current version of the main app
     config_version <-
-      packageVersion("scExploreR") |>
+      packageVersion("cellDIVER") |>
       as.character()
 
     # Identify numeric metadata variables
@@ -251,12 +238,12 @@ run_config <-
 
     # Assays, reductions in object
     all_assays <-
-      scExploreR:::assay_names(
+      cellDIVER:::assay_names(
         object
       )
 
     reductions <-
-      scExploreR:::reduction_names(
+      cellDIVER:::reduction_names(
         object
       )
 
@@ -1705,7 +1692,7 @@ run_config <-
 
           # Fetch ADTs in the designated assay (reacts to assay)
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -1727,7 +1714,7 @@ run_config <-
         {
           # Fetch features (surface proteins) for the designated ADT assay
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -1765,7 +1752,7 @@ run_config <-
             #   input$selected_adt
             # )
             paste0(
-              scExploreR:::make_key(
+              cellDIVER:::make_key(
                 object,
                 assay = isolate({ADT_assay()})
                 ),
@@ -1776,7 +1763,7 @@ run_config <-
             # (this is set using a reactiveValues object)
             paste0(
               # Add assay key
-              scExploreR:::make_key(
+              cellDIVER:::make_key(
                 object,
                 assay = isolate({ADT_assay()})
                 ),
@@ -1902,7 +1889,7 @@ run_config <-
           # Reset ADT selection input
           # Get names of all ADTs
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -1971,7 +1958,7 @@ run_config <-
 
           # Update ADT choices to exclude the ADTs currently in the table
           adts <-
-            scExploreR:::features_in_assay(
+            cellDIVER:::features_in_assay(
               object,
               assay = ADT_assay()
               )
@@ -2137,7 +2124,7 @@ run_config <-
               # list of available ADTs, by updating the select input with all
               # ADTs not in the new table
               adts <-
-                scExploreR:::features_in_assay(
+                cellDIVER:::features_in_assay(
                   object,
                   assay = ADT_assay()
                   )

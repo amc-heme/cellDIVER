@@ -1,7 +1,7 @@
 #' ncol_limits
 #'
 #' Determines the min and max settings for the ncol slider for DimPlots, feature
-#' plots, and violin plots based on selections made by the user in scExploreR.
+#' plots, and violin plots based on selections made by the user in cellDIVER.
 #'
 #' @param object A single cell object (any object class supported by SCUBA
 #' may be entered).
@@ -46,7 +46,7 @@ ncol_settings <-
     if (rule == "split_by"){
       # split_by rule: n_panels based on number of split by groups
       n_panels <- 
-        scExploreR:::n_unique(
+        cellDIVER:::n_unique(
           object = object, 
           meta_var = split_by
           )

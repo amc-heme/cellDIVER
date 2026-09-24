@@ -1,0 +1,47 @@
+# Keep the Docker build context tiny. The image installs cellDIVER from GitHub
+# (see Dockerfile), so the context only needs Dockerfile, shiny-server.conf, and
+# docker/. Everything below is excluded so package source / large assets never
+# enter the context.
+
+# Version control & CI
+.git
+.gitignore
+.gitattributes
+.github
+
+# Package source — installed from GitHub inside the image, not from the context
+R
+man
+data
+inst
+tests
+NAMESPACE
+DESCRIPTION
+
+# Docs, vignettes (large PNG/GIF assets), pkgdown output
+docs
+vignettes
+_pkgdown.yml
+*.Rmd
+README.md
+LICENSE
+
+# Planning / scratch
+cellDIVER_docker_plan.md
+config.yaml
+Rplots.pdf
+
+# Posit Connect Cloud deploy app — published by the posit-connect-cloud
+# workflow, not used by this image (which serves docker/shiny-server/ instead).
+connect
+
+# Editor / IDE / OS cruft
+*.Rproj
+.Rproj.user
+.Rhistory
+.RData
+.editorconfig
+.vscode
+opencode.json
+.DS_Store
+**/.DS_Store

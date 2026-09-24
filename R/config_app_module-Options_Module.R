@@ -113,7 +113,7 @@ options_ui <- function(id,
             id = ns("description_help"), 
             title = 
               paste0(
-                "The description entered here will be displayed to end users of your scExploreR deployment. Information entered here will help users understand this assay and how it should be used in the app for analysis. Useful information may include a brief description of the type of data represented by the assay, what the assay biolocially measures or represents, methods involved in data collection, normalization methods applied, etc."
+                "The description entered here will be displayed to end users of your cellDIVER deployment. Information entered here will help users understand this assay and how it should be used in the app for analysis. Useful information may include a brief description of the type of data represented by the assay, what the assay biolocially measures or represents, methods involved in data collection, normalization methods applied, etc."
               ),
             placement = "bottom", 
             trigger = "hover",
@@ -171,7 +171,7 @@ options_ui <- function(id,
             id = ns("description_help"), 
             title = 
               paste0(
-                "The description entered here will be displayed to end users of your scExploreR deployment. Information entered here should help users understand why the reudction is used and how it may be used in the app to undersand the biology."
+                "The description entered here will be displayed to end users of your cellDIVER deployment. Information entered here should help users understand why the reudction is used and how it may be used in the app to undersand the biology."
               ),
             placement = "bottom", 
             trigger = "hover",
@@ -267,7 +267,7 @@ options_ui <- function(id,
           id = ns("description_help"), 
           title = 
             paste0(
-              "The description entered here will be displayed to end users of your scExploreR deployment. Information entered here will help end users understand how this variable should be used for visualization and analysis. This can include information such as the biological significance of this metadata variable, how it was computed, what individual values mean, etc."
+              "The description entered here will be displayed to end users of your cellDIVER deployment. Information entered here will help end users understand how this variable should be used for visualization and analysis. This can include information such as the biological significance of this metadata variable, how it was computed, what individual values mean, etc."
             ),
           placement = "bottom", 
           trigger = "hover",
@@ -887,7 +887,7 @@ options_server <-
               list(
                 `assay` = card_name,
                 `key` =
-                  scExploreR:::make_key(
+                  cellDIVER:::make_key(
                     object,
                     assay = card_name
                   ),

@@ -40,7 +40,7 @@ equivalent of assays, are returned.
 Anndata objects do not have an exclusive structure for modalities/assays.
 Additional modalities are stored in obsm, but this slot is not specific to
 modalities. To use assay_names with Anndata objects, a vector of assays
-(python list) must be stored in \code{object.uns["scExploreR_assays"]}. This method
+(python list) must be stored in \code{object.uns["cellDIVER_assays"]}. This method
 will return an error if this data is not present in the object.
 
 \item \code{assay_names(md._core.mudata.MuData)}: MuData objects

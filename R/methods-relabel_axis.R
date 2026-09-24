@@ -137,7 +137,7 @@ relabel_axis.SingleCellExperiment <-
     
     # SingleCellExperiment objects: search for key in experiments, reductions
     # obj_ref: name of "object" (experiment or reduction) corresponding to key
-    obj_ref <- names(which(all_keys(object) == key))
+    obj_ref <- names(which(SCUBA::all_keys(object) == key))
     
     # Check if key matches exactly one object. If not, return "Other"
     key_type <-

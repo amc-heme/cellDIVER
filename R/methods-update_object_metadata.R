@@ -9,7 +9,7 @@
 #' @param table a modified metadata table.
 #' @param mod For MuData objects, the modality for which to update metadata
 #' can be specified. If NULL (the default), the obs table of the main object 
-#' will be updated. As of v1.0.0, scExploreR only operates on the main obs 
+#' will be updated. As of v1.0.0, cellDIVER only operates on the main obs 
 #' table. In the future, it may make sense to loop through each modality and 
 #' update the obs table individually there.
 #'

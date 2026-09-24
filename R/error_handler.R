@@ -30,13 +30,13 @@ error_handler <-
     # Log full error to the console 
     if (!is.null(err_cnd$call)){
       # Include the function call that resulted in the error if present
-      # (it should always be in scExploreR, but it's possible for it not to be)
+      # (it should always be in cellDIVER, but it's possible for it not to be)
       rlog::log_error(
         paste0(
           "Error in ", deparse(err_cnd$call), " : ", 
           conditionMessage(err_cnd), 
           # Add reactive expression that triggered the error
-          " (from scExploreR reactive expression ", source_reactive, ")"
+          " (from cellDIVER reactive expression ", source_reactive, ")"
           )
         )
     } else {
@@ -50,7 +50,7 @@ error_handler <-
     
     # Define UI for error message notification
     # Check error message text against a list of errors defined in the main
-    # app module in run_scExploreR.R
+    # app module in run_cellDIVER.R
     
     # Error match: conditional that is set to TRUE when an error is found, 
     # signaling the function not to run the code for displaying a generic

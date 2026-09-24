@@ -87,7 +87,7 @@ feature_stats_server <-
                   function(i, summary_by_feature, assay_config){
                     div(
                       tags$b(
-                        scExploreR:::hr_name(
+                        cellDIVER:::hr_name(
                           names(summary_by_feature[i]),
                           assay_config = assay_config, 
                           use_suffix = TRUE
@@ -96,7 +96,7 @@ feature_stats_server <-
                         ),
                       # summary_tags prints summary statistics for each feature
                       # (Min, Q1, median, Q3, Max)
-                      scExploreR:::summary_tags(
+                      cellDIVER:::summary_tags(
                         summary_results = summary_by_feature[[i]],
                         header_class = "feature-stats-stats-header",
                         text_class = "feature-stats-stats-text"

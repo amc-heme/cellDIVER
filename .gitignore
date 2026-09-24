@@ -5,7 +5,7 @@
 FunctionDemo.Rmd
 Code_Editor.Rmd
 D0-D30_Old_Metadata_Script*
-ScExplorer_Log*
+cellDIVER_Log*
 Seurat_Objects*
 *.tsv.gz
 Downloaded_Plots*
@@ -28,3 +28,15 @@ docs
 background_script.R
 execution_scripts.Rmd
 resources/Auto_Dictionary.html
+cellDIVER_docker_plan.md
+# Demo dataset staged next to the browser app by the Dockerfile build step and
+# by the Posit Connect Cloud workflow — not committed, see
+# docker/shiny-server/demo/browser/app.R.
+docker/shiny-server/demo/browser/object.rds
+docker/shiny-server/demo/browser/object-config.yaml
+
+# Generated test reports and package-check output.
+test-results/
+tests/testthat/apps/*/tests/artifacts/
+*.Rcheck/
+cellDIVER_*.tar.gz

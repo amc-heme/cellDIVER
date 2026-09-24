@@ -90,7 +90,7 @@ make_subset.default <-
             glue("((`{entry$var}` >= {entry$value[1]}) & 
                   (`{entry$var}` <= {entry$value[2]}))")
           } else {
-            error("Unknown mode for numeric filter")
+            stop("Unknown mode for numeric filter")
           }
         } else if (entry$type == "advanced"){
           # Advanced (string/code) subsetting: pass value as-is
@@ -135,7 +135,7 @@ make_subset.default <-
       }
     }
     
-    scExploreR:::update_object_metadata(
+    cellDIVER:::update_object_metadata(
       subset,
       table = meta_table
       )

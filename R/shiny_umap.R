@@ -99,7 +99,7 @@ shiny_umap <-
     # Also throw an error when a subset only contains one cell
     validate(
       need(
-        scExploreR:::n_cells(object) != 1,
+        cellDIVER:::n_cells(object) != 1,
         message = "UMAP error: can't plot subsets with only one cell."
       )
     )
@@ -111,13 +111,13 @@ shiny_umap <-
       # object@meta.data[[group_by]] |>
       # unique() |> 
       # length()
-      scExploreR:::n_unique(
+      cellDIVER:::n_unique(
         object,
         meta_var = group_by
         )
     
     plot <- 
-      scExploreR::plot_reduction(
+      cellDIVER::plot_reduction(
         # "object" is either the object or the subset, depending on user
         # selections in parent modules
         object = object,

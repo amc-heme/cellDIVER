@@ -1,0 +1,127 @@
+name: PR test results
+
+# Runs trusted default-branch code after the read-only test workflow, including
+# for forks. Never check out PR code or download/execute a PR-produced artifact.
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+concurrency:
+  # Forks commonly reuse branch names; they must not cancel each other's report.
+  group: >-
+    ${{ format('test-results-{0}-{1}',
+        github.event.workflow_run.head_repository.id,
+        github.event.workflow_run.head_branch) }}
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update the PR test report
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const repository = context.repo;
+            const marker = '<!-- celldiver-test-results -->';
+
+            // GitHub may omit pull_requests for fork-triggered workflow runs.
+            // Resolve PRs through the API, never through an untrusted artifact.
+            let pullRequests = run.pull_requests || [];
+            if (pullRequests.length === 0) {
+              pullRequests = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                { ...repository, commit_sha: run.head_sha, per_page: 100 }
+              );
+            }
+
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRunAttempt,
+              {
+                ...repository, run_id: run.id,
+                attempt_number: run.run_attempt, per_page: 100
+              }
+            );
+            const testJob = jobs.find(job => job.name === 'cellDIVER tests');
+            const testStep = testJob?.steps?.find(
+              step => step.name === 'Run all tests'
+            );
+            const checkStep = testJob?.steps?.find(
+              step => step.name === 'Build package'
+            );
+            // Only fixed labels and GitHub's status metadata enter the comment,
+            // not test output, branch names, PR titles, or artifact contents.
+            const statuses = new Set([
+              'success', 'failure', 'cancelled', 'skipped', 'timed_out',
+              'action_required', 'neutral', 'stale', 'startup_failure'
+            ]);
+            const status = value => statuses.has(value) ? value : 'not run';
+            const runUrl = `${context.serverUrl}/${repository.owner}/` +
+              `${repository.repo}/actions/runs/${run.id}`;
+            const body = [
+              marker,
+              '## cellDIVER test results',
+              '',
+              `Overall result: **${status(run.conclusion)}**`,
+              '',
+              '| Check | Result |',
+              '| --- | --- |',
+              `| All unit, module and browser tests | ` +
+                `${status(testStep?.conclusion)} |`,
+              `| Package build | ${status(checkStep?.conclusion)} |`,
+              '',
+              `[Counts, logs and downloadable JUnit/diagnostics](${runUrl})`,
+              '',
+              'The required merge check is **cellDIVER tests**. ' +
+                'This comment does not control merge eligibility.',
+              `<!-- run:${run.id} attempt:${run.run_attempt} -->`
+            ].join('\n');
+
+            for (const candidate of pullRequests) {
+              const { data: pullRequest } = await github.rest.pulls.get({
+                ...repository, pull_number: candidate.number
+              });
+              // Do not report an old commit's result over a newer PR revision.
+              if (pullRequest.state !== 'open' ||
+                  pullRequest.base.repo.full_name !==
+                    `${repository.owner}/${repository.repo}` ||
+                  pullRequest.head.sha !== run.head_sha) continue;
+
+              const comments = await github.paginate(
+                github.rest.issues.listComments,
+                { ...repository, issue_number: candidate.number, per_page: 100 }
+              );
+              const previous = comments.find(comment =>
+                comment.user?.login === 'github-actions[bot]' &&
+                comment.body?.startsWith(marker)
+              );
+              // A delayed completion from an older run/retry must not replace
+              // the report for a newer run of the same commit.
+              const version = previous?.body?.match(
+                /<!-- run:(\d+) attempt:(\d+) -->/
+              );
+              if (version && (
+                Number(version[1]) > run.id ||
+                (Number(version[1]) === run.id &&
+                 Number(version[2]) > run.run_attempt)
+              )) continue;
+
+              if (previous) {
+                await github.rest.issues.updateComment({
+                  ...repository, comment_id: previous.id, body
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  ...repository, issue_number: candidate.number, body
+                });
+              }
+            }
