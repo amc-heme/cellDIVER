@@ -1,0 +1,272 @@
+name: Continuous documentation pilot
+
+# Deliberately manual. Add schedules or path triggers only after a successful
+# reviewed pilot; all support files and capture hooks must first reach main.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: continuous-documentation-pilot
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  revision:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+    steps:
+      - name: Freeze the main revision selected by this dispatch
+        id: revision
+        run: |
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "Tested main revision: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  capture:
+    needs: revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TESTED_SHA: ${{ needs.revision.outputs.sha }}
+      NOT_CRAN: "true"
+      CHROMOTE_CHROME: /usr/bin/google-chrome
+      TZ: UTC
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      CELLDIVER_DOCS_EVIDENCE: ${{ runner.temp }}/documentation-evidence
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+          persist-credentials: false
+      - name: Test the constrained documentation adapter
+        run: |
+          mkdir -p test-results/pilot
+          node --test .github/continuous-documentation/pilot.test.mjs \
+            2>&1 | tee test-results/pilot/adapter-tests.log
+      - uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          extra-packages: |
+            any::devtools
+            any::xml2
+            any::pkgdown
+            any::prettydoc
+            any::sass
+            local::.
+          needs: website
+      - name: Build and install the exact captured commit
+        run: |
+          mkdir -p test-results/pilot "$CELLDIVER_DOCS_EVIDENCE"
+          test "$(git rev-parse HEAD)" = "$TESTED_SHA"
+          "$CHROMOTE_CHROME" --version
+          R CMD build . --no-build-vignettes --no-manual \
+            2>&1 | tee test-results/pilot/build.log
+          R CMD INSTALL cellDIVER_*.tar.gz \
+            2>&1 | tee test-results/pilot/install.log
+      - name: Full tests, R CMD check, and baseline pkgdown
+        run: |
+          Rscript .github/continuous-documentation/validate.R \
+            2>&1 | tee test-results/pilot/validation.log
+          node .github/continuous-documentation/pilot.mjs \
+            capture "$CELLDIVER_DOCS_EVIDENCE"
+      - name: Collect before artifacts and diagnostics
+        if: always()
+        run: |
+          mkdir -p test-results/before/{evidence,articles,site,results}
+          cp vignettes/dataset_setup_walkthrough.Rmd \
+            vignettes/scRNA_Plots_Explained.Rmd test-results/before/articles/
+          if test -d "$CELLDIVER_DOCS_EVIDENCE"; then
+            cp -R "$CELLDIVER_DOCS_EVIDENCE/." test-results/before/evidence/
+          fi
+          if test -d docs; then cp -R docs/. test-results/before/site/; fi
+          if test -d test-results/pilot; then
+            cp -R test-results/pilot/. test-results/before/results/
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: documentation-before
+          path: test-results/before/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: documentation-browser-diagnostics
+          path: tests/testthat/apps/**/tests/artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
+  propose:
+    needs: [revision, capture]
+    # Administrators must restrict this environment to main and require review.
+    environment: continuous-documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      TESTED_SHA: ${{ needs.revision.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: documentation-before
+          path: test-results/before
+      - name: Install pinned Copilot CLI and SDK without model credentials
+        run: |
+          npm install --global --ignore-scripts @github/copilot@1.0.88
+          copilot --no-auto-update --version
+          npm ci --prefix .github/continuous-documentation \
+            --omit=optional --ignore-scripts --no-audit --no-fund
+      - name: Review screenshots and request constrained prose
+        env:
+          # Fine-grained PAT: Copilot Requests only; no repository permissions.
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_DOCUMENTATION_TOKEN }}
+          ASTRA_MODEL_ID: ${{ vars.CONTINUOUS_DOCUMENTATION_ASTRA_MODEL }}
+        run: node .github/continuous-documentation/model.mjs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: documentation-proposal
+          path: test-results/model/
+          if-no-files-found: error
+          retention-days: 14
+
+  validate:
+    needs: [revision, capture, propose]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TESTED_SHA: ${{ needs.revision.outputs.sha }}
+      NOT_CRAN: "true"
+      CHROMOTE_CHROME: /usr/bin/google-chrome
+      TZ: UTC
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: documentation-before
+          path: test-results/before
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: documentation-proposal
+          path: test-results/model
+      - name: Apply only schema-checked prose and trusted images
+        run: |
+          node .github/continuous-documentation/pilot.mjs apply \
+            test-results/before/evidence test-results/model/proposal.json
+          git diff -- vignettes > test-results/pilot/proposed.diff
+      - uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+      - uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          extra-packages: |
+            any::devtools
+            any::xml2
+            any::pkgdown
+            any::prettydoc
+            any::sass
+            local::.
+          needs: website
+      - name: Build and install the constrained documentation revision
+        run: |
+          R CMD build . --no-build-vignettes --no-manual \
+            2>&1 | tee test-results/pilot/build.log
+          R CMD INSTALL cellDIVER_*.tar.gz \
+            2>&1 | tee test-results/pilot/install.log
+      - name: Repeat full tests, R CMD check, and pkgdown on proposed docs
+        run: |
+          Rscript .github/continuous-documentation/validate.R \
+            2>&1 | tee test-results/pilot/validation.log
+          node .github/continuous-documentation/pilot.mjs verify
+      - name: Collect after artifacts
+        if: always()
+        run: |
+          mkdir -p test-results/after/{articles,site,results}
+          cp vignettes/dataset_setup_walkthrough.Rmd \
+            vignettes/scRNA_Plots_Explained.Rmd test-results/after/articles/
+          if test -d vignettes/continuous-documentation; then
+            cp -R vignettes/continuous-documentation test-results/after/articles/
+          fi
+          if test -d docs; then cp -R docs/. test-results/after/site/; fi
+          if test -d test-results/pilot; then
+            cp -R test-results/pilot/. test-results/after/results/
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: documentation-after
+          path: test-results/after/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: documentation-validated-files
+          path: test-results/pilot/validated-files.json
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [revision, capture, propose, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      TESTED_SHA: ${{ needs.revision.outputs.sha }}
+    steps:
+      # This job executes only trusted scripts from the captured main revision.
+      # No R, builds, tests, model calls, or proposed-code execution is permitted.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.revision.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: documentation-before
+          path: test-results/before
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: documentation-proposal
+          path: test-results/model
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: documentation-validated-files
+          path: test-results/validated
+      - name: Reconstruct validated data and open a draft docs-only PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node .github/continuous-documentation/pilot.mjs publish \
+            test-results/before/evidence test-results/model/proposal.json

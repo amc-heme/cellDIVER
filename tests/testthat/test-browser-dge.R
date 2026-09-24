@@ -7,6 +7,16 @@ test_that("browser marker identification retains numeric DGE regression", {
   )
   browser_click(app, "object_dge-submit")
   browser_expect_dge(app, browser_object(), "condensed_cell_type")
+  browser_documentation(
+    app, "dge",
+    paste(
+      "Open DGE, keep the marker-identification grouping",
+      "condensed_cell_type, and submit the analysis.",
+      "Results match an independent scDE computation on the bundled dataset;",
+      "cell counts and the UMAP also pass existing assertions.",
+      "DGE instructions are validation context, outside the pilot edits."
+    )
+  )
 })
 
 test_that("browser pairwise DGE compares independently selected metaclusters", {

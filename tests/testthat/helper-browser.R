@@ -99,6 +99,90 @@ browser_artifacts <- function(app, directory) {
   invisible(NULL)
 }
 
+#' Capture an opt-in documentation milestone
+#'
+#' Normal test runs do not write documentation evidence. The documentation
+#' workflow enables capture explicitly and only proposes changes if the entire
+#' suite passes. Unlike diagnostic cleanup, a failed capture must fail that run.
+#'
+#' @param app Running browser driver at a verified scenario milestone.
+#' @param name Stable milestone name used for evidence filenames.
+#' @param description Description of the actions and state verified by the test.
+#' @return No return value; optionally writes a screenshot, observations and logs.
+browser_documentation <- function(app, name, description) {
+  directory <- Sys.getenv("CELLDIVER_DOCS_EVIDENCE")
+  if (!nzchar(directory)) return(invisible(NULL))
+  if (!name %in% c("config", "dimplot", "featureplot", "subset", "dge")) {
+    stop("Unknown documentation milestone: ", name)
+  }
+  dir.create(directory, recursive = TRUE, showWarnings = FALSE)
+  directory <- normalizePath(directory, mustWork = TRUE)
+  app$wait_for_idle()
+  app$wait_for_js("document.fonts.status === 'loaded'")
+  # Remove timing-dependent transitions, not data or plot content. Each capture
+  # uses the driver's fixed viewport and seed.
+  app$run_js(paste0(
+    "(() => { const style = document.createElement('style');",
+    " style.textContent = '* { animation: none !important;",
+    " transition: none !important; }';",
+    " document.head.appendChild(style); window.scrollTo(0, 0); })()"
+  ))
+  plot_output <- switch(
+    name,
+    config = "preview_dimplot",
+    dimplot = "object_plots-dimplot-plot",
+    featureplot = "object_plots-feature-plot",
+    subset = "object_plots-dimplot-plot",
+    dge = "object_dge-umap"
+  )
+  selector <- jsonlite::toJSON(paste0("#", plot_output, " img"),
+                             auto_unbox = TRUE)
+  # Plot panels scroll independently of the window. In particular, FeaturePlot
+  # appears below DimPlot; moving only the window would capture the wrong plot.
+  app$run_js(sprintf(
+    paste0(
+      "document.querySelector(%s).scrollIntoView(",
+      "{block: 'center', inline: 'nearest', behavior: 'instant'});"
+    ),
+    selector
+  ))
+  app$wait_for_js(sprintf(
+    paste0(
+      "(() => { const image = document.querySelector(%s);",
+      " const bounds = image.getBoundingClientRect();",
+      " return image.complete && image.naturalWidth > 20 &&",
+      " bounds.width > 20 && bounds.height > 20 &&",
+      " bounds.top >= 0 && bounds.left >= 0 &&",
+      " bounds.bottom <= window.innerHeight &&",
+      " bounds.right <= window.innerWidth; })()"
+    ),
+    selector
+  ))
+  screenshot <- paste0(name, ".png")
+  unlink(file.path(directory, screenshot))
+  app$get_screenshot(
+    file = file.path(directory, screenshot), delay = 0, selector = "viewport"
+  )
+  if (!isTRUE(file.info(file.path(directory, screenshot))$size > 0)) {
+    stop("Documentation screenshot is missing or empty: ", name)
+  }
+  jsonlite::write_json(
+    list(
+      name = name,
+      description = description,
+      text = app$get_js("document.body.innerText"),
+      screenshot = screenshot
+    ),
+    file.path(directory, paste0(name, ".json")),
+    auto_unbox = TRUE, pretty = TRUE
+  )
+  utils::write.csv(
+    app$get_logs(), file.path(directory, paste0(name, "-logs.csv")),
+    row.names = FALSE
+  )
+  invisible(NULL)
+}
+
 #' Save diagnostics and stop a browser exactly once
 #'
 #' @param app Driver returned by `browser_app()`.
