@@ -126,11 +126,8 @@ jobs:
 
           options(timeout = 600)
           devtools::install_github(
-            sprintf(
-              "%s@%s",
-              Sys.getenv("CELLDIVER_GITHUB_REPOSITORY"),
-              Sys.getenv("CELLDIVER_GITHUB_SHA")
-            ),
+            repo = Sys.getenv("CELLDIVER_GITHUB_REPOSITORY"),
+            ref = Sys.getenv("CELLDIVER_GITHUB_SHA"),
             auth_token = github_token,
             dependencies = c("Depends", "Imports", "LinkingTo"),
             upgrade = "never"
