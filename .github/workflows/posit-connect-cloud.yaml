@@ -119,7 +119,7 @@ jobs:
           }
 
           options(timeout = 600)
-          remotes::install_github(
+          devtools::install_github(
             sprintf(
               "amc-heme/cellDIVER@%s",
               Sys.getenv("CELLDIVER_GITHUB_SHA")

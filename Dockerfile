@@ -43,15 +43,15 @@ RUN apt-get update \
 # package dependency graph does not.
 COPY DESCRIPTION /tmp/cellDIVER/DESCRIPTION
 
-# Installer tooling: BiocManager resolves Bioconductor repos, remotes installs
-# the DESCRIPTION dependency graph (including GitHub Remotes).
-RUN R -e "install.packages(c('BiocManager', 'remotes')); if (!all(vapply(c('BiocManager', 'remotes'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
+# Installer tooling: shiny-verse already carries BiocManager/devtools; verify
+# they are present before using them to resolve the dependency graph.
+RUN R -e "if (!all(vapply(c('BiocManager', 'devtools'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
 
 # Install cellDIVER's hard dependency tree once into the shared base image.
-RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); remotes::install_deps('/tmp/cellDIVER', dependencies = c('Depends', 'Imports', 'LinkingTo'), upgrade = 'never'); if (!all(vapply(c('SCUBA', 'scDE', 'Seurat', 'SingleCellExperiment', 'HDF5Array'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
+RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); devtools::install_deps('/tmp/cellDIVER', dependencies = c('Depends', 'Imports', 'LinkingTo'), upgrade = 'never'); if (!all(vapply(c('SCUBA', 'scDE', 'Seurat', 'SingleCellExperiment', 'HDF5Array'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
 
 # BPCells (not on CRAN/Bioconductor) for Seurat v5 objects with BPCells assays.
-RUN R -e "options(timeout = 600); install.packages('BPCells', repos = c('https://bnprks.r-universe.dev', getOption('repos'))); if (!library(BPCells, logical.return = TRUE)) quit(status = 10)"
+RUN R -e "options(timeout = 600); options(repos = c(CRAN = 'https://cloud.r-project.org')); install.packages('BPCells', repos = c('https://bnprks.r-universe.dev', getOption('repos'))); if (!library(BPCells, logical.return = TRUE)) quit(status = 10)"
 
 FROM runtime-base AS ci-base
 
@@ -70,9 +70,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Suggests covers the test stack declared by the package; devtools and rsconnect
-# are workflow tools used to run tests/builds and deploy to Connect Cloud.
-RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); remotes::install_deps('/tmp/cellDIVER', dependencies = 'Suggests', upgrade = 'never'); install.packages(c('devtools', 'rsconnect')); if (!all(vapply(c('devtools', 'rsconnect', 'shinytest2', 'testthat', 'withr', 'jsonlite'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
+# Suggests covers the test stack declared by the package; rsconnect is the extra
+# workflow tool used to publish to Connect Cloud.
+RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); devtools::install_deps('/tmp/cellDIVER', dependencies = 'Suggests', upgrade = 'never'); install.packages('rsconnect', repos = c(CRAN = 'https://cloud.r-project.org')); if (!all(vapply(c('devtools', 'rsconnect', 'shinytest2', 'testthat', 'withr', 'jsonlite'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
 
 ENV CHROMOTE_CHROME=/usr/bin/google-chrome \
     HOME=/home/github \
