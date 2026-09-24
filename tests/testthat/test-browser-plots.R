@@ -100,7 +100,8 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
           "Open Plots in the main browser and enable FeaturePlot.",
           "Select the RNA feature rna_CD34 (CD34) in the feature picker.",
           "The FeaturePlot has rendered and its export contains CD34",
-          "and actual plot geometry. DimPlot remains enabled."
+          "and actual plot geometry. DimPlot remains enabled;",
+          "scroll below it to see the FeaturePlot."
         )
       )
     }

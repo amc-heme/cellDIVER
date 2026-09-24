@@ -78,14 +78,15 @@ export function validateProposal(proposal) {
 }
 
 /**
- * Encode every character as an HTML numeric entity inside a fixed paragraph.
- * Pandoc cannot interpret model text as R chunks, raw HTML, links, or images.
+ * Preserve readable letters, numbers, and spaces; encode syntax and controls.
+ * Knitr/Pandoc cannot interpret the prose as chunks, HTML, links, or images.
  * @param {string} value Untrusted prose.
  * @returns {string} Safe literal HTML paragraph.
  */
 export function paragraph(value) {
   return `<p>${[...value].map(character =>
-    `&#${character.codePointAt(0)};`).join('')}</p>`;
+    /[\p{L}\p{N} ]/u.test(character) ? character :
+      `&#${character.codePointAt(0)};`).join('')}</p>`;
 }
 
 /**
@@ -127,7 +128,7 @@ export function apply(directory, proposalFile) {
   const proposal = validateProposal(JSON.parse(read(proposalFile)));
   const outputs = {};
   for (const [section, filename] of Object.entries(documents)) {
-    const images = section === 'config' ? ['config'] : names.slice(1);
+    const images = section === 'config' ? ['config'] : ['dimplot', 'featureplot'];
     const original = read(filename).toString();
     const rendered = render(original, proposal[section], images);
     if (!proposal[section].length) continue;
@@ -145,13 +146,44 @@ export function apply(directory, proposalFile) {
 }
 
 /**
+ * Link only snapshots present at the base or proposed commit.
+ * @param {string} repository GitHub owner/repository.
+ * @param {string} base Tested base commit.
+ * @param {string} head Proposed commit.
+ * @param {object} outputs Validated proposed files.
+ * @param {string[]} beforeImages Snapshot paths present before applying prose.
+ * @returns {string} Reviewer-facing before/after screenshot table.
+ */
+export function screenshotTable(repository, base, head, outputs, beforeImages) {
+  const rows = [
+    '| View | Before | After |',
+    '| --- | --- | --- |',
+  ];
+  for (const name of ['config', 'dimplot', 'featureplot']) {
+    const filename = `vignettes/continuous-documentation/${name}.png`;
+    const link = (revision, label) =>
+      `[${label}](https://github.com/${repository}/blob/${revision}/${filename})`;
+    const existed = beforeImages.includes(filename);
+    const before = existed ? link(base, 'Prior snapshot') :
+      outputs[filename] ? 'New image / no prior pilot snapshot' :
+        'No prior pilot snapshot';
+    const after = outputs[filename] || existed ?
+      link(head, 'New commit snapshot') :
+      'Not added for this unchanged section; see capture artifact';
+    rows.push(`| ${name} | ${before} | ${after} |`);
+  }
+  return rows.join('\n');
+}
+
+/**
  * Publish validated data via GitHub's Git database API, without a shell or build.
  * The commit's sole parent is the tested main SHA, never a newly resolved main.
  * @param {object} outputs Allowed paths and expected hashes.
  * @param {object} proposal Validated model response, for reviewer limitations.
+ * @param {string[]} beforeImages Snapshot paths present on the tested base.
  * @returns {Promise<void>} Resolves when a draft PR exists or no change is needed.
  */
-async function publish(outputs, proposal) {
+async function publish(outputs, proposal, beforeImages) {
   if (!Object.keys(outputs).length) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
       'No documentation changes were proposed; no branch or PR created.\n');
@@ -210,6 +242,12 @@ async function publish(outputs, proposal) {
     head: branch, base: 'main', draft: true,
     body: [
       `Tested base: \`${base}\`. [Evidence and validation artifacts](${run}).`,
+      `**Before:** [\`documentation-before\` artifact](${run}#artifacts) — ` +
+        'original articles/rendered documentation and tested UI captures.',
+      `**After:** [\`documentation-after\` artifact](${run}#artifacts) — ` +
+        'revised articles/rendered documentation and proposed snapshots.',
+      '## Before/after screenshots',
+      screenshotTable(repository, base, next.sha, outputs, beforeImages),
       'Draft only; human review and normal merge protection remain required.',
       'Both base and proposal passed the full suite without skips, R CMD check',
       'and pkgdown rendering. Only managed prose and captured images changed.',
@@ -238,6 +276,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const manifest = {
       tested_sha: process.env.TESTED_SHA,
       viewport: { width: 1440, height: 1000 }, seed: 325,
+      timezone: process.env.TZ,
+      locale: process.env.LC_ALL,
       node: process.version,
       chrome: execFileSync(process.env.CHROMOTE_CHROME, ['--version'],
         { encoding: 'utf8' }).trim(),
@@ -250,6 +290,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const manifest = JSON.parse(read(path.join(directory, 'manifest.json')));
     assert.equal(manifest.tested_sha, process.env.TESTED_SHA);
     assert.deepEqual(evidence(directory).hashes, manifest.hashes);
+    const beforeImages = ['config', 'dimplot', 'featureplot']
+      .map(name => `vignettes/continuous-documentation/${name}.png`)
+      .filter(filename => fs.existsSync(filename));
     const outputs = apply(directory, proposalFile);
     if (command === 'apply') {
       fs.mkdirSync('test-results/pilot', { recursive: true });
@@ -258,7 +301,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     } else {
       assert.deepEqual(outputs,
         JSON.parse(read('test-results/validated/validated-files.json')));
-      await publish(outputs, validateProposal(JSON.parse(read(proposalFile))));
+      await publish(
+        outputs, validateProposal(JSON.parse(read(proposalFile))), beforeImages);
     }
   } else {
     throw new Error('Expected capture, apply, verify, or publish');

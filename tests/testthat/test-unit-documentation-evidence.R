@@ -20,10 +20,13 @@ test_that("documentation capture preserves evidence and fails on missing images"
   app <- list(
     wait_for_idle = function() NULL,
     wait_for_js = function(expression) {
-      expect_identical(expression, "document.fonts.status === 'loaded'")
+      expect_match(
+        expression,
+        "document.fonts.status|bounds.bottom <= window.innerHeight"
+      )
     },
     run_js = function(expression) {
-      expect_match(expression, "window.scrollTo(0, 0)", fixed = TRUE)
+      expect_match(expression, "window.scrollTo|scrollIntoView")
     },
     get_screenshot = function(file, delay, selector) {
       expect_identical(delay, 0)

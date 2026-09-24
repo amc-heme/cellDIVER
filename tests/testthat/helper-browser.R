@@ -120,12 +120,43 @@ browser_documentation <- function(app, name, description) {
   app$wait_for_idle()
   app$wait_for_js("document.fonts.status === 'loaded'")
   # Remove timing-dependent transitions, not data or plot content. Each capture
-  # uses the driver's fixed viewport and seed and starts at the top of the page.
+  # uses the driver's fixed viewport and seed.
   app$run_js(paste0(
     "(() => { const style = document.createElement('style');",
     " style.textContent = '* { animation: none !important;",
     " transition: none !important; }';",
     " document.head.appendChild(style); window.scrollTo(0, 0); })()"
+  ))
+  plot_output <- switch(
+    name,
+    config = "preview_dimplot",
+    dimplot = "object_plots-dimplot-plot",
+    featureplot = "object_plots-feature-plot",
+    subset = "object_plots-dimplot-plot",
+    dge = "object_dge-umap"
+  )
+  selector <- jsonlite::toJSON(paste0("#", plot_output, " img"),
+                             auto_unbox = TRUE)
+  # Plot panels scroll independently of the window. In particular, FeaturePlot
+  # appears below DimPlot; moving only the window would capture the wrong plot.
+  app$run_js(sprintf(
+    paste0(
+      "document.querySelector(%s).scrollIntoView(",
+      "{block: 'center', inline: 'nearest', behavior: 'instant'});"
+    ),
+    selector
+  ))
+  app$wait_for_js(sprintf(
+    paste0(
+      "(() => { const image = document.querySelector(%s);",
+      " const bounds = image.getBoundingClientRect();",
+      " return image.complete && image.naturalWidth > 20 &&",
+      " bounds.width > 20 && bounds.height > 20 &&",
+      " bounds.top >= 0 && bounds.left >= 0 &&",
+      " bounds.bottom <= window.innerHeight &&",
+      " bounds.right <= window.innerWidth; })()"
+    ),
+    selector
   ))
   screenshot <- paste0(name, ".png")
   unlink(file.path(directory, screenshot))

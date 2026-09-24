@@ -13,7 +13,10 @@ guidance supported by this tested UI. Each array is the complete desired content
 of its article's managed documentation-pilot section, not a patch to other prose.
 Keep correct existing prose and any correct managed section unchanged: return an
 empty array for an article that needs no update. Never duplicate correct existing
-guidance solely to produce a change. Plain text only, no markup, links, code,
+guidance solely to produce a change. Decode numeric HTML entities when reviewing
+the managed section's existing prose. Do not rephrase accurate managed prose or
+change wording merely for style; return an empty array when it remains accurate.
+Plain text only, no markup, links, code,
 filenames, or executable instructions. Use at most 12 single-line paragraphs
 of at most 2000 characters per array.
 

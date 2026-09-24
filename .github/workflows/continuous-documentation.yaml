@@ -39,6 +39,9 @@ jobs:
       TESTED_SHA: ${{ needs.revision.outputs.sha }}
       NOT_CRAN: "true"
       CHROMOTE_CHROME: /usr/bin/google-chrome
+      TZ: UTC
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
       CELLDIVER_DOCS_EVIDENCE: ${{ runner.temp }}/documentation-evidence
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -129,10 +132,12 @@ jobs:
         with:
           name: documentation-before
           path: test-results/before
-      - name: Install pinned GitHub Copilot CLI without model credentials
+      - name: Install pinned Copilot CLI and SDK without model credentials
         run: |
           npm install --global --ignore-scripts @github/copilot@1.0.88
           copilot --no-auto-update --version
+          npm ci --prefix .github/continuous-documentation \
+            --omit=optional --ignore-scripts --no-audit --no-fund
       - name: Review screenshots and request constrained prose
         env:
           # Fine-grained PAT: Copilot Requests only; no repository permissions.
@@ -155,6 +160,9 @@ jobs:
       TESTED_SHA: ${{ needs.revision.outputs.sha }}
       NOT_CRAN: "true"
       CHROMOTE_CHROME: /usr/bin/google-chrome
+      TZ: UTC
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

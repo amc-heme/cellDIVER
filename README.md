@@ -194,15 +194,24 @@ manual generation, and vignette checks; the full test suite and pkgdown article
 rendering are separate mandatory gates. Warnings and notes remain in the logs
 for review. Five assertion-backed screenshots cover configuration, DimPlot,
 FeaturePlot, subsetting, and DGE at 1440×1000 with seed 325.
+Capture and validation use UTC and the `en_US.UTF-8` locale.
 
 The model receives observations, the existing articles, and actual screenshots.
-The pinned CLI's native SDK `models.list` checks account capabilities, and its
-documented `--attachment` option supplies all five PNGs with tools disabled.
-The adapter rejects unsupported catalogue or response-audit formats.
+The pinned GitHub Copilot SDK (1.0.14) uses `listModels()` to check account
+capabilities and supplies all five PNGs as native image attachments through
+`sendAndWait()`, using CLI 1.0.88. SDK empty mode disables ambient tools and
+configuration; permission requests are denied. Typed inference events check the
+actual model, not the CLI's presentation-oriented output. Unsupported catalogue
+or event formats fail closed. Attachment delivery is not machine proof that the
+model understood every image; human review is still essential. Session warnings,
+failed model calls, and image-related runtime warning/error logs reject the
+proposal, including cases where the runtime retries without images.
 It can propose only bounded JSON plain-text paragraphs for managed sections in
 `vignettes/dataset_setup_walkthrough.Rmd` and
 `vignettes/scRNA_Plots_Explained.Rmd`. Trusted code escapes the prose and copies
-only captured images; generated R chunks, arbitrary files, remote images, README
+only configuration, DimPlot, and FeaturePlot captures into the articles.
+Subset and DGE evidence stays in review context and artifacts, not article images.
+Generated R chunks, arbitrary files, remote images, README
 changes, and model-written executable documentation are not accepted. Correct
 existing prose is preserved, and an empty proposal creates no branch or PR.
 Unverified behavior is listed in the draft PR for human review.
@@ -211,7 +220,10 @@ A fresh, read-only validation job repeats the full tests, check, and pkgdown
 build after applying the proposal. It has no model credentials. Publishing
 reconstructs and hash-verifies that exact validated change against the captured
 SHA; it never executes proposed code and creates only a **draft**, never an
-auto-merged PR. The model job has no repository write token. GitHub normally
+auto-merged PR. The model job has no repository write token.
+The draft labels before/after artifacts and links screenshots at the exact base
+and proposed commits, explicitly noting missing prior snapshots.
+GitHub normally
 does **not** run `pull_request` workflows for PRs created with `GITHUB_TOKEN`;
 the explicit validation is mandatory, and a maintainer must arrange the normal
 required PR checks before merging. Do not bypass branch protection.

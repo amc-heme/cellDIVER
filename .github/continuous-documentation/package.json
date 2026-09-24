@@ -1,0 +1,8 @@
+{
+  "name": "celldiver-continuous-documentation-pilot",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@github/copilot-sdk": "1.0.14"
+  }
+}

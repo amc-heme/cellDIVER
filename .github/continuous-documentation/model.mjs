@@ -1,21 +1,21 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
   documents, evidence, names, read, validateProposal,
 } from './pilot.mjs';
 
 /**
- * Reject aliases, automatic routing, and other models before any inference.
+ * Select only the explicitly enabled, vision-capable Astra catalogue entry.
  * @param {object[]} models Account-specific Copilot model catalogue.
  * @param {string} requested Explicit requested model identifier.
- * @returns {object} The enabled vision-capable Astra catalogue entry.
+ * @returns {object} The enabled Astra catalogue entry.
  */
 export function selectModel(models, requested) {
   assert.equal(requested, 'gpt-6-astra',
-    'Only the explicit gpt-6-astra ID is approved; no model fallback is allowed');
+    'Only gpt-6-astra is approved; no model fallback is allowed');
   const model = models.find(candidate => candidate.id === requested);
   assert(model, 'GitHub Copilot account does not offer gpt-6-astra');
   assert(!model.policy || model.policy.state === 'enabled',
@@ -34,200 +34,156 @@ export function selectModel(models, requested) {
 }
 
 /**
- * Query the CLI's native SDK JSON-RPC transport without an SDK dependency.
- * Official protocol: github/copilot-sdk nodejs/src/client.ts (models.list).
- * No session or inference request is created by this capability probe.
- * @param {object} environment Isolated CLI environment.
- * @param {string} workingDirectory Empty, trusted working directory.
- * @returns {Promise<object[]>} Account-specific available models.
- */
-function listModels(environment, workingDirectory) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('copilot', [
-      '--headless', '--stdio', '--no-auto-update',
-      '--no-custom-instructions', '--disable-builtin-mcps',
-      '--log-level', 'none',
-    ], { env: environment, cwd: workingDirectory });
-    let buffered = Buffer.alloc(0);
-    let finished = false;
-    const finish = (error, result) => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      child.kill('SIGTERM');
-      if (error) reject(error);
-      else resolve(result);
-    };
-    const timer = setTimeout(() => finish(
-      new Error('GitHub Copilot model discovery timed out')), 90_000);
-    child.on('error', error => finish(error));
-    child.on('exit', () => finish(
-      new Error('GitHub Copilot model discovery exited without a catalogue')));
-    child.stderr.on('data', data => {
-      fs.appendFileSync('test-results/model/discovery.log', data);
-    });
-    child.stdout.on('data', data => {
-      try {
-        buffered = Buffer.concat([buffered, data]);
-        assert(buffered.length <= 20_000_000, 'Oversized CLI RPC response');
-        while (true) {
-          const boundary = buffered.indexOf('\r\n\r\n');
-          if (boundary < 0) break;
-          const header = buffered.subarray(0, boundary).toString();
-          const match = /^Content-Length: (\d+)$/im.exec(header);
-          assert(match, 'Unsupported CLI SDK framing');
-          const size = Number(match[1]);
-          assert(size <= 20_000_000);
-          if (buffered.length < boundary + 4 + size) break;
-          const message = JSON.parse(buffered.subarray(
-            boundary + 4, boundary + 4 + size).toString());
-          buffered = buffered.subarray(boundary + 4 + size);
-          if (message.id !== 1) continue;
-          assert(!message.error,
-            'Copilot model discovery failed; check Copilot Requests entitlement');
-          assert(Array.isArray(message.result?.models),
-            'Unsupported Copilot model catalogue schema');
-          finish(null, message.result.models);
-        }
-      } catch (error) {
-        finish(error);
-      }
-    });
-    const request = JSON.stringify({
-      jsonrpc: '2.0', id: 1, method: 'models.list', params: {},
-    });
-    child.stdin.on('error', error => finish(error));
-    child.stdin.write(
-      `Content-Length: ${Buffer.byteLength(request)}\r\n\r\n${request}`);
-  });
-}
-
-/**
- * Check the CLI's structured audit stream before accepting any model output.
- * Unsupported event formats fail closed rather than relying on self-report.
- * @param {object[]} events Copilot JSONL session events.
+ * Audit typed SDK events, not the CLI's unspecified JSONL presentation format.
+ * This checks model accounting, not whether the model understood every pixel.
+ * @param {object[]} events Copilot SDK session events.
  * @param {string} model Exact approved model ID.
  * @returns {object} Schema-validated prose proposal.
  */
 export function auditResponse(events, model) {
-  const shutdown = events.find(event => event.type === 'session.shutdown');
-  assert(shutdown, 'Missing Copilot shutdown audit event');
-  assert.equal(shutdown.data.shutdownType, 'routine',
-    'Copilot did not complete normally');
-  assert.deepEqual(Object.keys(shutdown.data.modelMetrics), [model],
-    'Copilot used an unexpected model; refusing its output');
-  assert.deepEqual(shutdown.data.codeChanges.filesModified, [],
-    'Copilot modified files despite the read-only contract');
+  assert(events.some(event => event.type === 'session.idle'),
+    'Copilot did not complete the review');
+  const usages = events.filter(event => event.type === 'assistant.usage');
+  assert(usages.length > 0, 'Missing Copilot inference-model accounting');
   const messages = events.filter(event => event.type === 'assistant.message');
   assert.equal(messages.length, 1, 'Expected one final JSON proposal');
   for (const event of events) {
-    assert(!['session.error', 'tool.execution_start',
-      'assistant.server_tool_progress'].includes(event.type),
-    'Copilot attempted a tool or reported an error');
+    assert(!['session.error', 'session.warning', 'model.call_failure',
+      'tool.execution_start', 'assistant.server_tool_progress'].includes(event.type),
+    'Copilot reported a warning, failed/retried request, or attempted a tool');
     if (event.type === 'session.model_change') {
       assert.equal(event.data.newModel, model, 'Model substitution is forbidden');
     }
-    if (event.type === 'assistant.usage' ||
-        event.type === 'assistant.message') {
+    if (event.type === 'assistant.usage') {
       assert.equal(event.data.model, model, 'Missing or different inference model');
       assert(!event.data.isAuto && !event.data.isByok);
       if (event.data.availableToolCount !== undefined) {
         assert.equal(event.data.availableToolCount, 0);
       }
     }
+    if (event.type === 'assistant.message' && event.data.model !== undefined) {
+      assert.equal(event.data.model, model, 'Unexpected response model');
+    }
   }
   return validateProposal(JSON.parse(messages[0].data.content));
 }
 
 /**
- * Supply actual PNG attachments through the documented CLI --attachment flag.
- * Tools are completely disabled: the model only returns constrained JSON.
+ * Review native PNG attachments through the pinned GitHub Copilot SDK.
+ * Empty mode has no ambient tools, instructions, agents, skills, or MCP servers.
  * @returns {Promise<void>} Resolves after a verified Astra proposal is saved.
  */
 async function main() {
   const outputDirectory = 'test-results/model';
   const privateDirectory = path.resolve('test-results/private-model');
+  const logsDirectory = path.resolve(outputDirectory, 'runtime-logs');
   const workingDirectory = path.join(privateDirectory, 'workspace');
-  fs.mkdirSync(outputDirectory, { recursive: true });
-  fs.mkdirSync(workingDirectory, { recursive: true });
   const home = path.join(privateDirectory, 'home');
   const config = path.join(home, '.copilot');
+  fs.mkdirSync(outputDirectory, { recursive: true });
+  fs.mkdirSync(logsDirectory, { recursive: true });
+  fs.mkdirSync(workingDirectory, { recursive: true });
   fs.mkdirSync(config, { recursive: true });
-  fs.writeFileSync(path.join(config, 'config.json'), JSON.stringify({
-    continueOnAutoMode: false,
-    customAgents: { defaultLocalOnly: true },
-  }));
+  fs.writeFileSync(path.join(config, 'config.json'),
+    JSON.stringify({ continueOnAutoMode: false }));
   const token = process.env.COPILOT_GITHUB_TOKEN;
   assert(token, 'Set the protected COPILOT_DOCUMENTATION_TOKEN environment secret');
   const model = process.env.ASTRA_MODEL_ID || 'gpt-6-astra';
   assert.equal(model, 'gpt-6-astra', 'Only the exact Astra model ID is approved');
-  // Do not inherit GITHUB_TOKEN, provider keys, shell hooks, plugins, or proxies.
-  const environment = {
-    PATH: process.env.PATH, HOME: home, COPILOT_HOME: config,
-    XDG_CONFIG_HOME: path.join(home, '.config'),
-    LANG: 'C.UTF-8', CI: 'true',
-    COPILOT_GITHUB_TOKEN: token,
-  };
-  const version = spawnSync('copilot', ['--no-auto-update', '--version'], {
-    env: environment, encoding: 'utf8', timeout: 30_000,
+  const { CopilotClient, RuntimeConnection } = await import('@github/copilot-sdk');
+  const executable = execFileSync('which', ['copilot'], {
+    encoding: 'utf8',
+  }).trim();
+  const client = new CopilotClient({
+    mode: 'empty',
+    connection: RuntimeConnection.forStdio({
+      path: executable, args: ['--log-dir', logsDirectory],
+    }),
+    workingDirectory, baseDirectory: config,
+    gitHubToken: token, useLoggedInUser: false, logLevel: 'warning',
+    // Never inherit repository tokens, provider keys, proxies, or shell hooks.
+    env: { PATH: process.env.PATH, HOME: home, LANG: 'C.UTF-8', CI: 'true' },
   });
-  assert.equal(version.status, 0, 'Pinned Copilot CLI is unavailable');
-  assert.match(version.stdout, /GitHub Copilot CLI 1\.0\.88\./);
-  fs.writeFileSync(`${outputDirectory}/cli-version.txt`, version.stdout);
-  const models = await listModels(environment, workingDirectory);
-  fs.writeFileSync(`${outputDirectory}/models.json`, JSON.stringify(models, null, 2));
-  const selected = selectModel(models, model);
-  const evidenceDirectory = 'test-results/before/evidence';
-  const captured = evidence(evidenceDirectory);
-  const manifest = JSON.parse(read(path.join(evidenceDirectory, 'manifest.json')));
-  assert.equal(manifest.tested_sha, process.env.TESTED_SHA);
-  assert.deepEqual(captured.hashes, manifest.hashes);
-  const articles = Object.fromEntries(Object.entries(documents).map(
-    ([section, filename]) => [section, read(filename).toString()]));
-  const prompt = read('.github/continuous-documentation/prompt.txt').toString() +
-    '\n\nBEGIN UNTRUSTED OBSERVATIONS AND EXISTING ARTICLES\n' +
-    JSON.stringify({ manifest, observations: captured.observations, articles }) +
-    '\nEND UNTRUSTED OBSERVATIONS AND EXISTING ARTICLES\n' +
-    'Attached PNGs, in order: ' + names.join(', ') + '.';
-  assert(Buffer.byteLength(prompt) < 120_000, 'Evidence exceeds pilot prompt limit');
-  const args = [
-    '--no-auto-update', '--model', model,
-    '--available-tools=', '--deny-tool=shell', '--deny-tool=write',
-    '--deny-tool=url',
-    '--disable-builtin-mcps', '--no-custom-instructions', '--no-ask-user',
-    '--no-remote', '--no-remote-export', '--no-bash-env', '--disallow-temp-dir',
-    '--secret-env-vars=COPILOT_GITHUB_TOKEN',
-    '--output-format', 'json', '--stream', 'on',
-    '--log-level', 'error', '--prompt', prompt,
-  ];
-  for (const name of names) {
-    const filename = path.resolve(evidenceDirectory, `${name}.png`);
-    const limit = selected.capabilities?.limits?.vision?.max_prompt_image_size;
-    if (limit !== undefined) {
-      assert(read(filename).length <= limit, 'Screenshot exceeds model image limit');
+  const events = [];
+  let session;
+  let proposal;
+  try {
+    await client.start();
+    const status = await client.getStatus();
+    assert.equal(status.version, '1.0.88', 'Unexpected Copilot runtime version');
+    fs.writeFileSync(`${outputDirectory}/runtime.json`, JSON.stringify(status));
+    const models = await client.listModels();
+    fs.writeFileSync(`${outputDirectory}/models.json`,
+      JSON.stringify(models, null, 2));
+    const selected = selectModel(models, model);
+    const directory = 'test-results/before/evidence';
+    const captured = evidence(directory);
+    const manifest = JSON.parse(read(path.join(directory, 'manifest.json')));
+    assert.equal(manifest.tested_sha, process.env.TESTED_SHA);
+    assert.deepEqual(captured.hashes, manifest.hashes);
+    const attachments = names.map(name => {
+      const image = read(path.join(directory, `${name}.png`));
+      const limit = selected.capabilities?.limits?.vision?.max_prompt_image_size;
+      if (limit !== undefined) {
+        assert(image.length <= limit, 'Screenshot exceeds model image limit');
+      }
+      return {
+        type: 'blob', mimeType: 'image/png', displayName: `${name}.png`,
+        data: image.toString('base64'),
+      };
+    });
+    const articles = Object.fromEntries(Object.entries(documents).map(
+      ([section, filename]) => [section, read(filename).toString()]));
+    const prompt = JSON.stringify({
+      manifest, observations: captured.observations, articles,
+      attachment_order: names,
+    });
+    assert(Buffer.byteLength(prompt) <= 500_000, 'Evidence exceeds pilot limit');
+    fs.writeFileSync(`${outputDirectory}/request.json`, JSON.stringify({
+      model, sdk: '1.0.14', tested_sha: manifest.tested_sha,
+      image_delivery: 'GitHub Copilot SDK native image/png blob attachments',
+      attachments: names, evidence_hashes: captured.hashes, tools: [],
+    }, null, 2));
+    session = await client.createSession({
+      model, availableTools: [], tools: [],
+      excludedTools: ['builtin:*', 'mcp:*', 'custom:*'],
+      workingDirectory, infiniteSessions: { enabled: false },
+      systemMessage: {
+        mode: 'replace',
+        content: read('.github/continuous-documentation/prompt.txt').toString(),
+      },
+      onPermissionRequest: () => ({
+        kind: 'reject', feedback: 'Documentation review has no tool permissions.',
+      }),
+    });
+    session.on(event => {
+      events.push(event);
+      fs.appendFileSync(`${outputDirectory}/events.jsonl`,
+        JSON.stringify(event) + '\n');
+    });
+    await session.sendAndWait({ prompt, attachments }, 15 * 60_000);
+    proposal = auditResponse(events, model);
+  } finally {
+    try {
+      if (session) await session.disconnect();
+    } finally {
+      const errors = await client.stop();
+      // The runtime can retry image failures without images. Warning/error
+      // logs supplement typed events; neither may permit a prose-only retry.
+      let imageDiagnostic = false;
+      for (const filename of fs.readdirSync(logsDirectory, { recursive: true })) {
+        const logfile = path.join(logsDirectory, filename);
+        if (!fs.lstatSync(logfile).isFile()) continue;
+        const contents = read(logfile).toString().replaceAll(token, '[REDACTED]');
+        fs.writeFileSync(logfile, contents);
+        imageDiagnostic ||= /image|attachment|vision/i.test(contents);
+      }
+      assert(!imageDiagnostic,
+        'Copilot logged an image warning/error; refusing the proposal');
+      assert.equal(errors.length, 0,
+        'Copilot runtime did not shut down cleanly: ' + errors.join('; '));
     }
-    // Stage only the trusted images inside the isolated session working tree.
-    const staged = path.join(workingDirectory, `${name}.png`);
-    fs.copyFileSync(filename, staged);
-    args.push('--attachment', staged);
   }
-  fs.writeFileSync(`${outputDirectory}/request.json`, JSON.stringify({
-    model, tested_sha: manifest.tested_sha,
-    image_delivery: 'GitHub Copilot CLI --attachment (five image/png files)',
-    attachments: names.map(name => `${name}.png`),
-    evidence_hashes: captured.hashes,
-    tools: [], continueOnAutoMode: false,
-  }, null, 2));
-  const result = spawnSync('copilot', args, {
-    cwd: workingDirectory, env: environment, encoding: 'utf8',
-    timeout: 15 * 60_000, maxBuffer: 20_000_000,
-  });
-  fs.writeFileSync(`${outputDirectory}/events.jsonl`, result.stdout || '');
-  fs.writeFileSync(`${outputDirectory}/stderr.log`, result.stderr || '');
-  assert.equal(result.status, 0,
-    'GPT-6 Astra screenshot review failed; no fallback or proposal accepted');
-  const events = result.stdout.trim().split('\n').map(line => JSON.parse(line));
-  const proposal = auditResponse(events, model);
   fs.writeFileSync(`${outputDirectory}/proposal.json`,
     JSON.stringify(proposal, null, 2));
 }
