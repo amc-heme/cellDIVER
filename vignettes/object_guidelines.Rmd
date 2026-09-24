@@ -288,6 +288,20 @@ tags$div(
         tags$td(no()),
         tags$td(no()),
         tags$td(no())
+        ),
+      tags$tr(
+        tags$td("Results show average expression"),
+        tags$td(yes()),
+        tags$td(yes()),
+        tags$td(no()),
+        tags$td(no())
+        ),
+      tags$tr(
+        tags$td("Results show percent expression"),
+        tags$td(yes()),
+        tags$td(no()),
+        tags$td(no()),
+        tags$td(yes())
         )#,
       # Links to functions used for DGE for each object class
       # tags$tr(

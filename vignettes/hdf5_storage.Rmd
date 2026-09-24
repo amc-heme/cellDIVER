@@ -52,7 +52,7 @@ anndata::write_h5ad(adata, filename = "output_path.h5ad")
 
 # Seurat Objects
 
-With the release of [Seurat v5](https://satijalab.org/seurat/), Seurat objects may employ HDF5 storage via BPcells. The differential gene expression tab can't be used for Seurat objects with BPcells arrays, but the plots tab can still be used.
+With the release of [Seurat v5](https://satijalab.org/seurat/), Seurat objects may employ HDF5 storage via BPCells. Differential gene expression can be performed for Seurat objects with BPCells arrays, but AUC values will not be included in the results.
 
 Objects processed with Seurat version 5 should automatically use BPCells-based storage. Seurat must be updated at least to version 5.0.0 to use this format.
 

@@ -74,7 +74,7 @@ Imports:
     rlog (>= 0.1.0),
     scales,
     scattermore,
-    SCUBA,
+    SCUBA (>= 1.1.0),
     scDE,
     Seurat (>= 3.0.0),
     SeuratObject,

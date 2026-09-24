@@ -177,10 +177,11 @@ plot_module_ui <- function(id,
         # explicitly included using group_by_include_none == TRUE
         
         #html anchors pointing to relevant section in full documentation based on plot type
-        plot_to_anchor <- 
+        plot_to_anchor <-
           list(
             "DimPlot" = "DimPlots-group-by",
             "Dot Plot" = "dot-plots-group-by",
+            "Feature Plot" = "feature-plots-labeling-groups",
             "Scatterplot" = "scatterplots-group-by",
             "Ridge" = "ridge-plots-group-by",
             "Cell Proportion" = "cell-proportion-plot-proportion-metadata",

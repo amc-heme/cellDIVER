@@ -277,7 +277,7 @@ The variable chosen in this selection menu will be the one used for the "Metadat
 
 A panel of options will appear on the right side of the screen for each metadata variable included. The header of each panel will display the name of the variable as it appears in the object, whether the variable is categorical or numeric, and how many unique values of the variable exist. Beneath the header, unique values are displayed to assist in the identification and naming of variables.
 
-Currently, only categorical metadata is available for inclusion in the object, since numeric metadata does not yet work with the subset menus. Support for numeric metadata will be added in a future release.
+Both categorical and numeric metadata may be included in the object. Categorical variables can be added individually with per-variable settings (display name, description, etc.), while numeric variables are enabled or disabled all at once via the "Include numeric metadata" option. When enabled, numeric metadata will appear in the "enter a feature" menu and can be plotted like features on plots that involve feature expression, but cannot be used to group or split plots.
 
 Use the **"Set label for metadata variable"** text box to set a display name in the app. The name entered here will display in all plotting menus that use categorical metadata, as well as in subset menus in all three tabs.
 
