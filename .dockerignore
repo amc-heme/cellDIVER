@@ -10,7 +10,6 @@
 
 # Package assets not needed for the runtime image build
 data
-tests
 
 # Docs, vignettes (large PNG/GIF assets), pkgdown output
 docs
