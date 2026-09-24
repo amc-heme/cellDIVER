@@ -96,6 +96,7 @@ jobs:
           client_id <- trimws(Sys.getenv("POSIT_CLIENT_ID"))
           client_secret <- trimws(Sys.getenv("POSIT_CLIENT_SECRET"))
           account <- trimws(Sys.getenv("POSIT_ACCOUNT"))
+          github_token <- trimws(Sys.getenv("GITHUB_PAT"))
 
           missing <- c(
             POSIT_CLOUD_CLIENT_ID = nzchar(client_id),
@@ -108,6 +109,9 @@ jobs:
               paste(names(missing)[!missing], collapse = ", "),
               call. = FALSE
             )
+          }
+          if (!nzchar(github_token)) {
+            stop("Missing required repository secret(s): GITHUB_PAT", call. = FALSE)
           }
 
           if (packageVersion("rsconnect") < "1.10.0") {
@@ -124,6 +128,7 @@ jobs:
               "amc-heme/cellDIVER@%s",
               Sys.getenv("CELLDIVER_GITHUB_SHA")
             ),
+            auth_token = github_token,
             dependencies = FALSE,
             upgrade = "never"
           )
