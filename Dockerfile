@@ -72,7 +72,7 @@ RUN apt-get update \
 
 # Suggests covers the test stack declared by the package; rsconnect is the extra
 # workflow tool used to publish to Connect Cloud.
-RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); devtools::install_deps('/tmp/cellDIVER', dependencies = 'Suggests', upgrade = 'never'); install.packages('rsconnect', repos = c(CRAN = 'https://cloud.r-project.org')); if (!all(vapply(c('devtools', 'rsconnect', 'shinytest2', 'testthat', 'withr', 'jsonlite'), requireNamespace, logical(1), quietly = TRUE))) quit(status = 10)"
+RUN R -e "options(timeout = 600); options(repos = BiocManager::repositories()); devtools::install_deps('/tmp/cellDIVER', dependencies = 'Suggests', upgrade = 'never'); install.packages('rsconnect', repos = c(CRAN = 'https://cloud.r-project.org')); description <- read.dcf('/tmp/cellDIVER/DESCRIPTION')[1, , drop = FALSE]; packages <- unlist(strsplit(description[1, 'Suggests'], ',')); packages <- trimws(gsub('[[:space:]]+', ' ', packages)); packages <- trimws(gsub('\\s*\\(.*\\)', '', packages)); packages <- c(packages[nzchar(packages)], 'rsconnect'); missing <- packages[!vapply(packages, requireNamespace, logical(1), quietly = TRUE)]; if (length(missing) > 0) stop('Missing CI dependencies: ', paste(missing, collapse = ', '), call. = FALSE)"
 
 ENV CHROMOTE_CHROME=/usr/bin/google-chrome \
     HOME=/home/github \

@@ -129,6 +129,7 @@ jobs:
             repo = Sys.getenv("CELLDIVER_GITHUB_REPOSITORY"),
             ref = Sys.getenv("CELLDIVER_GITHUB_SHA"),
             auth_token = github_token,
+            build_vignettes = FALSE,
             dependencies = c("Depends", "Imports", "LinkingTo"),
             upgrade = "never"
           )
