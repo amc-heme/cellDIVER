@@ -3,6 +3,15 @@ test_that("config preview and downloaded YAML survive a save/load roundtrip", {
   browser_load_config(app)
   expect_equal(app$get_value(input = "dataset_label"), "AML Reference Dataset")
   initial_preview <- browser_plot(app, "preview_dimplot")
+  browser_documentation(
+    app, "config",
+    paste(
+      "Configuration app using the bundled test_dataset.rds and saved YAML.",
+      "Load the saved configuration and confirm replacement of unsaved",
+      "settings. The dataset label is AML Reference Dataset and the",
+      "DimPlot preview has rendered. This is not a new-dataset setup."
+    )
+  )
 
   app$set_inputs(
     dataset_label = "Browser roundtrip dataset",

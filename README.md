@@ -152,6 +152,78 @@ secrets, a cross-repository PAT, or a self-hosted runner to execute untrusted PR
 code. If a dependency becomes private, arrange a safe dependency distribution
 before enabling the gate; missing dependency access must remain a failure.
 
+### Manual continuous-documentation pilot
+
+The **Continuous documentation pilot** workflow is opt-in and manual-only.
+Merge its workflow, support files, and browser capture hooks into `main` first;
+then select **Actions → Continuous documentation pilot → Run workflow → main**.
+Dispatches from other branches cannot run the pilot. Schedules and path triggers
+are deliberately deferred until a maintainer has reviewed a successful pilot.
+
+Administrator setup:
+
+1. Create the `continuous-documentation` environment. Restrict deployment branches
+   to **main**, require a trusted reviewer, and prevent self-approval where
+   available. This environment protects only the model job.
+2. Enable GitHub Copilot access and the organization's approved model policies
+   for the account performing the review. Add the environment secret
+   `COPILOT_DOCUMENTATION_TOKEN`: a fine-grained personal access token with
+   **Copilot Requests** permission only, **no repository permissions**. Do not
+   supply an OpenAI key, general-purpose PAT, or deployment credentials.
+3. The requested model is exactly `gpt-6-astra`. The pinned Copilot CLI and account
+   must explicitly advertise that model and support image reading. Availability
+   and the provider's capability identifiers are not assumed: unsupported
+   versions, missing entitlement, or an unavailable model fail the run without
+   substitution. `CONTINUOUS_DOCUMENTATION_ASTRA_MODEL`, if configured as a
+   repository variable, accepts only `gpt-6-astra`; a different capability ID
+   requires a reviewed adapter update, not a fallback. The pinned CLI advertises
+   this ID, but account availability and vision capability are checked at runtime.
+4. In **Settings → Actions → General → Workflow permissions**, allow GitHub
+   Actions to create pull requests. Keep default permissions read-only; only the
+   separate publish job receives `contents: write` and `pull-requests: write`.
+5. Review the test data for suitability before approving the environment. Only
+   bundled test fixtures are exercised; screenshots and visible UI text are sent
+   through the approved **GitHub Copilot** integration, not a direct model-provider
+   API. Never point this workflow at private clinical or production datasets.
+
+Each run freezes the dispatch's exact main SHA once and checks out that same
+revision in every job. It builds and installs the package, runs every existing
+test (skips, errors, failures, and zero passed expectations fail), runs
+`R CMD check`, and builds pkgdown. The check omits duplicate test execution,
+manual generation, and vignette checks; the full test suite and pkgdown article
+rendering are separate mandatory gates. Warnings and notes remain in the logs
+for review. Five assertion-backed screenshots cover configuration, DimPlot,
+FeaturePlot, subsetting, and DGE at 1440×1000 with seed 325.
+
+The model receives observations, the existing articles, and actual screenshots.
+The pinned CLI's native SDK `models.list` checks account capabilities, and its
+documented `--attachment` option supplies all five PNGs with tools disabled.
+The adapter rejects unsupported catalogue or response-audit formats.
+It can propose only bounded JSON plain-text paragraphs for managed sections in
+`vignettes/dataset_setup_walkthrough.Rmd` and
+`vignettes/scRNA_Plots_Explained.Rmd`. Trusted code escapes the prose and copies
+only captured images; generated R chunks, arbitrary files, remote images, README
+changes, and model-written executable documentation are not accepted. Correct
+existing prose is preserved, and an empty proposal creates no branch or PR.
+Unverified behavior is listed in the draft PR for human review.
+
+A fresh, read-only validation job repeats the full tests, check, and pkgdown
+build after applying the proposal. It has no model credentials. Publishing
+reconstructs and hash-verifies that exact validated change against the captured
+SHA; it never executes proposed code and creates only a **draft**, never an
+auto-merged PR. The model job has no repository write token. GitHub normally
+does **not** run `pull_request` workflows for PRs created with `GITHUB_TOKEN`;
+the explicit validation is mandatory, and a maintainer must arrange the normal
+required PR checks before merging. Do not bypass branch protection.
+
+Artifacts retain before/after articles and rendered sites, screenshot evidence,
+observations, hashes, model responses, package versions, test reports, check
+output, and logs for **14 days**, including available failure diagnostics.
+Download evidence needed for long-term review before expiry. The local script
+and workflow checks do not establish model availability or replace a successful
+credentialed end-to-end Actions run; review the first pilot before broadening
+automation.
+
 ## Docker Installation
 
 cellDIVER ships a self-contained Docker image (shiny-server) that serves a bundled demo dataset out of the box. The quickest way to run it is to pull the pre-built image from the GitHub Container Registry (GHCR):

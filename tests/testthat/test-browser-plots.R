@@ -11,6 +11,15 @@ test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
   metadata <- SCUBA::fetch_metadata(object, full_table = TRUE)
   expect_equal(browser_point_count(original), nrow(metadata))
   expect_match(original, "UMAP", ignore.case = TRUE)
+  browser_documentation(
+    app, "dimplot",
+    paste(
+      "Main browser with the bundled dataset and configuration.",
+      "Open Plots, use the enabled DimPlot, select umap,",
+      "and turn off labels and legend.",
+      "The rendered plot contains every cell in the bundled dataset."
+    )
+  )
 
   browser_set(app, "object_plots-dimplot-group_by", "Batch")
   grouped <- browser_svg(app, "object_plots-dimplot")
@@ -34,6 +43,17 @@ test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
   filtered <- browser_svg(app, "object_plots-dimplot")
   expect_equal(
     browser_point_count(filtered), sum(metadata$Batch == "BM_200AB")
+  )
+  browser_documentation(
+    app, "subset",
+    paste(
+      "DimPlot grouped by condensed_cell_type and split by Batch.",
+      "Expand the subset panel, add a categorical filter for Batch,",
+      "select BM_200AB, confirm the filter, and submit the subset.",
+      "The rendered plot contains exactly the cells from BM_200AB.",
+      "Resetting filters and submitting restores all cells later in this test.",
+      "Subset instructions are validation context, outside the pilot edits."
+    )
   )
   browser_click(app, "object_plots-subset_selections-reset_all_filters")
   browser_click(app, "object_plots-subset_submit")
@@ -72,6 +92,17 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
       expect_match(svg, "CD34", fixed = TRUE)
       if (plot_type == "scatter") expect_match(svg, "CD38", fixed = TRUE)
       expect_match(svg, "<(circle|polygon|polyline|path)\\b")
+    }
+    if (plot_type == "feature") {
+      browser_documentation(
+        app, "featureplot",
+        paste(
+          "Open Plots in the main browser and enable FeaturePlot.",
+          "Select the RNA feature rna_CD34 (CD34) in the feature picker.",
+          "The FeaturePlot has rendered and its export contains CD34",
+          "and actual plot geometry. DimPlot remains enabled."
+        )
+      )
     }
   })
 }

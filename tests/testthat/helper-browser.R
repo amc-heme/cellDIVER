@@ -99,6 +99,59 @@ browser_artifacts <- function(app, directory) {
   invisible(NULL)
 }
 
+#' Capture an opt-in documentation milestone
+#'
+#' Normal test runs do not write documentation evidence. The documentation
+#' workflow enables capture explicitly and only proposes changes if the entire
+#' suite passes. Unlike diagnostic cleanup, a failed capture must fail that run.
+#'
+#' @param app Running browser driver at a verified scenario milestone.
+#' @param name Stable milestone name used for evidence filenames.
+#' @param description Description of the actions and state verified by the test.
+#' @return No return value; optionally writes a screenshot, observations and logs.
+browser_documentation <- function(app, name, description) {
+  directory <- Sys.getenv("CELLDIVER_DOCS_EVIDENCE")
+  if (!nzchar(directory)) return(invisible(NULL))
+  if (!name %in% c("config", "dimplot", "featureplot", "subset", "dge")) {
+    stop("Unknown documentation milestone: ", name)
+  }
+  dir.create(directory, recursive = TRUE, showWarnings = FALSE)
+  directory <- normalizePath(directory, mustWork = TRUE)
+  app$wait_for_idle()
+  app$wait_for_js("document.fonts.status === 'loaded'")
+  # Remove timing-dependent transitions, not data or plot content. Each capture
+  # uses the driver's fixed viewport and seed and starts at the top of the page.
+  app$run_js(paste0(
+    "(() => { const style = document.createElement('style');",
+    " style.textContent = '* { animation: none !important;",
+    " transition: none !important; }';",
+    " document.head.appendChild(style); window.scrollTo(0, 0); })()"
+  ))
+  screenshot <- paste0(name, ".png")
+  unlink(file.path(directory, screenshot))
+  app$get_screenshot(
+    file = file.path(directory, screenshot), delay = 0, selector = "viewport"
+  )
+  if (!isTRUE(file.info(file.path(directory, screenshot))$size > 0)) {
+    stop("Documentation screenshot is missing or empty: ", name)
+  }
+  jsonlite::write_json(
+    list(
+      name = name,
+      description = description,
+      text = app$get_js("document.body.innerText"),
+      screenshot = screenshot
+    ),
+    file.path(directory, paste0(name, ".json")),
+    auto_unbox = TRUE, pretty = TRUE
+  )
+  utils::write.csv(
+    app$get_logs(), file.path(directory, paste0(name, "-logs.csv")),
+    row.names = FALSE
+  )
+  invisible(NULL)
+}
+
 #' Save diagnostics and stop a browser exactly once
 #'
 #' @param app Driver returned by `browser_app()`.
