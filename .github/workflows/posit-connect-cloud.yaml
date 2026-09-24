@@ -129,7 +129,7 @@ jobs:
               Sys.getenv("CELLDIVER_GITHUB_SHA")
             ),
             auth_token = github_token,
-            dependencies = FALSE,
+            dependencies = c("Depends", "Imports", "LinkingTo"),
             upgrade = "never"
           )
           if (!requireNamespace("cellDIVER", quietly = TRUE)) {
