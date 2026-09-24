@@ -1,22 +1,12 @@
-# Keep the Docker build context tiny. The image installs cellDIVER from GitHub
-# (see Dockerfile), so the context only needs Dockerfile, shiny-server.conf, and
-# docker/. Everything below is excluded so package source / large assets never
-# enter the context.
+# Keep the Docker build context focused on the files the multi-stage Dockerfile
+# now needs: package source for the final image, plus the shiny-server assets.
+# Large or unrelated files stay excluded so cache invalidation remains narrow.
 
 # Version control & CI
 .git
 .gitignore
 .gitattributes
 .github
-
-# Package source — installed from GitHub inside the image, not from the context
-R
-man
-data
-inst
-tests
-NAMESPACE
-DESCRIPTION
 
 # Docs, vignettes (large PNG/GIF assets), pkgdown output
 docs

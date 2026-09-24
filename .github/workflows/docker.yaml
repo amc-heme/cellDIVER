@@ -3,17 +3,17 @@
 #
 # WHAT THIS DOES
 #   pull_request -> main : builds the repo's Dockerfile (the cellDIVER shiny-
-#     server image) and smoke-tests the running container. PR runs NEVER push.
+#     server image for the checked-out PR code) and smoke-tests the running
+#     container. PR runs NEVER push.
 #   push -> main / v* tag : the same build + smoke test, then publishes the
 #     validated image to ghcr.io/amc-heme/celldiver. Publishing happens ONLY
 #     after the smoke test passes (see the push step near the bottom).
 #
-# IMPORTANT LIMITATION — do NOT read a green check as "my R code was tested"
-#   The Dockerfile installs cellDIVER from amc-heme/cellDIVER on GitHub `main`,
-#   NOT from this PR's checkout. So this gate validates the Dockerfile and the
-#   dependency tree only; it does NOT exercise the R code changes in the PR
-#   being built. That GitHub-main-vs-PR-checkout behavior is the intended
-#   Phase 1 design and is out of scope to change here.
+# SHARED DEPENDENCY CACHE
+#   The Dockerfile now has a reusable runtime-base stage containing the heavy
+#   Seurat/Bioconductor dependency tree. buildx exports those intermediate
+#   layers to the GitHub Actions cache, so unchanged dependency layers are
+#   restored across PR and main builds instead of being recompiled from scratch.
 #
 # WHY amd64-ONLY (deliberate, not a TODO — do not "fix" this to multi-arch)
 #   The base image rocker/shiny-verse publishes an amd64 manifest ONLY; there
@@ -83,10 +83,8 @@ jobs:
       contents: read
       packages: write
     steps:
-      # Checkout provides the Dockerfile, shiny-server.conf and docker/ build
-      # context. (It does NOT provide the R sources the image runs — those are
-      # installed from GitHub main inside the Dockerfile; see the limitation
-      # note at the top of this file.)
+      # Checkout provides the Dockerfile, shiny-server.conf, docker/ build
+      # context, and the exact R sources the image installs.
       - name: Check out repository
         uses: actions/checkout@v7
 
@@ -157,15 +155,6 @@ jobs:
             # provenance, independent of branch or tag.
             type=sha
 
-      # KNOWN TRANSIENT (not a Dockerfile bug): the image installs cellDIVER via
-      # the GitHub API (BiocManager -> remotes::install_github), which is rate
-      # limited to 60 req/hr for UNAUTHENTICATED callers. GitHub-hosted runners
-      # share outbound IPs, so several builds at once (a push-to-main build
-      # racing a PR build, or approving multiple queued runs together) can hit a
-      # transient "HTTP error 403" on this install step. Fix: just re-run the
-      # job. If it recurs often, pass GITHUB_TOKEN into the build as a secret to
-      # lift the limit -- kept out for now to stay tokenless.
-      #
       # This step ALWAYS builds with push: false + load: true so the smoke test
       # can `docker run` the exact image. Publishing is a SEPARATE step that
       # runs AFTER the smoke test (see "Push image to GHCR" below), so a broken
@@ -190,14 +179,11 @@ jobs:
           # attestations; disabling them avoids a "manifest list" export error
           # and keeps the loaded image a plain single-platform image.
           provenance: false
-          # GHA layer cache. mode=max caches EVERY intermediate layer (not just
-          # the final image), which is what makes a warm rebuild of this deep R
-          # dependency tree fast. NOTE: GHA cache is ~10 GB per repo and this
-          # tree is large; if you observe cache thrashing (repeated ~40 min
-          # builds with no cache hits) the export is evicted — fall back to
-          # `cache-to: type=gha,mode=min` here and note why.
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # mode=max preserves the heavy runtime-base stage as well as the final
+          # image layers, so unchanged dependency installs are restored on later
+          # builds instead of re-running.
+          cache-from: type=gha,scope=celldiver-dockerfile
+          cache-to: type=gha,mode=max,scope=celldiver-dockerfile
 
       # Start the freshly built image. shiny-server binds :3838 immediately for
       # the directory indexes, but each Shiny app boots LAZILY on first request
@@ -276,7 +262,7 @@ jobs:
           provenance: false
           # Reuse the warm cache the build step just wrote; no cache-to needed
           # (the build step already exported mode=max).
-          cache-from: type=gha
+          cache-from: type=gha,scope=celldiver-dockerfile
 
       # Always dump BOTH log sources so any failure above is debuggable. `docker
       # logs` shows shiny-server's own stdout; the per-app logs under

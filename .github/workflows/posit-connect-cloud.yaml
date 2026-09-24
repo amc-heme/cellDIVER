@@ -38,121 +38,68 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Installing cellDIVER's full Seurat/Bioconductor tree from source is slow;
-    # cap the job so a hung install fails cleanly instead of burning the 6-hour
-    # default.
+    # Building the reusable CI image once is still heavy, but later runs reuse
+    # the cached dependency layers instead of reinstalling everything in the job.
     timeout-minutes: 120
     env:
       # Lift GitHub's 60 req/hr unauthenticated API limit so BiocManager/remotes
-      # can resolve the GitHub Remotes (SCUBA, scDE) without transient 403s.
+      # can resolve the exact GitHub commit we install for deployment.
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # Pandoc is pulled in by parts of the R Markdown/Shiny dependency tree; set
-      # it up so any install-time or manifest step that needs it succeeds.
-      - name: Set up pandoc
-        uses: r-lib/actions/setup-pandoc@v2
+      - name: Free up runner disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/local/.ghcup /usr/share/swift
+          echo "Disk after cleanup:"
+          df -h /
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Build reusable CI base image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          use-public-rspm: true
+          context: .
+          target: ci-base
+          load: true
+          tags: celldiver-ci-base:deploy
+          provenance: false
+          cache-from: type=gha,scope=celldiver-dockerfile
+          cache-to: type=gha,mode=max,scope=celldiver-dockerfile
 
-      # System libraries cellDIVER's compiled dependencies need: glpk for
-      # igraph/Seurat and hdf5 for HDF5Array (mirrors the Dockerfile's apt block),
-      # plus the usual curl/ssl/xml and font/image libraries for the wider tree.
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libglpk-dev libhdf5-dev libcurl4-openssl-dev libssl-dev \
-            libxml2-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev \
-            libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev
-
-      # Installer tooling. rsconnect >= 1.10.0 provides
-      # connectCloudClientCredentials() (the non-interactive Connect Cloud auth
-      # used below); BiocManager resolves cellDIVER's Bioconductor deps. Fail
-      # early with a clear message if an older rsconnect is pinned upstream.
-      - name: Install deployment tooling
-        run: |
-          install.packages(c("BiocManager", "remotes", "rsconnect"))
-          if (packageVersion("rsconnect") < "1.10.0") {
-            stop(
-              "rsconnect >= 1.10.0 is required for ",
-              "connectCloudClientCredentials(); got ",
-              as.character(packageVersion("rsconnect"))
-            )
-          }
-        shell: Rscript {0}
-
-      # cellDIVER plus its hard-dependency tree, tracking main. The Remotes deps
-      # (SCUBA, scDE) install automatically. Installing from GitHub — rather than
-      # the local checkout — records the GitHub source in each package's metadata
-      # so rsconnect writes a manifest Connect Cloud can reinstall from.
-      # options(timeout = 600): the default 60s is too tight for the large source
-      # tarballs on slow build networks (mirrors the Dockerfile).
-      - name: Install cellDIVER from GitHub (main)
-        run: |
-          options(timeout = 600)
-          BiocManager::install(
-            "amc-heme/cellDIVER",
-            update = FALSE,
-            ask = FALSE,
-            dependencies = c("Depends", "Imports", "LinkingTo")
-          )
-          if (!requireNamespace("cellDIVER", quietly = TRUE)) {
-            stop("cellDIVER failed to install")
-          }
-        shell: Rscript {0}
-
-      # Stage the bundled demo dataset from the installed package (not the git
-      # repo) directly alongside the browser app, mirroring the Dockerfile's
-      # staging step. rsconnect bundles only the appDir below (no parent
-      # directory), so app.R's "own directory" fallback (see its comments)
-      # picks these up as the dataset root instead of the Docker/shiny-server
-      # parent-directory layout.
-      - name: Stage demo dataset next to the browser app
-        run: |
-          demo_dir <- "docker/shiny-server/demo/browser"
-          if (!file.copy(
-            system.file("extdata", "test_dataset.rds", package = "cellDIVER", mustWork = TRUE),
-            file.path(demo_dir, "object.rds"), overwrite = TRUE
-          )) stop("Failed to stage object.rds")
-          if (!file.copy(
-            system.file("extdata", "test_dataset_config.yaml", package = "cellDIVER", mustWork = TRUE),
-            file.path(demo_dir, "object-config.yaml"), overwrite = TRUE
-          )) stop("Failed to stage object-config.yaml")
-        shell: Rscript {0}
-
-      # Register the Connect Cloud account non-interactively, then publish the
-      # demo browser app directory. server = "connect.posit.cloud" is the
-      # built-in Connect Cloud server rsconnect stores the account under;
-      # forceUpdate = TRUE skips the interactive "update existing content?"
-      # prompt on re-deploys, and launch.browser = FALSE keeps the headless
-      # runner from trying to open a browser. appName is the stable content
-      # slug: rsconnect looks up existing content named "cellDIVER" for this
-      # account, updates it in place when found, and otherwise creates a new
-      # app. No appId/contentId is hardcoded, so the same script handles both
-      # first-time and repeat deploys. appTitle is the human-readable label.
+      # Install the exact checked-out commit from GitHub into the cached CI base
+      # so rsconnect records a GitHub remote source Connect Cloud can reinstall.
       - name: Deploy to Posit Connect Cloud
         env:
           POSIT_CLIENT_ID: ${{ secrets.POSIT_CLOUD_CLIENT_ID }}
           POSIT_CLIENT_SECRET: ${{ secrets.POSIT_CLOUD_CLIENT_SECRET }}
           POSIT_ACCOUNT: ${{ secrets.POSIT_CLOUD_ACCOUNT }}
+          CELLDIVER_GITHUB_REPOSITORY: ${{ github.repository }}
+          CELLDIVER_GITHUB_SHA: ${{ github.sha }}
         run: |
-          # trimws() strips stray surrounding whitespace/newlines. GitHub does
-          # not trim secret values, so a client id/secret pasted with a trailing
-          # newline reaches the OAuth token exchange verbatim and is rejected as
-          # `invalid_client` (HTTP 401). Trimming here makes auth robust to that.
+          docker run --rm \
+            -e GITHUB_PAT \
+            -e POSIT_CLIENT_ID \
+            -e POSIT_CLIENT_SECRET \
+            -e POSIT_ACCOUNT \
+            -e CELLDIVER_GITHUB_REPOSITORY \
+            -e CELLDIVER_GITHUB_SHA \
+            -v "$PWD":/work \
+            -w /work \
+            celldiver-ci-base:deploy \
+            bash -s <<'EOF'
+          set -euo pipefail
+          Rscript - <<'RS'
           client_id <- trimws(Sys.getenv("POSIT_CLIENT_ID"))
           client_secret <- trimws(Sys.getenv("POSIT_CLIENT_SECRET"))
           account <- trimws(Sys.getenv("POSIT_ACCOUNT"))
+          github_token <- trimws(Sys.getenv("GITHUB_PAT"))
 
-          # Fail fast with a clear, value-free message if any credential is
-          # empty (missing secret, or whitespace-only) so the operator knows
-          # exactly which secret to fix instead of decoding an OAuth error.
           missing <- c(
             POSIT_CLOUD_CLIENT_ID = nzchar(client_id),
             POSIT_CLOUD_CLIENT_SECRET = nzchar(client_secret),
@@ -164,6 +111,52 @@ jobs:
               paste(names(missing)[!missing], collapse = ", "),
               call. = FALSE
             )
+          }
+          if (!nzchar(github_token)) {
+            stop("Missing required repository secret(s): GITHUB_PAT", call. = FALSE)
+          }
+
+          if (packageVersion("rsconnect") < "1.10.0") {
+            stop(
+              "rsconnect >= 1.10.0 is required for ",
+              "connectCloudClientCredentials(); got ",
+              as.character(packageVersion("rsconnect"))
+            )
+          }
+
+          options(timeout = 600)
+          devtools::install_github(
+            repo = Sys.getenv("CELLDIVER_GITHUB_REPOSITORY"),
+            ref = Sys.getenv("CELLDIVER_GITHUB_SHA"),
+            auth_token = github_token,
+            build_vignettes = FALSE,
+            dependencies = c("Depends", "Imports", "LinkingTo"),
+            upgrade = "never"
+          )
+          if (!requireNamespace("cellDIVER", quietly = TRUE)) {
+            stop("cellDIVER failed to install")
+          }
+
+          demo_dir <- "docker/shiny-server/demo/browser"
+          if (!file.copy(
+            system.file(
+              "extdata", "test_dataset.rds",
+              package = "cellDIVER", mustWork = TRUE
+            ),
+            file.path(demo_dir, "object.rds"),
+            overwrite = TRUE
+          )) {
+            stop("Failed to stage object.rds")
+          }
+          if (!file.copy(
+            system.file(
+              "extdata", "test_dataset_config.yaml",
+              package = "cellDIVER", mustWork = TRUE
+            ),
+            file.path(demo_dir, "object-config.yaml"),
+            overwrite = TRUE
+          )) {
+            stop("Failed to stage object-config.yaml")
           }
 
           rsconnect::connectCloudClientCredentials(
@@ -181,4 +174,5 @@ jobs:
             launch.browser = FALSE,
             logLevel = "verbose"
           )
-        shell: Rscript {0}
+          RS
+          EOF

@@ -22,47 +22,56 @@ jobs:
     name: cellDIVER tests
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    env:
-      NOT_CRAN: "true"
-      CHROMOTE_CHROME: /usr/bin/google-chrome
     steps:
       - name: Check out the proposed code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Set up pandoc
-        uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+      - name: Free up runner disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+            /usr/local/.ghcup /usr/share/swift
+          echo "Disk after cleanup:"
+          df -h /
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Build reusable CI base image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
-          r-version: release
-          use-public-rspm: true
+          context: .
+          target: ci-base
+          load: true
+          tags: celldiver-ci-base:ci
+          provenance: false
+          cache-from: type=gha,scope=celldiver-dockerfile
+          cache-to: type=gha,mode=max,scope=celldiver-dockerfile
 
       - name: Verify Chrome
-        run: '"$CHROMOTE_CHROME" --version'
-
-      - name: Install dependencies and the checked-out package
-        uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
-        env:
-          # Read-only, repository-scoped token; no PAT or deployment secrets
-          # are exposed to code from a PR (including forks).
-          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          extra-packages: |
-            any::devtools
-            any::xml2
-            local::.
+        run: docker run --rm celldiver-ci-base:ci google-chrome --version
 
       - name: Run all tests
-        shell: Rscript {0}
         run: |
+          set -euo pipefail
+          mkdir -p test-results
+          status=0
+          docker run --rm \
+            -e NOT_CRAN=true \
+            -e CHROMOTE_CHROME=/usr/bin/google-chrome \
+            -v "$PWD":/work \
+            -w /work \
+            celldiver-ci-base:ci \
+            bash -s <<'EOF' || status=$?
+          set -euo pipefail
+          R CMD INSTALL -l "$R_LIBS_USER" .
+          Rscript - <<'RS'
+          .libPaths(c(Sys.getenv("R_LIBS_USER"), .libPaths()))
           dir.create("test-results", showWarnings = FALSE)
           results_directory <- normalizePath("test-results", mustWork = TRUE)
-          # Do not stop at testthat's default failure limit: report every test.
-          # set_max_fails() governs when the run aborts; SummaryReporter caps
-          # how many it prints separately, and defaults to 10.
           testthat::set_max_fails(Inf)
           options(testthat.summary.max_reports = Inf)
           reporter <- testthat::MultiReporter$new(list(
@@ -87,20 +96,26 @@ jobs:
             sprintf("Warnings: %d", sum(results$warning))
           )
           writeLines(summary, "test-results/summary.md")
-          cat(
-            paste(summary, collapse = "\n"), "\n",
-            file = Sys.getenv("GITHUB_STEP_SUMMARY"), append = TRUE
-          )
-          # A skipped browser suite or empty run must not satisfy the gate.
           if (
             nrow(results) == 0L || sum(results$passed) == 0L ||
             any(results$failed > 0L | results$error | results$skipped)
           ) {
             stop("The complete test suite must pass without skips.")
           }
+          RS
+          EOF
+          if [ -f test-results/summary.md ]; then
+            cat test-results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
 
       - name: Build package
-        run: R CMD build . --no-build-vignettes --no-manual
+        run: |
+          docker run --rm \
+            -v "$PWD":/work \
+            -w /work \
+            celldiver-ci-base:ci \
+            R CMD build . --no-build-vignettes --no-manual
 
       - name: Upload test reports and diagnostics
         if: always()

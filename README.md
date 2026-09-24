@@ -118,11 +118,14 @@ currently disabled in the main browser; testing does not re-enable it.
 The **Tests** workflow tests the checked-out PR code on a GitHub-hosted runner
 when a PR opens, changes, reopens or becomes ready for review. It also supports
 merge queues, pushes to `main` and manual runs. Its stable check name is
-**cellDIVER tests**. All test files run without an early failure limit; failures,
-errors, skipped tests and empty runs fail the check. The run summary contains
-counts; the `test-results` artifact contains JUnit XML and available browser
-diagnostics. Dependency installation or browser startup failures also fail the
-check.
+**cellDIVER tests**. The workflow now builds the Dockerfile's reusable `ci-base`
+target once, restores its cached Seurat/Bioconductor layers through buildx, and
+runs the test suite inside that image so Chrome and the R dependency tree do not
+need to be reinstalled into each job from scratch. All test files run without an
+early failure limit; failures, errors, skipped tests and empty runs fail the
+check. The run summary contains counts; the `test-results` artifact contains
+JUnit XML and available browser diagnostics. Dependency installation or browser
+startup failures also fail the check.
 
 The separate **PR test results** workflow creates or updates one PR comment with
 the outcome and a link to the detailed results, including failed runs and fork
@@ -154,7 +157,9 @@ before enabling the gate; missing dependency access must remain a failure.
 
 ## Docker Installation
 
-cellDIVER ships a self-contained Docker image (shiny-server) that serves a bundled demo dataset out of the box. The quickest way to run it is to pull the pre-built image from the GitHub Container Registry (GHCR):
+cellDIVER ships a self-contained Docker image (shiny-server) that serves a
+bundled demo dataset out of the box. The quickest way to run it is to pull the
+pre-built image from the GitHub Container Registry (GHCR):
 
 ```
 docker pull ghcr.io/amc-heme/celldiver:latest
@@ -165,7 +170,8 @@ docker run --rm -p 3838:3838 ghcr.io/amc-heme/celldiver:latest
 
 Open <http://localhost:3838/> for the directory index. The demo data browser is at `/demo/browser` and its config editor at `/demo/config`.
 
-Prefer to build from source, pin versions, or enable anndata/MuData support? See [Docker Details](#docker-details) for the local-build alternative.
+Prefer to build from source, pin versions, or enable anndata/MuData support?
+See [Docker Details](#docker-details) for the local-build alternative.
 
 ## Docker Details
 
@@ -175,6 +181,16 @@ docker build --platform=linux/amd64 -t celldiver .
 docker run --rm -p 3838:3838 celldiver
 ```
 (`--platform=linux/amd64` is only needed on Apple-Silicon/ARM hosts.)
+
+The Dockerfile now includes two reusable intermediate targets:
+
+* `runtime-base`: the heavy Seurat/Bioconductor/BPCells dependency layer used by
+  the production image
+* `ci-base`: `runtime-base` plus Chrome, shinytest2/testthat tooling, and
+  rsconnect for GitHub Actions jobs
+
+CI restores these cached layers through buildx so PR tests and Docker builds do
+not have to recompile the whole dependency tree on every run.
 
 **PR approval smoke test (concise):**
 1. Build from a clean state: `docker build --platform=linux/amd64 -t celldiver .`
@@ -208,7 +224,19 @@ Seurat v5 objects with BPCells assays work out of the box. anndata / MuData (`.h
 
 ## Posit Connect Cloud
 
-A GitHub Actions workflow, [`posit-connect-cloud.yaml`](.github/workflows/posit-connect-cloud.yaml), publishes the bundled demo dataset to [Posit Connect Cloud](https://connect.posit.cloud/). It is **manual only** (`workflow_dispatch`): start it from the repository's **Actions** tab. The workflow installs cellDIVER from `main`, stages the demo dataset alongside the existing demo browser app ([`docker/shiny-server/demo/browser/app.R`](docker/shiny-server/demo/browser/app.R) — the same app.R shiny-server serves in the Docker image), then uses [`rsconnect`](https://rstudio.github.io/rsconnect/) to bundle that directory and push it to Connect Cloud, which reinstalls cellDIVER and its dependencies to serve the app.
+A GitHub Actions workflow,
+[`posit-connect-cloud.yaml`](.github/workflows/posit-connect-cloud.yaml),
+publishes the bundled demo dataset to
+[Posit Connect Cloud](https://connect.posit.cloud/). It is **manual only**
+(`workflow_dispatch`): start it from the repository's **Actions** tab. The
+workflow first restores the reusable `ci-base` Docker target, then installs the
+exact checked-out cellDIVER commit from GitHub (so `rsconnect` records a GitHub
+remote source Connect Cloud can reinstall), stages the demo dataset alongside
+the existing demo browser app
+([`docker/shiny-server/demo/browser/app.R`](docker/shiny-server/demo/browser/app.R)
+— the same app.R shiny-server serves in the Docker image), and finally uses
+[`rsconnect`](https://rstudio.github.io/rsconnect/) to bundle that directory
+and push it to Connect Cloud.
 
 Publishing authenticates non-interactively with three repository secrets (all prefixed `POSIT_`):
 
