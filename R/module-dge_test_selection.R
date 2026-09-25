@@ -58,8 +58,8 @@ dge_test_selections_ui <-
     )
 
   # 2. Statistical method ------------------------------------------------------
-  # edgeR is initially available only for standard two-group DGE. The server
-  # narrows these choices to Wilcoxon when marker or threshold modes are used.
+  # edgeR is available for categorical DGE. The server narrows these choices
+  # to Wilcoxon when marker or threshold modes are used.
   method_menu <-
     tagList(
       selectInput(
@@ -71,6 +71,48 @@ dge_test_selections_ui <-
       hidden(
         div(
           id = ns("edger_options"),
+          selectInput(
+            inputId = ns("edger_contrast_mode"),
+            label = "Contrasts to Run:",
+            choices = c(
+              "Single contrast" = "single",
+              "All pairwise comparisons" = "pairwise",
+              "Each selected group vs. rest" = "one_vs_rest",
+              "Selected groups vs. reference" = "reference"
+            ),
+            selected = "single"
+          ),
+          hidden(
+            div(
+              id = ns("edger_multicontrast_options"),
+              pickerInput(
+                inputId = ns("edger_groups"),
+                label = "Groups to Test:",
+                choices = NULL,
+                selected = character(0),
+                multiple = TRUE,
+                options = list(
+                  "actions-box" = TRUE,
+                  "selected-text-format" = "count > 5",
+                  "none-selected-text" = "All groups"
+                )
+              ),
+              hidden(
+                div(
+                  id = ns("edger_reference_options"),
+                  selectInput(
+                    inputId = ns("edger_reference_group"),
+                    label = "Reference Group:",
+                    choices = NULL
+                  )
+                )
+              ),
+              tags$p(
+                "Leave Groups to Test empty to include all available groups.",
+                class = "help-block"
+              )
+            )
+          ),
           numericInput(
             inputId = ns("edger_min_cells"),
             label = "Minimum Cells per Pseudobulk Sample:",
@@ -257,8 +299,7 @@ dge_test_selections_server <-
             input$mode
             })
 
-        # The initial edgeR implementation supports only standard two-group
-        # DGE. Resolve the effective method defensively so an asynchronous input
+        # Resolve the effective method defensively so an asynchronous input
         # update can never submit edgeR for an unsupported mode.
         edgeR_available <-
           reactive({
@@ -334,6 +375,26 @@ dge_test_selections_server <-
             }
           }
         )
+
+        edger_contrast_mode <- reactive({
+          resolve_edger_contrast_mode(input$edger_contrast_mode)
+        })
+
+        observe({
+          multicontrast <- identical(dge_method(), "edger") &&
+            !identical(edger_contrast_mode(), "single")
+          if (multicontrast){
+            showElement(id = "edger_multicontrast_options")
+          } else {
+            hideElement(id = "edger_multicontrast_options")
+          }
+
+          if (multicontrast && identical(edger_contrast_mode(), "reference")){
+            showElement(id = "edger_reference_options")
+          } else {
+            hideElement(id = "edger_reference_options")
+          }
+        })
         
         # 2. Modify Group by Selection Menu Based on Selections ----------------
         ## 2.1 Update group by selection menu ####
@@ -407,7 +468,8 @@ dge_test_selections_server <-
                 showElement(
                   id = threshold_groups_id
                 )
-              } else {
+              } else if (!identical(dge_method(), "edger") ||
+                         identical(edger_contrast_mode(), "single")) {
                 # Otherwise, show groups menu
                 showElement(
                   id = standard_groups_id
@@ -457,6 +519,29 @@ dge_test_selections_server <-
                   numeric = TRUE
                   )
               })
+
+        observe({
+          choices <- group_choices()
+          selected_groups <- isolate(input$edger_groups)
+          selected_groups <- selected_groups[selected_groups %in% choices]
+          updatePickerInput(
+            session = session,
+            inputId = "edger_groups",
+            choices = choices,
+            selected = selected_groups
+          )
+
+          selected_reference <- isolate(input$edger_reference_group)
+          if (!isTruthy(selected_reference) || !selected_reference %in% choices){
+            selected_reference <- if (length(choices)) choices[[1]] else character()
+          }
+          updateSelectInput(
+            session = session,
+            inputId = "edger_reference_group",
+            choices = choices,
+            selected = selected_reference
+          )
+        })
         
         ## 3.4. Group Marker/Group Choices Based on Config File ####
         # If the group by metadata category has groups defined in the config 
@@ -762,6 +847,26 @@ dge_test_selections_server <-
                           `group_by` = group_by_category(),
                           `group_1` = group_1(),
                           `group_2` = group_2(),
+                          `edger_contrast_mode` =
+                            if (identical(dge_method(), "edger")){
+                              edger_contrast_mode()
+                            } else {
+                              "single"
+                            },
+                          `edger_groups` =
+                            if (identical(dge_method(), "edger") &&
+                                !identical(edger_contrast_mode(), "single")){
+                              input$edger_groups
+                            } else {
+                              NULL
+                            },
+                          `edger_reference_group` =
+                            if (identical(dge_method(), "edger") &&
+                                identical(edger_contrast_mode(), "reference")){
+                              input$edger_reference_group
+                            } else {
+                              NULL
+                            },
                           `edger_sample_col` =
                             if (identical(dge_method(), "edger") &&
                                 edgeR_sample_status()$valid){
@@ -854,6 +959,17 @@ dge_method_input_value <- function(current_method, choices){
     current_method
   } else {
     "wilcoxon"
+  }
+}
+
+# Normalize the multi-contrast selector while Shiny inputs initialize.
+resolve_edger_contrast_mode <- function(contrast_mode){
+  allowed <- c("single", "pairwise", "one_vs_rest", "reference")
+  if (length(contrast_mode) == 1L && !is.na(contrast_mode) &&
+      contrast_mode %in% allowed){
+    contrast_mode
+  } else {
+    "single"
   }
 }
 

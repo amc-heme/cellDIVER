@@ -199,6 +199,8 @@ subset_stats_ui <- function(id,
 #' mode.
 #' @param dge_group_1,dge_group_2 For standard DGE, reactives returning the
 #' submitted comparison groups in contrast order.
+#' @param dge_contrast_mode Reactive returning the submitted edgeR contrast
+#' mode.
 #'
 #' @noRd
 subset_stats_server <- 
@@ -216,7 +218,8 @@ subset_stats_server <-
            dge_method = NULL,
            dge_mode = NULL,
            dge_group_1 = NULL,
-           dge_group_2 = NULL
+           dge_group_2 = NULL,
+           dge_contrast_mode = NULL
            ){
     moduleServer(
       id, 
@@ -234,7 +237,8 @@ subset_stats_server <-
              !is.reactive(dge_method) |
              !is.reactive(dge_mode) |
              !is.reactive(dge_group_1) |
-             !is.reactive(dge_group_2))
+             !is.reactive(dge_group_2) |
+             !is.reactive(dge_contrast_mode))
         ){
           stop("If `tab`=='dge', arguments `metaclusters_present` and
                all DGE selection arguments must be defined as reactive values.")
@@ -310,39 +314,13 @@ subset_stats_server <-
           output$edger_sample_summary <- renderUI({
             results <- event_expr()
             req(identical(attr(results, "dge_method"), "edger"), results)
-
-            details <- attr(results, "edger_details")
-            req(!is.null(details))
-
-            sample_summary <- details$sample_summary
-            req(is.data.frame(sample_summary))
-            group_1_summary <-
-              sample_summary[sample_summary$group == details$group_1, , drop = FALSE]
-            group_2_summary <-
-              sample_summary[sample_summary$group == details$group_2, , drop = FALSE]
-            excluded_count <- nrow(details$excluded_profiles)
-
-            excluded_text <-
-              if (excluded_count > 0L){
-                paste0(
-                  " ", excluded_count,
-                  " sample/group pseudobulk profile(s) were excluded; see ",
-                  "the retained/excluded details attached to the result."
-                )
-              } else {
-                " No pseudobulk profiles were excluded."
-              }
+            summary_text <- edger_sample_summary_text(results)
+            req(isTruthy(summary_text))
 
             div(
               class = "half-space-top",
               tags$strong("Biological samples retained: "),
-              tags$span(
-                paste0(
-                  details$group_1, ": ", group_1_summary$retained_samples, "; ",
-                  details$group_2, ": ", group_2_summary$retained_samples, ".",
-                  excluded_text
-                )
-              )
+              tags$span(summary_text)
             )
           })
 
@@ -390,7 +368,9 @@ subset_stats_server <-
                   observed_groups = groups(),
                   group_1 = dge_group_1(),
                   group_2 = dge_group_2(),
-                  thresholding = thresholding_present()
+                  thresholding = thresholding_present(),
+                  contrast_mode = dge_contrast_mode(),
+                  n_contrasts = length(unique(event_expr()$contrast))
                 )
               })
           
@@ -596,8 +576,19 @@ dge_mode_description <- function(mode,
                                  observed_groups,
                                  group_1 = NULL,
                                  group_2 = NULL,
-                                 thresholding = FALSE){
+                                 thresholding = FALSE,
+                                 contrast_mode = "single",
+                                 n_contrasts = NULL){
   if (identical(mode, "mode_dge")){
+    if (!identical(contrast_mode, "single")){
+      return(
+        paste0(
+          "Differential Expression (",
+          if (is.null(n_contrasts)) 0L else n_contrasts,
+          " edgeR ", gsub("_", "-", contrast_mode), " contrasts)"
+        )
+      )
+    }
     if (!isTRUE(thresholding) && length(group_1) > 0L && length(group_2) > 0L){
       group_1_label <- paste(group_1, collapse = " and ")
       group_2_label <- paste(group_2, collapse = " and ")
@@ -615,4 +606,32 @@ dge_mode_description <- function(mode,
   }
 
   paste0("Marker Identification (", length(observed_groups), " groups)")
+}
+
+# Format retained/excluded pseudobulk information from either edgeR result
+# shape without making the UI depend on internal model objects.
+edger_sample_summary_text <- function(results){
+  multi <- attr(results, "edger_multicontrast_details")
+  if (!is.null(multi)){
+    summaries <- vapply(names(multi$contrasts), function(contrast){
+      details <- multi$contrasts[[contrast]]
+      retained <- details$sample_summary
+      retained_text <- paste0(
+        retained$group, ": ", retained$retained_samples,
+        collapse = "; "
+      )
+      excluded <- nrow(details$excluded_profiles)
+      paste0(contrast, " [", retained_text, "; excluded: ", excluded, "]")
+    }, character(1))
+    return(paste(summaries, collapse = " | "))
+  }
+
+  details <- attr(results, "edger_details")
+  if (is.null(details) || !is.data.frame(details$sample_summary)) return(NULL)
+  retained <- details$sample_summary
+  excluded <- nrow(details$excluded_profiles)
+  paste0(
+    paste0(retained$group, ": ", retained$retained_samples, collapse = "; "),
+    ". ", excluded, " sample/group pseudobulk profile(s) excluded."
+  )
 }

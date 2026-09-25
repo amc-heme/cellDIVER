@@ -24,9 +24,13 @@ resolve_dge_method <- dge_method_test_environment$resolve_dge_method
 dge_sample_column_status <- dge_method_test_environment$dge_sample_column_status
 dge_method_label <- dge_method_test_environment$dge_method_label
 dge_method_input_value <- dge_method_test_environment$dge_method_input_value
+resolve_edger_contrast_mode <-
+  dge_method_test_environment$resolve_edger_contrast_mode
 dge_test_selections_ui <- dge_method_test_environment$dge_test_selections_ui
 subset_stats_ui <- dge_method_test_environment$subset_stats_ui
 dge_mode_description <- dge_method_test_environment$dge_mode_description
+edger_sample_summary_text <-
+  dge_method_test_environment$edger_sample_summary_text
 
 test_that("edgeR is offered only for standard two-group DGE", {
   expect_identical(
@@ -67,6 +71,15 @@ test_that("method input initialization is null-safe", {
   expect_identical(dge_method_input_value(character(), choices), "wilcoxon")
   expect_identical(dge_method_input_value("edger", choices), "edger")
   expect_identical(dge_method_input_value("unsupported", choices), "wilcoxon")
+})
+
+test_that("edgeR contrast mode initialization is null-safe", {
+  expect_identical(resolve_edger_contrast_mode(NULL), "single")
+  expect_identical(resolve_edger_contrast_mode("pairwise"), "pairwise")
+  expect_identical(resolve_edger_contrast_mode("one_vs_rest"), "one_vs_rest")
+  expect_identical(resolve_edger_contrast_mode("reference"), "reference")
+  expect_identical(resolve_edger_contrast_mode(NA_character_), "single")
+  expect_identical(resolve_edger_contrast_mode("unknown"), "single")
 })
 
 test_that("DGE result summary reserves dynamic method and edgeR outputs", {
@@ -115,9 +128,40 @@ test_that("DGE selection UI contains method and edgeR controls", {
 
   expect_match(rendered, "test-method", fixed = TRUE)
   expect_match(rendered, "test-edger_min_cells", fixed = TRUE)
+  expect_match(rendered, "test-edger_contrast_mode", fixed = TRUE)
+  expect_match(rendered, "test-edger_groups", fixed = TRUE)
+  expect_match(rendered, "test-edger_reference_group", fixed = TRUE)
+  expect_match(rendered, "All pairwise comparisons", fixed = TRUE)
+  expect_match(rendered, "Each selected group vs. rest", fixed = TRUE)
   expect_match(rendered, "Minimum Cells per Pseudobulk Sample", fixed = TRUE)
   expect_match(rendered, "value=\"10\"", fixed = TRUE)
   expect_match(rendered, "test-edger_sample_status", fixed = TRUE)
+})
+
+test_that("multi-contrast summaries retain contrast and sample information", {
+  results <- data.frame(feature = "gene1")
+  detail <- list(
+    sample_summary = data.frame(
+      group = c("A", "B"),
+      retained_samples = c(3L, 2L)
+    ),
+    excluded_profiles = data.frame(sample = "sample3")
+  )
+  attr(results, "edger_multicontrast_details") <- list(
+    contrasts = list("A vs B" = detail)
+  )
+
+  expect_identical(
+    edger_sample_summary_text(results),
+    "A vs B [A: 3; B: 2; excluded: 1]"
+  )
+  expect_identical(
+    dge_mode_description(
+      "mode_dge", c("A", "B", "C"),
+      contrast_mode = "pairwise", n_contrasts = 3L
+    ),
+    "Differential Expression (3 edgeR pairwise contrasts)"
+  )
 })
 
 test_that("configured biological sample columns are resolved for edgeR", {

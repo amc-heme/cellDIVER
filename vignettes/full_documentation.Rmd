@@ -433,7 +433,7 @@ To run a DGE analysis, follow the process below. This process is described in gr
 
 -   If performing marker identification, select the metadata to use for marker classes. If performing differential expression, select two groups based on metadata, or feature expression.
 
--   For a standard two-group comparison, choose Wilcoxon or edgeR pseudobulk. Marker identification and feature-expression-threshold comparisons use Wilcoxon.
+-   For differential expression based on categorical metadata, choose Wilcoxon or edgeR pseudobulk. edgeR can run one contrast, all pairwise contrasts, selected groups versus the rest, or selected groups versus a reference. Marker identification and feature-expression-threshold comparisons use Wilcoxon.
 
 -   For either marker identification or differential expression, determine if you would like to define groups using the full dataset, or a subset of cells.
 
@@ -455,11 +455,11 @@ The two groups defined in differential gene expression may be defined in one of 
 
 **Wilcoxon rank-sum** is a fast exploratory test on cell-level normalized expression. Because cells from the same biological sample are not independent replicates, its p-values can be overly optimistic when the scientific question concerns differences across biological samples.
 
-**edgeR pseudobulk** is available for standard two-group comparisons defined by categorical metadata. It sums raw integer counts for cells from the same biological sample and condition, then performs TMM normalization, expression filtering, dispersion estimation, and a quasi-likelihood test. The dataset configuration must identify the biological-sample metadata field and genes assay. Each retained pseudobulk must contain at least the selected number of cells (10 by default). At least two retained biological samples per group are required; three or more per group are recommended.
+**edgeR pseudobulk** is available for comparisons defined by categorical metadata. For sample-level conditions it aggregates raw integer counts by biological sample. For cell-level groups such as clusters it aggregates by biological sample and group, retains adequately represented paired samples, and fits a sample-blocked model. It then performs TMM normalization, expression filtering, dispersion estimation, and quasi-likelihood testing. The dataset configuration must identify the biological-sample metadata field and genes assay. Each retained pseudobulk must contain at least the selected number of cells (10 by default). At least two retained biological samples are required; three or more are recommended.
 
-edgeR is not currently available for marker identification, feature-expression-threshold groups, paired or repeated-measures designs, batch covariates, or arbitrary model formulas. The app does not silently substitute normalized expression when raw counts are missing and does not fall back to Wilcoxon when edgeR validation fails.
+The edgeR contrast control supports a single contrast, every pairwise comparison among the chosen groups, each chosen group versus all other cells, or each chosen group versus a reference group. Leaving "Groups to Test" empty uses every observed group in the current subset. edgeR is not available for marker identification, feature-expression-threshold groups, additional batch covariates, or arbitrary model formulas. The app does not silently substitute normalized expression when raw counts are missing and does not fall back to Wilcoxon when edgeR validation fails.
 
-Group 1 is the numerator of the edgeR contrast. Positive log2 fold changes therefore indicate higher expression in Group 1 than Group 2.
+Group 1 is always the numerator of an edgeR contrast. For one-versus-rest analyses, the named cluster is Group 1; for reference analyses, the reference is Group 2. Positive log2 fold changes therefore indicate higher expression in Group 1.
 
 ### Groups Defined by Categorical Metadata
 
@@ -493,7 +493,7 @@ When checked, the table returned will only show genes with a positive log2 fold 
 
 After selecting a test and a subset, press update to run DGE on the chosen groups. Depending on the size of the dataset and the performance of the server, this may take up to two minutes to run, but usually completes in under 30 seconds. When the test is complete, a report will display in the main window.
 
-The "test summary" section displays the submitted statistical method and the groups used. For edgeR it also reports the retained biological-sample count in each group and the number of pseudobulk samples excluded by the minimum-cell filter. The number of cells in the analyzed subset and in each DGE group or marker class is also shown.
+The "test summary" section displays the submitted statistical method and the groups used. For edgeR it reports retained biological-sample counts and excluded pseudobulk profiles for each contrast. The number of cells in the analyzed subset and in each DGE group or marker class is also shown.
 
 ### DGE Table {#differential-expression-columns}
 

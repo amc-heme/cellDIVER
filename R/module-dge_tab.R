@@ -425,7 +425,8 @@ dge_tab_server <- function(id,
             # Return TRUE when all conditions below are met
             # DGE, with standard groups (thresholding not used)
             if (test_selections()$dge_mode == "mode_dge" &
-                test_selections()$group_mode == "standard"){
+                test_selections()$group_mode == "standard" &
+                identical(test_selections()$edger_contrast_mode, "single")){
               if (!is.null(test_selections()$group_1) &
                   !is.null(test_selections()$group_2)){
                 # At least one group must have more than one 
@@ -489,6 +490,12 @@ dge_tab_server <- function(id,
                 subset_criteria <- subset_selections$selections()
               } else if (test_selections()$group_mode == "standard"){
                 # "Standard" DGE
+                # Multi-contrast edgeR needs the full selected subset. In
+                # particular, one-vs-rest must retain cells from every group.
+                if (identical(test_selections()$dge_method, "edger") &&
+                    !identical(test_selections()$edger_contrast_mode, "single")){
+                  return(subset_selections$selections())
+                }
                 # Add extra subset filter for the two groups selected
                 # Fetch choices for group 1 and group 2
                 choices <-
@@ -815,7 +822,11 @@ dge_tab_server <- function(id,
           dge_method = reactive({test_selections()$dge_method}),
           dge_mode = reactive({test_selections()$dge_mode}),
           dge_group_1 = reactive({test_selections()$group_1}),
-          dge_group_2 = reactive({test_selections()$group_2})
+          dge_group_2 = reactive({test_selections()$group_2}),
+          dge_contrast_mode = reactive({
+            mode <- test_selections()$edger_contrast_mode
+            if (is.null(mode)) "single" else mode
+          })
           )
       
       ## 3.9. Run differential expression ####
@@ -922,6 +933,12 @@ dge_tab_server <- function(id,
 
                   edgeR_selected <-
                     identical(test_selections()$dge_method, "edger")
+                  edgeR_multicontrast <-
+                    edgeR_selected &&
+                    !identical(
+                      test_selections()$edger_contrast_mode,
+                      "single"
+                    )
                   edgeR_group_by <-
                     if (metaclusters_present()){
                       "metacluster"
@@ -947,7 +964,26 @@ dge_tab_server <- function(id,
                   }
 
                   dge_table <-
-                    if (edgeR_selected){
+                    if (edgeR_multicontrast){
+                      scDE::run_dge_multicontrast(
+                        object = subset(),
+                        group_by = group_by_category(),
+                        sample_by = test_selections()$edger_sample_col,
+                        contrast_mode = test_selections()$edger_contrast_mode,
+                        groups = if (length(test_selections()$edger_groups)){
+                          test_selections()$edger_groups
+                        } else {
+                          NULL
+                        },
+                        reference_group =
+                          test_selections()$edger_reference_group,
+                        layer = "counts",
+                        seurat_assay = genes_assay,
+                        min_cells = test_selections()$edger_min_cells,
+                        positive_only = input$pos,
+                        remove_raw_pval = FALSE
+                      )
+                    } else if (edgeR_selected){
                       scDE::run_dge(
                         object = subset(),
                         group_by = edgeR_group_by,
@@ -971,6 +1007,12 @@ dge_tab_server <- function(id,
                   # in the `edger_details` attribute supplied by scDE.
                   attr(dge_table, "dge_method") <-
                     if (edgeR_selected) "edger" else "wilcoxon"
+                  attr(dge_table, "dge_contrast_mode") <-
+                    if (edgeR_selected){
+                      test_selections()$edger_contrast_mode
+                    } else {
+                      "single"
+                    }
                   
                   log_session(session)
                   log_info(
