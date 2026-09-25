@@ -38,14 +38,15 @@ subset_stats_ui <- function(id,
           outputId = ns("print_mode"), 
           inline = FALSE
           ),
-        # Statistical method used for test
-        # Always a Wilcoxon rank sum
+        # Statistical method used for the submitted test
         tags$strong(
           "Statistical Method:"
         ),
-        tags$span(
-          "Wilcoxon rank sum"
+        textOutput(
+          outputId = ns("dge_method"),
+          inline = TRUE
         ),
+        uiOutput(outputId = ns("edger_sample_summary")),
         # Threshold used: only displays for threshold-based DGE
         hidden(
           div(
@@ -192,6 +193,12 @@ subset_stats_ui <- function(id,
 #' @param thresholding_present only used in the DGE tab. If TRUE, the number of cells above and below the chosen expression threshold will be displayed.
 #' @param dge_simple_threshold only used in the DGE tab. If thresholding is 
 #' being used, the value of the threshold chosen is passed here to be displayed.
+#' @param dge_method For the DGE tab, a reactive returning the submitted
+#' differential-expression method.
+#' @param dge_mode For the DGE tab, a reactive returning the submitted analysis
+#' mode.
+#' @param dge_group_1,dge_group_2 For standard DGE, reactives returning the
+#' submitted comparison groups in contrast order.
 #'
 #' @noRd
 subset_stats_server <- 
@@ -205,7 +212,11 @@ subset_stats_server <-
            group_by_category,
            metaclusters_present = NULL,
            thresholding_present = NULL,
-           dge_simple_threshold = NULL
+           dge_simple_threshold = NULL,
+           dge_method = NULL,
+           dge_mode = NULL,
+           dge_group_1 = NULL,
+           dge_group_2 = NULL
            ){
     moduleServer(
       id, 
@@ -219,10 +230,14 @@ subset_stats_server <-
         if (
           tab == "dge" & 
             (!is.reactive(metaclusters_present) | 
-             !is.reactive(thresholding_present))
+             !is.reactive(thresholding_present) |
+             !is.reactive(dge_method) |
+             !is.reactive(dge_mode) |
+             !is.reactive(dge_group_1) |
+             !is.reactive(dge_group_2))
         ){
-          stop("If `tab`=='dge', arguments `metaclusters_present` and 
-               `thresholding_present` must be defined as reactive values.")
+          stop("If `tab`=='dge', arguments `metaclusters_present` and
+               all DGE selection arguments must be defined as reactive values.")
         }
         
         # 1. Compute stats for subset ------------------------------------------
@@ -283,6 +298,54 @@ subset_stats_server <-
         # For DGE tab only: stats on selected DE/marker groups, test 
         # mode, and number of cells by class
         if (tab == "dge"){
+          output$dge_method <- renderText({
+            results <- event_expr()
+            submitted_method <- attr(results, "dge_method")
+            if (is.null(submitted_method)){
+              submitted_method <- dge_method()
+            }
+            dge_method_label(submitted_method)
+          })
+
+          output$edger_sample_summary <- renderUI({
+            results <- event_expr()
+            req(identical(attr(results, "dge_method"), "edger"), results)
+
+            details <- attr(results, "edger_details")
+            req(!is.null(details))
+
+            sample_summary <- details$sample_summary
+            req(is.data.frame(sample_summary))
+            group_1_summary <-
+              sample_summary[sample_summary$group == details$group_1, , drop = FALSE]
+            group_2_summary <-
+              sample_summary[sample_summary$group == details$group_2, , drop = FALSE]
+            excluded_count <- nrow(details$excluded_profiles)
+
+            excluded_text <-
+              if (excluded_count > 0L){
+                paste0(
+                  " ", excluded_count,
+                  " sample/group pseudobulk profile(s) were excluded; see ",
+                  "the retained/excluded details attached to the result."
+                )
+              } else {
+                " No pseudobulk profiles were excluded."
+              }
+
+            div(
+              class = "half-space-top",
+              tags$strong("Biological samples retained: "),
+              tags$span(
+                paste0(
+                  details$group_1, ": ", group_1_summary$retained_samples, "; ",
+                  details$group_2, ": ", group_2_summary$retained_samples, ".",
+                  excluded_text
+                )
+              )
+            )
+          })
+
           # `groups`
           # The groups or markers used for DGE. 
           # Used for downstream stats
@@ -322,17 +385,12 @@ subset_stats_server <-
             eventReactive(
               event_expr(),
               {
-                ifelse(
-                  # Conditional: TRUE when differential expression 
-                  # is selected
-                  n_groups() == 2,
-                  # Differential expression: print the two groups
-                  # groups() contains the identities of both groups
-                  glue("Differential Expression ({groups()[1]} vs. 
-                                {groups()[2]})"),
-                  # Marker identification: print the number of
-                  # groups selected
-                  glue("Marker Identification ({n_groups()} groups)")
+                dge_mode_description(
+                  mode = dge_mode(),
+                  observed_groups = groups(),
+                  group_1 = dge_group_1(),
+                  group_2 = dge_group_2(),
+                  thresholding = thresholding_present()
                 )
               })
           
@@ -530,4 +588,31 @@ subset_stats_server <-
           )
         } # Currently no need to return values for correlations tab
       })
+}
+
+# Describe the submitted analysis without reordering a two-group contrast based
+# on metadata factor or cell order.
+dge_mode_description <- function(mode,
+                                 observed_groups,
+                                 group_1 = NULL,
+                                 group_2 = NULL,
+                                 thresholding = FALSE){
+  if (identical(mode, "mode_dge")){
+    if (!isTRUE(thresholding) && length(group_1) > 0L && length(group_2) > 0L){
+      group_1_label <- paste(group_1, collapse = " and ")
+      group_2_label <- paste(group_2, collapse = " and ")
+    } else {
+      group_1_label <- observed_groups[[1]]
+      group_2_label <- observed_groups[[2]]
+    }
+
+    return(
+      paste0(
+        "Differential Expression (", group_1_label,
+        " vs. ", group_2_label, ")"
+      )
+    )
+  }
+
+  paste0("Marker Identification (", length(observed_groups), " groups)")
 }

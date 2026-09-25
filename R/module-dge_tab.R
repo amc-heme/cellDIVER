@@ -224,6 +224,9 @@ dge_tab_ui <- function(id,
 #' @param designated_genes_assay the name of the assay designated in the config 
 #' file as the genes assay. If NULL, the first assay will be assumed to be the 
 #' genes assay.
+#' @param sample_id_colname Reactive returning the metadata column configured as
+#' the biological sample identifier. This is named `patient_colname` in the
+#' current configuration schema.
 #' @param meta_categories a named vector of metadata categories retrieved from the 
 #' config file.
 #' @param unique_metadata a list of all the unique metadata values in the current 
@@ -246,6 +249,7 @@ dge_tab_server <- function(id,
                            metadata_config,
                            assay_config,
                            designated_genes_assay,
+                           sample_id_colname,
                            # This will replace metadata_config at some point
                            # (It is derived from the config file and is the only
                            # information used)
@@ -297,6 +301,7 @@ dge_tab_server <- function(id,
           unique_metadata = unique_metadata,
           metadata_config = metadata_config,
           assay_config = assay_config,
+          sample_id_colname = sample_id_colname,
           meta_choices = meta_choices,
           valid_features = valid_features
           )
@@ -806,35 +811,58 @@ dge_tab_server <- function(id,
           thresholding_present = thresholding_present,
           dge_simple_threshold = 
             # Must put module output back into a reactive
-            reactive({test_selections()$threshold_value}) 
+            reactive({test_selections()$threshold_value}),
+          dge_method = reactive({test_selections()$dge_method}),
+          dge_mode = reactive({test_selections()$dge_mode}),
+          dge_group_1 = reactive({test_selections()$group_1}),
+          dge_group_2 = reactive({test_selections()$group_2})
           )
       
-      ## 3.9. Run Presto ####
+      ## 3.9. Run differential expression ####
       dge_table_content <-
         eventReactive(
           # Chose the first reactive variable in the subset stats
           # list (all are updated simultaneously, and it is desired
           # for presto to run after stats are computed)
           continue$depend(),
-          label = "DGE: Run Presto",
+          label = "DGE: Run Differential Expression",
           ignoreNULL = FALSE,
           ignoreInit = TRUE,
           {
-            print("DGE 3.9: Run Presto")
+            print("DGE 3.9: Run differential expression")
             
             log_session(session)
-            log_info("DGE Tab: Begin Presto")
+            log_info("DGE Tab: Begin differential expression")
             
             dge_table <- 
               tryCatch(
                 error = function(err_cnd){
-                  # Use error_handler to display notification to user
-                  error_handler(
-                    session,
-                    err_cnd = err_cnd,
-                    error_list = error_list$dge_test_errors,
-                    source_reactive = "dge_table, dge_tab module"
-                  )
+                  if (identical(test_selections()$dge_method, "edger")){
+                    # Expected edgeR validation failures contain actionable
+                    # details (for example, missing raw counts or inadequate
+                    # replication), so return those details to the user.
+                    log_error(
+                      paste0(
+                        "edgeR error in dge_table: ",
+                        conditionMessage(err_cnd)
+                      )
+                    )
+                    showNotification(
+                      ui = dge_edger_error_ui(err_cnd),
+                      duration = NULL,
+                      id = ns("edger_error"),
+                      session = session
+                    )
+                  } else {
+                    # Preserve the existing mapped error handling for
+                    # Wilcoxon and marker analyses.
+                    error_handler(
+                      session,
+                      err_cnd = err_cnd,
+                      error_list = error_list$dge_test_errors,
+                      source_reactive = "dge_table, dge_tab module"
+                    )
+                  }
                   
                   # Hide the spinners
                   main_spinner$hide()
@@ -861,9 +889,14 @@ dge_tab_server <- function(id,
                     }
                   }
                   
-                  # Note: designated genes assay is no longer used
-                  dge_table <-
-                    # Use DGE generic to determine test to run
+                  genes_assay <-
+                    if (isTruthy(designated_genes_assay())){
+                      designated_genes_assay()
+                    } else {
+                      names(assay_config())[[1]]
+                    }
+
+                  wilcoxon_runner <- function(){
                     scDE::run_dge(
                       object = subset(),
                       group_by = 
@@ -877,10 +910,7 @@ dge_tab_server <- function(id,
                       # Seurat assay: designated genes assay, or the first
                       # assay if undefined.
                       # This is only used for Seurat objects
-                      seurat_assay =
-                        if (isTruthy(designated_genes_assay())){
-                          designated_genes_assay()
-                        } else names(assay_config())[[1]],
+                      seurat_assay = genes_assay,
                       # Positive genes only: based on user input
                       positive_only = input$pos,
                       # Report results using a log2 fold change
@@ -888,9 +918,66 @@ dge_tab_server <- function(id,
                       # Show only adjusted p-value column
                       remove_raw_pval = FALSE
                       )
+                  }
+
+                  edgeR_selected <-
+                    identical(test_selections()$dge_method, "edger")
+                  edgeR_group_by <-
+                    if (metaclusters_present()){
+                      "metacluster"
+                    } else {
+                      group_by_category()
+                    }
+                  edgeR_group_1 <-
+                    if (metaclusters_present()){
+                      vector_to_text(test_selections()$group_1)
+                    } else {
+                      test_selections()$group_1
+                    }
+                  edgeR_group_2 <-
+                    if (metaclusters_present()){
+                      vector_to_text(test_selections()$group_2)
+                    } else {
+                      test_selections()$group_2
+                    }
+
+                  if (edgeR_selected &&
+                      isTruthy(test_selections()$edger_sample_error)){
+                    stop(test_selections()$edger_sample_error)
+                  }
+
+                  dge_table <-
+                    if (edgeR_selected){
+                      scDE::run_dge(
+                        object = subset(),
+                        group_by = edgeR_group_by,
+                        layer = "counts",
+                        seurat_assay = genes_assay,
+                        test_use = "edgeR",
+                        sample_by = test_selections()$edger_sample_col,
+                        group_1 = edgeR_group_1,
+                        group_2 = edgeR_group_2,
+                        min_cells = test_selections()$edger_min_cells,
+                        positive_only = input$pos,
+                        lfc_format = "log2",
+                        remove_raw_pval = FALSE
+                      )
+                    } else {
+                      wilcoxon_runner()
+                    }
+
+                  # Keep one app-facing method attribute for the summary UI.
+                  # edgeR's retained/excluded sample details remain available
+                  # in the `edger_details` attribute supplied by scDE.
+                  attr(dge_table, "dge_method") <-
+                    if (edgeR_selected) "edger" else "wilcoxon"
                   
                   log_session(session)
-                  log_info("DGE Tab: Completed Presto")
+                  log_info(
+                    glue(
+                      "DGE Tab: Completed {test_selections()$dge_method} analysis"
+                    )
+                  )
                   
                   # Compute on values of table (for use with automated tests)
                   # Commented out, column formatting here does not apply for 
@@ -1471,4 +1558,16 @@ dge_tab_server <- function(id,
       }
     )
   }
-  
+
+# Build the persistent notification shown for expected edgeR input and design
+# failures. Shiny escapes the condition text, while keeping the specific reason
+# visible to the user.
+dge_edger_error_ui <- function(err_cnd){
+  icon_notification_ui(
+    icon_name = "exclamation-triangle",
+    tagList(
+      tags$strong("edgeR could not run: "),
+      conditionMessage(err_cnd)
+    )
+  )
+}

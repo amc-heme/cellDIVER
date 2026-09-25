@@ -81,7 +81,6 @@ Imports:
     shinycssloaders (>= 1.0.0),
     shinydashboard (>= 0.7.2),
     shinyjs (>= 2.0.0),
-    shinytest,
     shinyWidgets (>= 0.6.2),
     sortable (>= 0.4.5),
     stringr,
@@ -100,5 +99,6 @@ RoxygenNote: 7.3.2
 Depends: 
     R (>= 3.5.0)
 Suggests: 
+    shinytest,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

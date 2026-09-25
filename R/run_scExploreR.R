@@ -1753,7 +1753,7 @@ run_scExploreR <-
           label = "assay_config",
           ignoreNULL = FALSE,
           {
-            config()$other_assay_options$gene_assay
+            configured_genes_assay(config())
           })
 
       ## 2.3. Valid features Expressions ####
@@ -2355,6 +2355,7 @@ run_scExploreR <-
             metadata_config = metadata_config,
             assay_config = assay_config,
             designated_genes_assay = designated_genes_assay,
+            sample_id_colname = patient_colname,
             meta_categories = meta_categories,
             unique_metadata = unique_metadata,
             meta_choices = meta_choices,

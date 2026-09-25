@@ -421,7 +421,7 @@ download_button(plot_type = "Metadata Pie Chart")
 
 # Differential Gene Expression Tab {#dge-tab}
 
-Differential gene expression (DGE) analysis compares groups of cells based on their metadata, and returns a table of genes that differ in expression between the groups. scExploreR uses [presto](https://www.biorxiv.org/content/10.1101/653253v1.full) for DGE analysis, which performs a Wilcoxon Rank Sum and an area under the receiver operator curve (auROC) analysis on the expression data.
+Differential gene expression (DGE) analysis compares groups and returns a table of genes that differ in expression between them. scExploreR provides two statistical methods. The cell-level Wilcoxon rank-sum method uses [presto](https://www.biorxiv.org/content/10.1101/653253v1.full) on normalized expression and also reports an area under the receiver operator curve (auROC). For replicated standard two-group comparisons, the edgeR pseudobulk method aggregates raw counts by biological sample, applies TMM normalization, and uses edgeR's quasi-likelihood framework.
 
 Two DGE testing modes are available: differential expression and marker identification. These may be selected using the **"Choose test to perform"** menu. When differential expression is selected, two groups of cells are compared and the genes upregulated/downregulated in one group vs. the other are shown. When marker identification is selected, more than two groups will be compared, and genes that serve as markers of each group (those that are particularly upregulated or downregulated in that group) will be displayed. When running differential gene expression, genes marked as upregulated in a group are differentially expressed to the extent shown in that group **relative to the other group**, whereas for marker identification the genes upregulated in the marker class are deferentially expressed to the extent shown in the marker class **relative to all other cells**.
 
@@ -432,6 +432,8 @@ To run a DGE analysis, follow the process below. This process is described in gr
 -   Determine if you would like to perform marker identification or differential expression.
 
 -   If performing marker identification, select the metadata to use for marker classes. If performing differential expression, select two groups based on metadata, or feature expression.
+
+-   For a standard two-group comparison, choose Wilcoxon or edgeR pseudobulk. Marker identification and feature-expression-threshold comparisons use Wilcoxon.
 
 -   For either marker identification or differential expression, determine if you would like to define groups using the full dataset, or a subset of cells.
 
@@ -448,6 +450,16 @@ Specific categories from the metadata variable chosen in "choose metadata to use
 ## Differential Expression Mode {#differential-expression}
 
 The two groups defined in differential gene expression may be defined in one of two ways: via categorical metadata, or via feature expression. To define groups via feature expression, check **"use feature expression to define groups"**. The groups are defined within the context of the full dataset or a subset, depending on selections made in the "[subset options](#dge-subset-options)" menu.
+
+### Statistical Method
+
+**Wilcoxon rank-sum** is a fast exploratory test on cell-level normalized expression. Because cells from the same biological sample are not independent replicates, its p-values can be overly optimistic when the scientific question concerns differences across biological samples.
+
+**edgeR pseudobulk** is available for standard two-group comparisons defined by categorical metadata. It sums raw integer counts for cells from the same biological sample and condition, then performs TMM normalization, expression filtering, dispersion estimation, and a quasi-likelihood test. The dataset configuration must identify the biological-sample metadata field and genes assay. Each retained pseudobulk must contain at least the selected number of cells (10 by default). At least two retained biological samples per group are required; three or more per group are recommended.
+
+edgeR is not currently available for marker identification, feature-expression-threshold groups, paired or repeated-measures designs, batch covariates, or arbitrary model formulas. The app does not silently substitute normalized expression when raw counts are missing and does not fall back to Wilcoxon when edgeR validation fails.
+
+Group 1 is the numerator of the edgeR contrast. Positive log2 fold changes therefore indicate higher expression in Group 1 than Group 2.
 
 ### Groups Defined by Categorical Metadata
 
@@ -475,13 +487,13 @@ The interface for entering criteria is the same as in the plots tab. See ["formi
 
 ### Positive Markers Only
 
-When checked, the table returned will only show genes that are upregulated in each group/marker class. Disabling this option will also show downregulated genes, but this information is redundant since genes downregulated in a group will always show as being upregulated in another group (i.e. in differential expression mode, a gene that is expressed twice as much in group 1 compared to group 2 will be half as expressed in group 2 relative to group 1).
+When checked, the table returned will only show genes with a positive log2 fold change. For edgeR, this means genes higher in Group 1 than Group 2; clear the checkbox to retain genes higher in Group 2 as negative fold changes. For Wilcoxon marker results, positive genes are those upregulated in the displayed group or marker class.
 
 ## Interpreting DGE Results
 
 After selecting a test and a subset, press update to run DGE on the chosen groups. Depending on the size of the dataset and the performance of the server, this may take up to two minutes to run, but usually completes in under 30 seconds. When the test is complete, a report will display in the main window.
 
-The "test summary" section will display summary data on the test selected and the subset it was performed on. The "test selected" subsection will display either "differential expression" or "marker identification" based on the test mode chosen. It will also display the groups being compared if differential expression was chosen, or the number of marker classes if marker identification was chosen. The "subset used for test" subsection shows information on the subset of cells chosen. For each categorical metadata variable shown in the app, the categories represented by the cells in the test sample will be shown (if cells from patients A, B, and C are present, this section will list A, B, and C under "patients"). The number of cells in the subset tested is also displayed, and the number of cells in each DGE group or marker class is also shown.
+The "test summary" section displays the submitted statistical method and the groups used. For edgeR it also reports the retained biological-sample count in each group and the number of pseudobulk samples excluded by the minimum-cell filter. The number of cells in the analyzed subset and in each DGE group or marker class is also shown.
 
 ### DGE Table {#differential-expression-columns}
 
@@ -491,17 +503,25 @@ The columns of the DGE table are detailed below. The table may be downloaded via
 
 -   Class (or group): the dge group, or marker class in which the gene is differentially expressed.
 
--   Average expression: the average expression of the gene in the group or class listed.
+-   Average expression: the average expression of the gene in the group or class listed. This is reported for Wilcoxon results.
+
+-   logCPM: the average log2 counts per million across pseudobulk libraries. This is reported for edgeR results.
 
 -   Log2FC: the log-2 fold change in expression of the gene in the group or class, relative to either the other group (in differential expression mode) or all other cells (in marker identification mode).
 
--   AUC: the area under the receiver operator curve for the gene, which serves as a measure of how well the gene serves as a marker for the indicated group/class.
+-   AUC: the area under the receiver operator curve for the gene, which serves as a measure of how well the gene serves as a marker for the indicated group/class. This is reported for Wilcoxon results.
+
+-   pval: the unadjusted p-value. For edgeR this is produced by the quasi-likelihood F-test.
 
 -   Adjusted p-value: the adjusted p-value associated with the log2FC calculation in expression of the gene in the current group vs. the other group, or all other cells.
 
 -   Percent expression within class: the percentage of cells in the indicated group or class that express the gene in the group/class.
 
 -   Percent expression outside class: the percentage of cells in the indicated group or class that express the gene outside the group/class.
+
+-   n_samples_group_1 and n_samples_group_2: the retained biological-sample counts used by edgeR.
+
+-   method: the edgeR workflow used to produce the row.
 
 If either of the percent expression values are very low, or if there is a large difference in percent expression inside the group vs. outside, caution should be taken when interpreting the results. Definitive comparisons are difficult to determine when fewer cells are expressing the feature, and lower expression may be associated with the [dropout effect](https://doi.org/10.1038/nmeth.2967).
 
