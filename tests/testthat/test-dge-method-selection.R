@@ -26,6 +26,8 @@ dge_method_label <- dge_method_test_environment$dge_method_label
 dge_method_input_value <- dge_method_test_environment$dge_method_input_value
 resolve_edger_contrast_mode <-
   dge_method_test_environment$resolve_edger_contrast_mode
+show_feature_expression_control <-
+  dge_method_test_environment$show_feature_expression_control
 dge_test_selections_ui <- dge_method_test_environment$dge_test_selections_ui
 subset_stats_ui <- dge_method_test_environment$subset_stats_ui
 dge_mode_description <- dge_method_test_environment$dge_mode_description
@@ -80,6 +82,12 @@ test_that("edgeR contrast mode initialization is null-safe", {
   expect_identical(resolve_edger_contrast_mode("reference"), "reference")
   expect_identical(resolve_edger_contrast_mode(NA_character_), "single")
   expect_identical(resolve_edger_contrast_mode("unknown"), "single")
+})
+
+test_that("feature-expression grouping is hidden for edgeR", {
+  expect_true(show_feature_expression_control("mode_dge", "wilcoxon"))
+  expect_false(show_feature_expression_control("mode_dge", "edger"))
+  expect_false(show_feature_expression_control("mode_marker", "wilcoxon"))
 })
 
 test_that("DGE result summary reserves dynamic method and edgeR outputs", {

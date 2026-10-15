@@ -355,7 +355,10 @@ dge_tab_server <- function(id,
           assay_config = assay_config,
           meta_categories = meta_categories,
           valid_features = valid_features,
-          hide_menu = hidden_variable
+          hide_menu = hidden_variable,
+          allow_expression_filters = reactive({
+            !identical(test_selections()$dge_method, "edger")
+          })
           )
       
       # 3. Calculations ran after submit button is pressed ----------

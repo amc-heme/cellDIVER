@@ -612,7 +612,7 @@ dge_test_selections_server <-
             
             target_id <- "use_feature_expression"
 
-            if (dge_mode() == "mode_dge"){
+            if (show_feature_expression_control(dge_mode(), dge_method())){
               showElement(
                 id = target_id
                 )
@@ -622,6 +622,24 @@ dge_test_selections_server <-
                   )
                 }
             })
+
+        # edgeR requires groups defined by sample-level categorical metadata.
+        # Clear a stale threshold selection before hiding its control.
+        observeEvent(
+          dge_method(),
+          label = "Test Selection: Disable Feature Expression for edgeR",
+          ignoreInit = TRUE,
+          {
+            if (identical(dge_method(), "edger") &&
+                isTruthy(input$use_feature_expression)){
+              updateCheckboxInput(
+                session = session,
+                inputId = "use_feature_expression",
+                value = FALSE
+              )
+            }
+          }
+        )
         
         ## 3.7. Update Standard DGE Group Menus ####
         ### 3.7.1. Update Group 2 based on Group 1 Selection ####
@@ -971,6 +989,12 @@ resolve_edger_contrast_mode <- function(contrast_mode){
   } else {
     "single"
   }
+}
+
+# Feature-expression thresholds define cell-level groups and therefore remain
+# available only for differential-expression Wilcoxon analyses.
+show_feature_expression_control <- function(dge_mode, dge_method){
+  identical(dge_mode, "mode_dge") && !identical(dge_method, "edger")
 }
 
 # Validate the configuration-level biological sample field. Cell-level missing
