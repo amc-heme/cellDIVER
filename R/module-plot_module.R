@@ -62,6 +62,10 @@
 #' is selected.
 #' @param download_button If TRUE, display a download button that will save a
 #' .png image of the plot to disk.
+#' @param hexbin_options If TRUE, display the hexbin-specific controls (number
+#' of bins, and either per-facet density scaling or the expression aggregation
+#' method depending on `plot_type`). These are placed after the projection
+#' menu.
 #'
 #' @noRd
 plot_module_ui <- function(id,
@@ -103,6 +107,7 @@ plot_module_ui <- function(id,
                            manual_dimensions =                     FALSE,
                            separate_features =                     FALSE,
                            download_button =                       FALSE,
+                           hexbin_options =                        FALSE,
                            # Modifiers to elements above
                            # Default values for inputs
                            label_default =                         TRUE,
@@ -247,7 +252,9 @@ plot_module_ui <- function(id,
             "DimPlot" = "DimPlots-split-by",
             "Feature Plot" = "Feature-plots-split-by",
             "Cell Proportion" = "cell-proportion-plot-comparison-metadata",
-            "Violin Plot" = "violin-plots-split-by"
+            "Violin Plot" = "violin-plots-split-by",
+            "Hexbin Density Plot" = "Hexbin-plots-split-by",
+            "Hexbin Feature Plot" = "Hexbin-plots-split-by"
           )
         #assign anchor based on plot_label
         anchor <- plot_to_anchor[[plot_label]]
@@ -316,11 +323,144 @@ plot_module_ui <- function(id,
           }
         }
 
+        # html anchors pointing to the relevant documentation section
+        plot_to_anchor <-
+          list(
+            "DimPlot" = "DimPlots-projection",
+            "Feature Plot" = "Feature-plots-projection",
+            "Hexbin Density Plot" = "Hexbin-plots-projection",
+            "Hexbin Feature Plot" = "Hexbin-plots-projection"
+          )
+        anchor <- plot_to_anchor[[plot_label]]
+
         selectInput(
           inputId = ns("reduction"),
-          label = "Choose Projection",
+          label = tagList(
+            "Choose Projection",
+            a(id = ns("reduction_info_icon"),
+              icon("info-circle"),
+              href = paste0("https://amc-heme.github.io/cellDIVER/articles/",
+                            "full_documentation.html#", anchor),
+              target = "_blank")
+          ),
           choices = reductions()
           )
+      } else NULL,
+
+      bsTooltip(
+        id = ns("reduction_info_icon"),
+        title = paste0(
+          "Select the dimensional reduction (projection) used to position ",
+          "cells on the plot."
+          ),
+        placement = "top",
+        trigger = "hover",
+        options = NULL
+      ),
+
+      ## Hexbin options ####
+      # Number of bins (both hexbin plot types), per-facet density scaling
+      # (density plots) and expression aggregation method (feature plots).
+      # Placed directly after the split by/projection menus, ahead of the
+      # title options and download button.
+      if (hexbin_options == TRUE){
+        tagList(
+          sliderInput(
+            inputId = ns("hexbin_nbins"),
+            label = tagList(
+              "Number of Bins",
+              a(id = ns("hexbin_nbins_info_icon"),
+                icon("info-circle"),
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/",
+                              "full_documentation.html#",
+                              "Hexbin-plots-number-of-bins"),
+                target = "_blank")
+            ),
+            min = 20,
+            max = 200,
+            value = 80,
+            step = 10
+          ),
+          bsTooltip(
+            id = ns("hexbin_nbins_info_icon"),
+            title = paste0(
+              "Number of hexagonal bins across each axis. Higher values ",
+              "give smaller bins and more detail."
+              ),
+            placement = "top",
+            trigger = "hover",
+            options = NULL
+          ),
+
+          # Density plots: scale density per facet (only relevant when
+          # splitting by a metadata variable)
+          if (plot_type == "hexbin_density"){
+            conditionalPanel(
+              condition = glue("input['{ns('split_by')}'] != 'none'"),
+              checkboxInput(
+                inputId = ns("hexbin_scale_density"),
+                label = tagList(
+                  "Scale density independently per facet",
+                  a(id = ns("hexbin_scale_density_info_icon"),
+                    icon("info-circle"),
+                    href = paste0(
+                      "https://amc-heme.github.io/cellDIVER/articles/",
+                      "full_documentation.html#",
+                      "Hexbin-density-scale-per-facet"
+                      ),
+                    target = "_blank")
+                ),
+                value = FALSE
+              ),
+              bsTooltip(
+                id = ns("hexbin_scale_density_info_icon"),
+                title = paste0(
+                  "When enabled, each facet uses its own color scale (0-1) ",
+                  "to show relative density within each group."
+                  ),
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
+            )
+          } else NULL,
+
+          # Feature plots: method used to aggregate expression within each bin
+          if (plot_type == "hexbin_feature"){
+            tagList(
+              selectInput(
+                inputId = ns("hexbin_action"),
+                label = tagList(
+                  "Expression Aggregation Method",
+                  a(id = ns("hexbin_action_info_icon"),
+                    icon("info-circle"),
+                    href = paste0(
+                      "https://amc-heme.github.io/cellDIVER/articles/",
+                      "full_documentation.html#",
+                      "Hexbin-feature-aggregation"
+                      ),
+                    target = "_blank")
+                ),
+                choices = c(
+                  "Mean" = "mean",
+                  "Median" = "median",
+                  "Sum" = "sum"
+                ),
+                selected = "mean"
+              ),
+              bsTooltip(
+                id = ns("hexbin_action_info_icon"),
+                title = paste0(
+                  "How the expression values of the cells in each hexagon ",
+                  "are combined: mean, median, or sum."
+                  ),
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
+            )
+          } else NULL
+        )
       } else NULL,
 
       ## Title selection and custom title ####
@@ -334,7 +474,9 @@ plot_module_ui <- function(id,
           "DimPlot" = "DimPlots-title-options",
           "Feature Plot" = "Feature-plots-title-options",
           "Cell Proportion" = "cell-proportion-plot-title-options",
-          "Ridge" = "ridge-title-options"
+          "Ridge" = "ridge-title-options",
+          "Hexbin Density Plot" = "Hexbin-plots-title-options",
+          "Hexbin Feature Plot" = "Hexbin-plots-title-options"
         )
         #assign anchor based on plot_label
         anchor <- plot_to_anchor[[plot_label]]
@@ -1097,10 +1239,7 @@ plot_module_server <- function(id,
                                patient_colname = NULL,
                                separate_features_server = FALSE,
                                blend_palettes = NULL,
-                               current_tab = NULL,
-                               hexbin_nbins = NULL,
-                               hexbin_scale_density = NULL,
-                               hexbin_action = NULL
+                               current_tab = NULL
                                ){
   moduleServer(id,
                function(input,output,session){
@@ -1375,10 +1514,12 @@ plot_module_server <- function(id,
                                group_by = plot_selections$group_by(),
                                metadata_config = metadata_config(),
                                features_entered =
-                                 if (plot_type %in% c("feature", "ridge")){
+                                 if (plot_type %in%
+                                     c("feature", "ridge", "hexbin_feature")){
                                    features_entered()
                                  } else NULL,
                                assay_config = assay_config(),
+                               action = plot_selections$hexbin_action(),
                                show_modality_key = 
                                  # "Raw" feature names setting from plots tab
                                  # Apply value of checkbox if provided to the 
@@ -1434,10 +1575,12 @@ plot_module_server <- function(id,
                            group_by = plot_selections$group_by(),
                            metadata_config = metadata_config(),
                            features_entered =
-                             if (plot_type %in% c("feature", "ridge")){
+                             if (plot_type %in%
+                                 c("feature", "ridge", "hexbin_feature")){
                                features_entered()
                                } else NULL,
                            assay_config = assay_config(),
+                           action = plot_selections$hexbin_action(),
                            show_modality_key = 
                              # "Raw" feature names setting from plots tab
                              raw_feature_names()
@@ -1491,6 +1634,7 @@ plot_module_server <- function(id,
                               metadata_config = metadata_config(),
                               features_entered = features_entered(),
                               assay_config = assay_config(),
+                              action = plot_selections$hexbin_action(),
                               show_modality_key = 
                                 # "Raw" feature names setting from plots tab
                                 raw_feature_names()
@@ -2944,7 +3088,8 @@ plot_module_server <- function(id,
                             )
                           }),
                       
-                      # Hexbin-specific parameters
+                      # Hexbin-specific parameters (inputs drawn by
+                      # plot_module_ui when hexbin_options = TRUE)
                       `hexbin_nbins` =
                         reactive(
                           label = 
@@ -2952,9 +3097,8 @@ plot_module_server <- function(id,
                           {
                             if (plot_type %in% 
                                 c("hexbin_density", "hexbin_feature")){
-                              if (!is.null(hexbin_nbins) && 
-                                  is.reactive(hexbin_nbins)){
-                                hexbin_nbins()
+                              if (!is.null(input$hexbin_nbins)){
+                                input$hexbin_nbins
                               } else {
                                 80  # Default value
                               }
@@ -2969,12 +3113,7 @@ plot_module_server <- function(id,
                             ),
                           {
                             if (plot_type == "hexbin_density"){
-                              if (!is.null(hexbin_scale_density) && 
-                                  is.reactive(hexbin_scale_density)){
-                                isTruthy(hexbin_scale_density())
-                              } else {
-                                FALSE  # Default value
-                              }
+                              isTruthy(input$hexbin_scale_density)
                             } else NULL
                           }),
                       
@@ -2984,9 +3123,8 @@ plot_module_server <- function(id,
                             glue("{plot_label}: process hexbin_action selection"),
                           {
                             if (plot_type == "hexbin_feature"){
-                              if (!is.null(hexbin_action) && 
-                                  is.reactive(hexbin_action)){
-                                hexbin_action()
+                              if (!is.null(input$hexbin_action)){
+                                input$hexbin_action
                               } else {
                                 "mean"  # Default value
                               }
@@ -4333,7 +4471,18 @@ plot_module_server <- function(id,
                             # Assay and layer will use defaults (NULL) for now
                             assay = NULL,
                             layer = NULL,
-                            palette = palette(),
+                            # Use custom colors if defined; otherwise the
+                            # selected continuous palette (NULL = default)
+                            palette =
+                              if (
+                                isTruthy(plot_selections$min_color()) &
+                                isTruthy(plot_selections$max_color())
+                              ){
+                                c(plot_selections$min_color(),
+                                  plot_selections$max_color())
+                              } else {
+                                palette()
+                              },
                             # Diverging palette (3 colors with midpoint at 0)
                             diverging_palette = 
                               # Use custom diverging colors if defined

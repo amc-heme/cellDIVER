@@ -615,7 +615,10 @@ plots_tab_ui <- function(id,
               ),
               bsTooltip(
                 id = ns("continuous_palette_div"),
-                title = "Continous palette applies to Dot Plot and Feature plot.",
+                title = paste0(
+                  "Continuous palette applies to Dot Plot, Feature Plot, ",
+                  "and Hexbin plots."
+                  ),
                 placement = "top",
                 trigger = "hover",
                 options = NULL
@@ -746,40 +749,8 @@ plots_tab_ui <- function(id,
                 limits_checkbox =       TRUE,
                 custom_colors =         FALSE,
                 manual_dimensions =     TRUE,
-                download_button =       TRUE
-              ),
-              
-              # Hexbin-specific options
-              div(
-                style = "padding: 10px;",
-                
-                # Nbins slider
-                sliderInput(
-                  inputId = ns("hexbin_density_nbins"),
-                  label = "Number of Bins",
-                  min = 20,
-                  max = 200,
-                  value = 80,
-                  step = 10
-                ),
-                
-                # Scale density checkbox (only shown when split_by is active)
-                conditionalPanel(
-                  condition = 
-                    glue(
-                      "input['{ns('hexbin_density-split_by')}'] != 'none'"
-                    ),
-                  checkboxInput(
-                    inputId = ns("hexbin_density_scale_density"),
-                    label = "Scale density independently per facet",
-                    value = FALSE
-                  ),
-                  helpText(
-                    "When enabled, each facet will use its own color scale ",
-                    "(0-1) to better visualize relative density patterns ",
-                    "within each group."
-                  )
-                )
+                download_button =       TRUE,
+                hexbin_options =        TRUE
               )
             )
           ),
@@ -860,37 +831,8 @@ plots_tab_ui <- function(id,
                 custom_colors =              TRUE,
                 manual_dimensions =          TRUE,
                 download_button =            TRUE,
-                separate_features =          FALSE
-              ),
-              
-              # Hexbin-specific options
-              div(
-                style = "padding: 10px;",
-                
-                # Nbins slider
-                sliderInput(
-                  inputId = ns("hexbin_feature_nbins"),
-                  label = "Number of Bins",
-                  min = 20,
-                  max = 200,
-                  value = 80,
-                  step = 10
-                ),
-                
-                # Action dropdown
-                selectInput(
-                  inputId = ns("hexbin_feature_action"),
-                  label = "Expression Aggregation Method",
-                  choices = c(
-                    "Mean" = "mean",
-                    "Median" = "median",
-                    "Sum" = "sum"
-                  ),
-                  selected = "mean"
-                ),
-                helpText(
-                  "Method for aggregating expression values within each bin."
-                )
+                separate_features =          FALSE,
+                hexbin_options =             TRUE
               )
             )
           ),
@@ -1469,13 +1411,9 @@ plots_tab_server <- function(id,
                     plot_type = "hexbin_density",
                     lim_orig = lim_orig,
                     metadata_config = metadata_config,
-                    # Hexbin density plots use continuous palette (viridis in
-                    # hextant by default, but will use global palette when set)
-                    palette = selected_continuous_palette,
-                    # Hexbin-specific parameters
-                    hexbin_nbins = reactive({input$hexbin_density_nbins}),
-                    hexbin_scale_density = 
-                      reactive({input$hexbin_density_scale_density})
+                    # Hexbin density plots use the continuous palette (the
+                    # lightgrey-to-blue default unless a palette is selected)
+                    palette = selected_continuous_palette
                   )
                   
                   ## 3.2.2. Hexbin Feature Plot ####
@@ -1496,10 +1434,7 @@ plots_tab_server <- function(id,
                     metadata_config = metadata_config,
                     lim_orig = lim_orig,
                     # Use continuous palette for hexbin feature plots
-                    palette = selected_continuous_palette,
-                    # Hexbin-specific parameters
-                    hexbin_nbins = reactive({input$hexbin_feature_nbins}),
-                    hexbin_action = reactive({input$hexbin_feature_action})
+                    palette = selected_continuous_palette
                   )
                   
                   ## 3.3. Violin Plot ####
