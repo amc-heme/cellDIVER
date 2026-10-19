@@ -328,6 +328,10 @@ run_cellDIVER <-
         `mako` = mako(42, direction = -1)
       )
 
+    # Offer a reversed variant of each continuous palette (except the
+    # lightgrey-to-blue default), interleaved with the originals
+    continuous_palettes <- reverse_continuous_palettes(continuous_palettes)
+
     # Blend palettes: for blended feature plots
     # First color is for low expression of both features (default "lightgrey")
     # Subsequent colors are for expression of each of the two features
