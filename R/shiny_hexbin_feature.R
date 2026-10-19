@@ -64,10 +64,6 @@
 #' @return A ggplot2 object (or patchwork object for multiple features) with
 #'   hexbin feature plot(s) created according to user specifications.
 #'
-#' @importFrom hextant plot_hextant_feature
-#' @import ggplot2
-#' @import SCUBA
-#' @importFrom patchwork wrap_plots
 #' 
 #' @noRd
 shiny_hexbin_feature <- function(

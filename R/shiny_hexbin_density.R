@@ -54,9 +54,6 @@
 #' @return A ggplot2 object with a hexbin density plot created according to
 #'   user specifications.
 #'
-#' @importFrom hextant plot_hextant_density
-#' @import ggplot2
-#' @import SCUBA
 #' 
 #' @noRd
 shiny_hexbin_density <- function(

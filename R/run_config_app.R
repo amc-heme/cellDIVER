@@ -2547,7 +2547,7 @@ run_config <-
               session = session,
               inputId = "genes_assay",
               choices = all_assays,
-              selected = config$other_assay_options$gene_assay
+              selected = config$other_assay_options$genes_assay
             )
 
             if (dev_mode == TRUE){

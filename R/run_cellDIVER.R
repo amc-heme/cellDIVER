@@ -1737,7 +1737,7 @@ run_cellDIVER <-
           label = "assay_config",
           ignoreNULL = FALSE,
           {
-            config()$other_assay_options$gene_assay
+            config()$other_assay_options$genes_assay
           }
         )
 

@@ -82,7 +82,7 @@ Imports:
     shiny (>= 1.6.1),
     shinyBS (>= 0.61.1),
     shinyjs (>= 2.0.0),
-    shinyWidgets (>= 0.6.2),
+    shinyWidgets (>= 0.7.0),
     SingleCellExperiment,
     sortable (>= 0.4.5),
     stats,

@@ -18,7 +18,8 @@
 #' @importFrom DT datatable DTOutput formatSignif renderDT
 #' @importFrom ggplot2 aes coord_cartesian coord_polar geom_bar geom_col
 #' @importFrom ggplot2 geom_text geom_vline ggsave layer_scales position_stack
-#' @importFrom ggplot2 scale_x_discrete theme_void
+#' @importFrom ggplot2 scale_color_gradient2 scale_fill_gradient2
+#' @importFrom ggplot2 scale_fill_gradientn scale_x_discrete theme_void
 #' @importFrom ggsci pal_d3 pal_jco pal_lancet pal_locuszoom pal_rickandmorty
 #' @importFrom ggsci pal_startrek
 #' @importFrom glue glue
@@ -26,7 +27,8 @@
 #' @importFrom patchwork plot_annotation plot_layout
 #' @importFrom rintrojs introjsUI
 #' @importFrom rlog log_error log_info log_warn
-#' @importFrom shiny a actionButton actionLink addResourcePath checkboxInput
+#' @importFrom shiny a actionButton actionLink addResourcePath checkboxGroupInput
+#' @importFrom shiny checkboxInput
 #' @importFrom shiny clickOpts conditionalPanel div downloadButton
 #' @importFrom shiny downloadHandler downloadLink eventReactive
 #' @importFrom shiny exportTestValues fileInput fluidPage fluidRow
@@ -56,7 +58,7 @@
 #' @importFrom SingleCellExperiment altExp "altExp<-" altExpNames altExps
 #' @importFrom SingleCellExperiment mainExpName "mainExpName<-"
 #' @importFrom sortable add_rank_list bucket_list rank_list
-#' @importFrom stats cor
+#' @importFrom stats cor setNames
 #' @importFrom stringr str_sort
 #' @importFrom SummarizedExperiment assay "assay<-" "colData<-"
 #' @importFrom tibble add_row as_tibble tibble
