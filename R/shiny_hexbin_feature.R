@@ -55,8 +55,9 @@
 #'   "scale.data"). If NULL, uses the object's default layer for the specified
 #'   assay.
 #' @param palette A character vector of hex color codes for the continuous 
-#'   color scale. When NULL, viridis is used (hextant default). When 
-#'   provided, overrides the default viridis scale with the specified palette.
+#'   color scale. When NULL, cellDIVER's default continuous palette
+#'   (lightgrey to blue, matching Feature and Dot plots) is used. hextant's
+#'   viridis scale is always replaced.
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for 
 #'   use with scale_fill_gradient2() with a fixed midpoint at 0. Takes 
 #'   precedence over palette when provided.
@@ -118,9 +119,16 @@ shiny_hexbin_feature <- function(
     reduction <- "UMAP"
   }
   
+  # Use cellDIVER's default continuous palette when none is selected, so
+  # hexbin plots match the Feature and Dot plot defaults instead of
+  # hextant's viridis scale
+  if (is.null(palette)) {
+    palette <- c("lightgrey", "blue")
+  }
+  
   # Validate reduction exists in object
   available_reductions <- tryCatch({
-    SCUBA::all_keys(object)$reductions
+    reduction_names(object)
   }, error = function(e) {
     NULL
   })
@@ -204,9 +212,9 @@ shiny_hexbin_feature <- function(
             midpoint = 0
           )
         )
-      } else if (!is.null(palette)) {
-        # Override viridis color scale with global palette if a palette is 
-        # provided
+      } else {
+        # Otherwise override the viridis color scale with the global
+        # (or default) continuous palette
         list(
           scale_fill_gradientn(colors = palette)
         )
@@ -222,8 +230,11 @@ shiny_hexbin_feature <- function(
       }
     )
     
-    # Apply the layers to the plot
-    plot <- plot & layers
+    # Apply the layers to the plot. Replacing hextant's fill scale emits a
+    # "Scale for fill is already present" message, which is expected.
+    suppressMessages(
+      plot <- plot & layers
+    )
     
     return(plot)
     
@@ -286,9 +297,9 @@ shiny_hexbin_feature <- function(
               midpoint = 0
             )
           )
-        } else if (!is.null(palette)) {
-          # Override viridis color scale with global palette if a palette is 
-          # provided
+        } else {
+          # Otherwise override the viridis color scale with the global
+          # (or default) continuous palette
           list(
             scale_fill_gradientn(colors = palette)
           )
@@ -302,8 +313,10 @@ shiny_hexbin_feature <- function(
         }
       )
       
-      # Apply the layers to the plot
-      individual_plot <- individual_plot & layers
+      # Apply the layers to the plot (see note above on the fill scale message)
+      suppressMessages(
+        individual_plot <- individual_plot & layers
+      )
       
       # Add to plot list
       plot_list[[i]] <- individual_plot

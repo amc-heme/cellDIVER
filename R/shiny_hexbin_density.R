@@ -48,8 +48,9 @@
 #'   full object at app startup. Only used when is_subset = TRUE and
 #'   original_limits = TRUE.
 #' @param palette A character vector of hex color codes for the continuous 
-#'   color scale. When NULL, viridis is used (hextant default). When 
-#'   provided, overrides the default viridis scale with the specified palette.
+#'   color scale. When NULL, cellDIVER's default continuous palette
+#'   (lightgrey to blue, matching Feature and Dot plots) is used. hextant's
+#'   viridis scale is always replaced.
 #'
 #' @return A ggplot2 object with a hexbin density plot created according to
 #'   user specifications.
@@ -128,6 +129,13 @@ shiny_hexbin_density <- function(
   # hextant expects dimension indices, always use first two dimensions
   use_dims <- c(1, 2)
   
+  # Use cellDIVER's default continuous palette when none is selected, so
+  # hexbin plots match the Feature and Dot plot defaults instead of
+  # hextant's viridis scale
+  if (is.null(palette)) {
+    palette <- c("lightgrey", "blue")
+  }
+  
   # Create the hexbin density plot using hextant
   # Title is passed directly from the caller (already evaluated)
   plot <- hextant::plot_hextant_density(
@@ -154,12 +162,11 @@ shiny_hexbin_density <- function(
       )
     ),
     
-    # Override viridis color scale with global palette if a palette is provided
-    if (!is.null(palette)) {
-      list(
-        scale_fill_gradientn(colors = palette)
-      )
-    },
+    # Override hextant's viridis color scale with the global (or default)
+    # continuous palette
+    list(
+      scale_fill_gradientn(colors = palette)
+    ),
     
     # Apply original axis limits if this is a subset and user has selected
     # to use original limits
@@ -171,8 +178,11 @@ shiny_hexbin_density <- function(
     }
   )
   
-  # Apply the layers to the plot
-  plot <- plot & layers
+  # Apply the layers to the plot. Replacing hextant's fill scale emits a
+  # "Scale for fill is already present" message, which is expected.
+  suppressMessages(
+    plot <- plot & layers
+  )
   
   # Return the finished plot
   return(plot)
