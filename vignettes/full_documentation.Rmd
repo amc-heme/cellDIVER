@@ -86,6 +86,10 @@ At the top of the options panel you will see several switches, one for each plot
 
 -   **Feature Plot:** a DimPlot with cells colored by a feature's value (e.g. gene, surface protein, or other data enabled by the browser admin).
 
+-   **HexDensity Plot:** a DimPlot in which cells are binned into hexagons colored by the number of cells in each bin, which reduces overplotting in dense datasets.
+
+-   **HexFeature Plot:** a hexbin plot in which each hexagon is colored by the mean, median, or sum of a feature's values across the cells it contains.
+
 -   **Violin Plot:** displays the distribution of a feature's value across groups of cells as defined in the metadata.
 
 -   **Dot Plot:** shows the average scaled value and percentage of cells with non-zero values for multiple features across groups of cells as defined by metadata categories.
@@ -104,7 +108,9 @@ When plot types based on a gene or multiple genes are selected, the feature entr
 
 ## Palettes {#Palettes}
 
-Allows for the selection of color palettes for categorical and continuous data. Selections made will apply to all plots in the plots tab.
+Allows for the selection of color palettes for categorical and continuous data. Selections made will apply to all plots in the plots tab. The categorical palette applies to DimPlots, scatterplots, cell proportion plots, violin plots and ridge plots; the continuous palette applies to feature plots, dot plots and hexbin plots.
+
+Each continuous palette other than the default (light grey to blue) is also offered in a reversed form, listed directly beneath the original as "*name* (reversed)". Feature, dot and hexbin feature plots can additionally use a zero-centered diverging palette: see [Use Custom Diverging Colors](#Feature-plots-diverging-colors).
 
 ## Forming Subsets {#Subsets}
 
@@ -143,7 +149,7 @@ This menu is useful for comparing projections between different metadata values.
 
 When a variable is selected, a slider to choose the number of columns will appear under the "Title options menu" (see [Choose number of columns](#choose-number-of-columns) for more info).
 
-### Choose Projection
+### Choose Projection {#DimPlots-projection}
 
 This menu is used to switch between different methods of dimensional reduction: cells are plotted according to the coordinates selected in the current projection method. Projection methods are generated during dataset processing and added by the browser admin. Common projections include UMAP and t-SNE. For more information on each projection included with the current dataset, contact the user or organization that set up the browser.
 
@@ -188,7 +194,7 @@ This menu is used to select a categorical metadata variable to be used to colori
 
 This menu sets a categorical metadata variable used to "split" cells into separate plots for viewing side-by-side. One panel will be created for each value in the split by variable. If a single feature is entered in the [feature selection](#feature-selection) menu, the number of columns used for the panels may be adjusted. If two or more features are entered, however, the layout is fixed to place features by row and split by groups by column.
 
-### Choose Projection
+### Choose Projection {#Feature-plots-projection}
 
 This menu is used to switch between visualizing different methods of dimensional reduction: cells are plotted according to the coordinates selected in the current projection method. Projection methods are calculated during dataset processing and added by the browser admin. Common projections include UMAP and t-SNE. For more information on each projection included with the current dataset, contact the user or organization that set up the browser.
 
@@ -228,6 +234,16 @@ When checked, cells with the highest values will be plotted on top of the cells 
 
 Toggles group by variable labels above each set of cells on and off.
 
+### Use Custom Colors
+
+When checked, two color pickers appear to set the colors used for the lowest and highest values on the plot, replacing the continuous palette chosen in the [palettes](#Palettes) menu.
+
+### Use Custom Diverging Colors {#Feature-plots-diverging-colors}
+
+When checked, the plot is colored with a three-color, zero-centered scale: one color for negative values, one for zero, and one for positive values. This is intended for data centered on zero, such as scaled expression or module scores. The three colors may be changed with the pickers that appear.
+
+A **Color Scale Cap** slider also appears. It sets the absolute value at which the low and high colors are placed, so the scale runs from minus the cap to plus the cap rather than from the minimum to the maximum of the data. Values beyond the cap are drawn in the end colors. The slider's range is set from the data for the current features; leaving it at the maximum uses the full range of the data. The same setting is available for [dot plots](#dot-plots) and [hexbin feature plots](#Hexbin-plots). For hexbin feature plots using the "sum" aggregation method, binned values can exceed the slider's maximum, which is derived from the values of individual cells.
+
 ### Include Legend {#feature-plots-include-legend}
 
 Toggles appearance of a legend to the right side of the plot on and off.
@@ -236,6 +252,54 @@ Toggles appearance of a legend to the right side of the plot on and off.
 manual_dimensions()
 
 download_button(plot_type = "Feature Plot")
+```
+
+## Hexbin Plots {#Hexbin-plots}
+
+Hexbin plots divide the projection into a grid of hexagons and summarize the cells that fall into each one. Two hexbin plot types are available from the plot switches:
+
+-   **HexDensity Plot:** each hexagon is colored by the number of cells it contains. This gives a view of where cells are concentrated on the projection without the overplotting that occurs in a DimPlot of a large dataset.
+
+-   **HexFeature Plot:** each hexagon is colored by a summary (mean, median, or sum) of a feature's values across the cells it contains, for each feature entered in the [feature selection](#feature-selection) menu.
+
+Both plot types use the continuous palette chosen in the [palettes](#Palettes) menu, with the default being the same light grey to blue gradient used by feature plots.
+
+### Metadata to Split By {#Hexbin-plots-split-by}
+
+This menu sets a categorical metadata variable used to "split" cells into separate panels for viewing side-by-side, and defaults to "None". One panel is created for each value in the variable, and the number of columns may be adjusted with the slider that appears.
+
+### Choose Projection {#Hexbin-plots-projection}
+
+This menu is used to switch between methods of dimensional reduction: hexagons are laid out over the coordinates of the selected projection. Projection methods are calculated during dataset processing and added by the browser admin.
+
+### Number of Bins {#Hexbin-plots-number-of-bins}
+
+Sets the number of hexagons across each axis of the projection, from 20 to 200 (the default is 80). Higher values give smaller hexagons and more detail, while lower values give a smoother summary.
+
+### Scale Density Independently per Facet {#Hexbin-density-scale-per-facet}
+
+This option is available for HexDensity plots when a split by variable is selected. When enabled, each panel uses its own color scale from 0 to 1, which shows the relative distribution of cells within each group. When disabled, all panels share a scale based on cell counts, so panels with more cells appear darker overall.
+
+### Expression Aggregation Method {#Hexbin-feature-aggregation}
+
+This option is available for HexFeature plots and sets how the values of the cells in each hexagon are combined: the **mean** (the default), the **median**, or the **sum**. The chosen method appears in the default title of each panel.
+
+### Title Options {#Hexbin-plots-title-options}
+
+When set to "default", HexDensity plots are titled "Density" and HexFeature plots are titled with the feature name followed by the aggregation method, e.g. "CD34 (mean)". When set to "none", no title is shown.
+
+### Use Custom Colors and Use Custom Diverging Colors
+
+HexFeature plots offer the same custom color options as feature plots, including the zero-centered diverging palette and its scale cap. See [Use Custom Diverging Colors](#Feature-plots-diverging-colors).
+
+### Include Legend
+
+Toggles appearance of a legend to the right side of the plot on and off.
+
+```{r Hexbin Plot Manual Dimensions and Download Button, echo = FALSE}
+manual_dimensions()
+
+download_button(plot_type = "Hexbin Plot")
 ```
 
 ## Violin Plots {#violin-plots}
@@ -287,6 +351,10 @@ Specifies the categorical metadata variable used to group cells. One dot per fea
 ### Order of Groups on Plot {#dot-plots-group-order}
 
 Sets the order groups appear on the plot. When set to "ascending", values in the group by metadata variable will display in ascending alphanumeric order, from top to bottom. When set to "descending", values will display in descending alphanumeric order. When set to "custom", an interface will appear that will allow you to arrange values in any order. To change the order of a value, drag-and-drop the value in the interface.
+
+### Use Custom Colors and Use Custom Diverging Colors
+
+Dot plots offer the same custom color options as feature plots. The zero-centered diverging palette is well suited to dot plots, since the color of each dot shows mean-centered, scaled average expression. See [Use Custom Diverging Colors](#Feature-plots-diverging-colors) for details of the scale cap.
 
 ### Include Legend {#dot-plots-include-legend}
 
@@ -470,6 +538,10 @@ The subset options menu is used to choose the context in which a differential ex
 For example, if a test based on feature expression is chosen, and a specific sample is chosen in the subset options menus, then the differential expression will compare cells above the expression threshold chosen in that sample to cells below the expression threshold in the sample.
 
 The interface for entering criteria is the same as in the plots tab. See ["forming subsets"](#Subsets) for more info.
+
+## Assays to Analyze {#dge-assays}
+
+When the dataset has more than one assay (for example gene expression and surface protein), the "Assays to Analyze" checkboxes choose which assays are tested. The designated genes assay is selected by default. Each selected assay is tested separately with the same groups and settings, and the results are combined into one table with an "assay" column. The results table can then be filtered by assay. If a test fails for one assay, a warning is shown and the remaining assays are still reported.
 
 ## Other DGE Settings
 

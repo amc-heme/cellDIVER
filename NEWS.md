@@ -1,5 +1,27 @@
 # cellDIVER 1.0.0.9000
 
+## New features
+
+* Hexbin plots. Two new plot types, HexDensity and HexFeature, bin cells on
+  the projection into hexagons colored by cell count or by the mean, median or
+  sum of a feature's values (via the `hextant` package, now in `Imports`).
+  They use the app's continuous palette, with the lightgrey-to-blue default.
+
+* Zero-centered diverging palettes for feature, dot and hexbin feature plots:
+  a three-color scale with its midpoint at zero, plus a "Color Scale Cap"
+  slider that places the end colors at a chosen absolute value and clamps
+  values beyond it.
+
+* Every continuous palette is also offered in a reversed form, listed next to
+  the original.
+
+* Differential expression can be run on several assays at once. The DGE tab
+  gains an "Assays to Analyze" selector; results are combined into one table
+  with an `assay` column that can be filtered.
+
+* "Choose Projection" menus now have an info tooltip linking to the
+  documentation.
+
 ## Breaking change
 
 * `run_cellDIVER()` and `run_config()` no longer attach their dependencies to
