@@ -1738,7 +1738,7 @@ run_cellDIVER <-
       designated_genes_assay <-
         eventReactive(
           config(),
-          label = "assay_config",
+          label = "designated_genes_assay",
           ignoreNULL = FALSE,
           {
             config()$other_assay_options$genes_assay
@@ -2253,6 +2253,8 @@ run_cellDIVER <-
               id = glue("{dataset_info$last_object_key}_dge"),
               unique_metadata = unique_metadata,
               metadata_config = metadata_config,
+              assay_config = assay_config(),
+              designated_genes_assay = designated_genes_assay(),
               meta_categories = meta_categories,
               meta_choices = meta_choices,
               auto_dictionary_path = auto_dictionary_path,
