@@ -1041,7 +1041,39 @@ plot_module_ui <- function(id,
                   label = "High Value",
                   value = "#B2182B"
                   )
-                )
+                ),
+              # Absolute value at which the end colors are placed. The range
+              # is updated server-side from the data; leaving the slider at
+              # its maximum uses the full data range (no clipping).
+              sliderInput(
+                inputId = ns("diverging_cap"),
+                label = tagList(
+                  "Color Scale Cap (\u00b1)",
+                  a(id = ns("diverging_cap_info_icon"),
+                    icon("info-circle"),
+                    href = paste0(
+                      "https://amc-heme.github.io/cellDIVER/articles/",
+                      "full_documentation.html#",
+                      "Feature-plots-diverging-colors"
+                      ),
+                    target = "_blank")
+                ),
+                min = 0,
+                max = 1,
+                value = 1,
+                step = 0.01
+              ),
+              bsTooltip(
+                id = ns("diverging_cap_info_icon"),
+                title = paste0(
+                  "Absolute value at which the low and high colors are ",
+                  "placed. Values beyond the cap are shown in the end ",
+                  "colors. The maximum uses the full range of the data."
+                  ),
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
               )
             )
           )
@@ -2902,6 +2934,24 @@ plot_module_server <- function(id,
                           } else NULL
                         }),
 
+                      # Cap for the diverging color scale. NULL (use the data
+                      # range) unless diverging colors are enabled and the
+                      # slider has been moved below its data-derived maximum.
+                      `diverging_cap` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process diverging_cap selection"),
+                          {
+                          if (
+                            plot_type %in% c("feature", "hexbin_feature", "dot") &&
+                            isTruthy(input$custom_diverging_colors) &&
+                            isTruthy(input$diverging_cap) &&
+                            input$diverging_cap < diverging_cap_max()
+                          ){
+                            input$diverging_cap
+                          } else NULL
+                        }),
+
                       # Super title checkbox (feature plots with more than one
                      # split_by category)
 
@@ -3131,6 +3181,68 @@ plot_module_server <- function(id,
                             } else NULL
                           })
                       )
+
+                 # 6b. Diverging color scale cap -------------------------------
+                 # The slider range is derived from the data so that leaving it
+                 # at the maximum is equivalent to not capping the scale.
+                 if (plot_type %in% c("feature", "hexbin_feature", "dot")){
+                   diverging_cap_max <-
+                     reactive(
+                       label = glue("{plot_label}: diverging cap maximum"),
+                       {
+                         req(plot_switch())
+                         req(isTruthy(input$custom_diverging_colors))
+
+                         if (plot_type == "dot"){
+                           # plot_dot() clips scaled average expression to
+                           # +/- 2.5, so that is the widest useful cap
+                           2.5
+                         } else {
+                           req(object())
+                           req(features())
+
+                           values <-
+                             tryCatch(
+                               SCUBA::fetch_data(
+                                 object(),
+                                 vars = features(),
+                                 layer = SCUBA::default_layer(object())
+                               ),
+                               error = function(e) NULL
+                             )
+                           req(values)
+
+                           # Keep numeric columns only (features and numeric
+                           # metadata)
+                           values <-
+                             values[
+                               , vapply(values, is.numeric, logical(1)),
+                               drop = FALSE
+                             ]
+                           req(ncol(values) > 0)
+
+                           max(abs(range(unlist(values), na.rm = TRUE)))
+                         }
+                       })
+
+                   observe(
+                     label = glue("{plot_label}: update diverging cap slider"),
+                     {
+                       cap_max <- diverging_cap_max()
+                       req(is.finite(cap_max), cap_max > 0)
+
+                       # Round up so the maximum always covers the data
+                       cap_max <- ceiling(cap_max * 100) / 100
+
+                       updateSliderInput(
+                         session,
+                         inputId = "diverging_cap",
+                         max = cap_max,
+                         value = cap_max,
+                         step = signif(cap_max / 100, 2)
+                       )
+                     })
+                 }
 
                  # 7. Determine if a subset has been used  ---------------------
                  # This variable will be a boolean used in downstream
@@ -4364,6 +4476,7 @@ plot_module_server <- function(id,
                                     plot_selections$high_color())
                                 } else NULL
                               } else NULL,
+                            diverging_limit = plot_selections$diverging_cap(),
                             # Palette for blended feature plots
                            blend_palette =
                              # Use value from blend palette, unless custom
@@ -4494,7 +4607,8 @@ plot_module_server <- function(id,
                                 c(plot_selections$low_color(),
                                   plot_selections$mid_color(),
                                   plot_selections$high_color())
-                              } else NULL
+                              } else NULL,
+                            diverging_limit = plot_selections$diverging_cap()
                           )
                         })
 
@@ -4613,6 +4727,7 @@ plot_module_server <- function(id,
                                   plot_selections$mid_color(),
                                   plot_selections$high_color())
                               } else NULL,
+                            diverging_limit = plot_selections$diverging_cap(),
                             sort_groups = plot_selections$sort_groups(),
                             custom_factor_levels =
                               plot_selections$custom_refactoring(),

@@ -51,6 +51,10 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for use 
 #' with scale_color_gradient2() with a fixed midpoint at 0. Takes precedence over 
 #' palette when provided.
+#' @param diverging_limit optional positive number: the absolute value at
+#' which the end colors of the diverging palette are placed (the scale runs
+#' from -diverging_limit to +diverging_limit and values beyond it are clamped).
+#' When NULL, the range of the data is used.
 #' @param blend_palette a two-color palette to use for blended feature plots.
 #' @param blend_layout for blended plots, sets whether the plot displays in a 
 #' two-column or four-column layout.
@@ -83,6 +87,7 @@ shiny_feature <- function(object,
                           ncol = NULL, 
                           palette = NULL,
                           diverging_palette = NULL,
+                          diverging_limit = NULL,
                           blend_palette = NULL,
                           blend_layout = NULL,
                           reduction = NULL
@@ -161,14 +166,13 @@ shiny_feature <- function(object,
     # Apply diverging or standard color scales as layers
     # (overrides any default colors set by FeaturePlotSingle)
     if (isTruthy(diverging_palette)){
-      # Use diverging palette with 3 colors and midpoint at 0
-      feature_plot <- feature_plot &
-        scale_color_gradient2(
-          low = diverging_palette[1],
-          mid = diverging_palette[2],
-          high = diverging_palette[3],
-          midpoint = 0
-        )
+      # Use diverging palette with 3 colors and midpoint at 0, optionally
+      # capped at +/- diverging_limit. Replacing the existing color scale
+      # produces a message from ggplot2, which is expected.
+      suppressMessages(
+        feature_plot <- feature_plot &
+          diverging_scale("colour", diverging_palette, diverging_limit)
+      )
     } else if (isTruthy(palette)){
       # Use standard continuous palette (already applied via colors parameter above)
       # No additional layer needed
@@ -259,13 +263,10 @@ shiny_feature <- function(object,
       if (isTruthy(diverging_palette) & !color_by_feature){
         # Use diverging palette with 3 colors and midpoint at 0
         # Note: only apply when not coloring by feature (which uses categorical palette)
-        feature_plot <- feature_plot &
-          scale_color_gradient2(
-            low = diverging_palette[1],
-            mid = diverging_palette[2],
-            high = diverging_palette[3],
-            midpoint = 0
-          )
+        suppressMessages(
+          feature_plot <- feature_plot &
+            diverging_scale("colour", diverging_palette, diverging_limit)
+        )
       }
       
       # Return the plot
@@ -347,13 +348,9 @@ shiny_feature <- function(object,
           # The palette may be a continuous palette selected in the plot tab,
           # or it may be user-defined custom colors.
           if (isTruthy(diverging_palette)){
-            # Use diverging palette with 3 colors and midpoint at 0
-            scale_color_gradient2(
-              low = diverging_palette[1],
-              mid = diverging_palette[2],
-              high = diverging_palette[3],
-              midpoint = 0
-            )
+            # Use diverging palette with 3 colors and midpoint at 0,
+            # optionally capped at +/- diverging_limit
+            diverging_scale("colour", diverging_palette, diverging_limit)
           } else if (isTruthy(palette)){
             # Use standard continuous palette
             scale_color_gradientn(

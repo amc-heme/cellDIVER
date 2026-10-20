@@ -61,6 +61,10 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for 
 #'   use with scale_fill_gradient2() with a fixed midpoint at 0. Takes 
 #'   precedence over palette when provided.
+#' @param diverging_limit optional positive number: the absolute value at
+#' which the end colors of the diverging palette are placed (the scale runs
+#' from -diverging_limit to +diverging_limit and values beyond it are clamped).
+#' When NULL, the range of the data is used.
 #'
 #' @return A ggplot2 object (or patchwork object for multiple features) with
 #'   hexbin feature plot(s) created according to user specifications.
@@ -86,7 +90,8 @@ shiny_hexbin_feature <- function(
     assay = NULL,
     layer = NULL,
     palette = NULL,
-    diverging_palette = NULL) {
+    diverging_palette = NULL,
+    diverging_limit = NULL) {
   
   # Validate that object is not NULL (will keep plot code from running if
   # the subset is NULL, meaning no cells in subset)
@@ -204,13 +209,9 @@ shiny_hexbin_feature <- function(
       # Override viridis color scale with diverging palette if provided
       # (takes precedence over standard palette)
       if (!is.null(diverging_palette)) {
+        # Zero-centered 3-color scale, optionally capped at +/- diverging_limit
         list(
-          scale_fill_gradient2(
-            low = diverging_palette[1],
-            mid = diverging_palette[2],
-            high = diverging_palette[3],
-            midpoint = 0
-          )
+          diverging_scale("fill", diverging_palette, diverging_limit)
         )
       } else {
         # Otherwise override the viridis color scale with the global
@@ -289,13 +290,9 @@ shiny_hexbin_feature <- function(
         # Override viridis color scale with diverging palette if provided
         # (takes precedence over standard palette)
         if (!is.null(diverging_palette)) {
+          # Zero-centered 3-color scale, optionally capped at +/- diverging_limit
           list(
-            scale_fill_gradient2(
-              low = diverging_palette[1],
-              mid = diverging_palette[2],
-              high = diverging_palette[3],
-              midpoint = 0
-            )
+            diverging_scale("fill", diverging_palette, diverging_limit)
           )
         } else {
           # Otherwise override the viridis color scale with the global
