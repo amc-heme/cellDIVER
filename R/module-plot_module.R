@@ -1904,25 +1904,38 @@ plot_module_server <- function(id,
                            # cases, NULL is returned, which will prompt 
                            # plotting functions to use their defaults.
                            if (feature_based_title == TRUE){
-                             if (raw_feature_names() == FALSE){
-                               # For feature based default titles, the 
-                               # feature names are modified to remove the 
-                               # assay key, unless the "raw" feature names 
-                               # checkbox is TRUE.
-                               sapply(
-                                 features_entered(),
-                                 function(feature, assay_config){
-                                   hr_name(
-                                     machine_readable_name = feature,
-                                     assay_config = assay_config,
-                                     use_suffix = TRUE
-                                   )
-                                 },
-                                 assay_config()
-                               )
+                             default_titles <-
+                               if (raw_feature_names() == FALSE){
+                                 # For feature based default titles, the 
+                                 # feature names are modified to remove the 
+                                 # assay key, unless the "raw" feature names 
+                                 # checkbox is TRUE.
+                                 sapply(
+                                   features_entered(),
+                                   function(feature, assay_config){
+                                     hr_name(
+                                       machine_readable_name = feature,
+                                       assay_config = assay_config,
+                                       use_suffix = TRUE
+                                     )
+                                   },
+                                   assay_config()
+                                 )
                                } else {
-                               features_entered()
+                                 features_entered()
                                }
+
+                             # Hexbin feature plots: name the aggregation
+                             # method after the feature, e.g. "CD34 (mean)",
+                             # matching the default from initial_title()
+                             if (plot_type == "hexbin_feature"){
+                               paste0(
+                                 default_titles,
+                                 " (", plot_selections$hexbin_action(), ")"
+                               )
+                             } else {
+                               default_titles
+                             }
                            } else {
                              NULL
                            }
