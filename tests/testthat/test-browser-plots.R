@@ -42,7 +42,7 @@ test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
 })
 
 for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
-                    "proportion")) {
+                    "proportion", "hexbin_density", "hexbin_feature")) {
   test_that(paste("browser renders real", plot_type, "plot content"), {
     app <- browser_app(paste0("plot-", plot_type))
     browser_open_tab(app, "plots", "object_plots-make_dimplot")
@@ -60,6 +60,9 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
       # of another, so it refuses to draw while both default to the same
       # column ("Proportions" and "Proportion Comparison" must differ).
       browser_set(app, paste0(namespace, "-split_by"), "Batch")
+    } else if (plot_type == "hexbin_density") {
+      # Density plots need no feature; exercise the relocated bins slider.
+      browser_set(app, paste0(namespace, "-hexbin_nbins"), 30)
     } else {
       browser_set_feature(app, "object_plots-text_features", "rna_CD34")
     }
@@ -68,6 +71,21 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
     if (plot_type == "proportion") {
       expect_match(svg, "B Cells", fixed = TRUE)
       expect_match(svg, "<rect")
+    } else if (plot_type == "hexbin_density") {
+      expect_match(svg, "Density", fixed = TRUE)
+      expect_match(svg, "<(polygon|path)\\b")
+    } else if (plot_type == "hexbin_feature") {
+      expect_match(svg, "CD34", fixed = TRUE)
+      expect_match(svg, "(mean)", fixed = TRUE)
+      expect_match(svg, "<(polygon|path)\\b")
+      # The aggregation method and bins inputs now live in the plot module
+      # namespace, ahead of the download button; changing them re-renders.
+      browser_set(app, paste0(namespace, "-hexbin_action"), "sum")
+      browser_set(app, paste0(namespace, "-hexbin_nbins"), 30)
+      browser_plot(app, paste0(namespace, "-plot"))
+      summed <- browser_svg(app, namespace)
+      expect_match(summed, "(sum)", fixed = TRUE)
+      expect_false(identical(svg, summed))
     } else {
       expect_match(svg, "CD34", fixed = TRUE)
       if (plot_type == "scatter") expect_match(svg, "CD38", fixed = TRUE)

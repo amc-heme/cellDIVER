@@ -127,6 +127,51 @@ test_that("feature titles handle modality labels and multi-feature plots", {
   expect_error(cellDIVER:::initial_title("unsupported"), "plot_type")
 })
 
+test_that("hexbin titles name the density or the feature and aggregation", {
+  assay_configuration <- list(
+    RNA = list(key = "rna_", suffix_human = ""),
+    AB = list(key = "ab_", suffix_human = "Surface Protein")
+  )
+
+  expect_identical(cellDIVER:::initial_title("hexbin_density"), "Density")
+
+  expect_equal(
+    as.character(cellDIVER:::initial_title(
+      "hexbin_feature", assay_config = assay_configuration,
+      features_entered = "ab_GeneAlpha"
+    )),
+    "GeneAlpha (Surface Protein) (mean)"
+  )
+  expect_equal(
+    as.character(cellDIVER:::initial_title(
+      "hexbin_feature", assay_config = assay_configuration,
+      features_entered = "rna_GeneAlpha", action = "median"
+    )),
+    "GeneAlpha (median)"
+  )
+  expect_identical(
+    cellDIVER:::initial_title(
+      "hexbin_feature", assay_config = assay_configuration,
+      features_entered = "ab_GeneAlpha", show_modality_key = TRUE,
+      action = "sum"
+    ),
+    "ab_GeneAlpha (sum)"
+  )
+  for (features in list(NULL, c("rna_GeneAlpha", "rna_GeneBeta"))) {
+    expect_identical(
+      cellDIVER:::initial_title(
+        "hexbin_feature", assay_config = assay_configuration,
+        features_entered = features
+      ),
+      ""
+    )
+  }
+  expect_error(
+    cellDIVER:::initial_title("hexbin_feature", features_entered = "x"),
+    "assay_config"
+  )
+})
+
 test_that("human readable feature names respect suffix and metadata settings", {
   assay_configuration <- list(
     RNA = list(key = "rna_", suffix_human = ""),
