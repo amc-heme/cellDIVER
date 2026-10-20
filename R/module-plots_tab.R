@@ -750,7 +750,8 @@ plots_tab_ui <- function(id,
                 custom_colors =         FALSE,
                 manual_dimensions =     TRUE,
                 download_button =       TRUE,
-                hexbin_options =        TRUE
+                hexbin_options =        TRUE,
+                color_scale_limits =    TRUE
               )
             )
           ),
@@ -786,6 +787,7 @@ plots_tab_ui <- function(id,
                legend_checkbox =            TRUE,
                limits_checkbox =            TRUE,
                custom_colors =              TRUE,
+               color_scale_limits =         TRUE,
                manual_dimensions =          TRUE,
                download_button =            TRUE,
                # Default values for inputs
@@ -832,7 +834,8 @@ plots_tab_ui <- function(id,
                 manual_dimensions =          TRUE,
                 download_button =            TRUE,
                 separate_features =          FALSE,
-                hexbin_options =             TRUE
+                hexbin_options =             TRUE,
+                color_scale_limits =         TRUE
               )
             )
           ),
@@ -891,6 +894,7 @@ plots_tab_ui <- function(id,
                 legend_checkbox =       TRUE,
                 limits_checkbox =       FALSE,
                 custom_colors =         TRUE,
+                color_scale_limits =    TRUE,
                 manual_dimensions =     TRUE,
                separate_features =     TRUE,
                download_button =       TRUE

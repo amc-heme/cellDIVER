@@ -8,9 +8,13 @@
   They use the app's continuous palette, with the lightgrey-to-blue default.
 
 * Zero-centered diverging palettes for feature, dot and hexbin feature plots:
-  a three-color scale with its midpoint at zero, plus a "Color Scale Cap"
-  slider that places the end colors at a chosen absolute value and clamps
-  values beyond it.
+  a three-color scale with its midpoint at zero.
+
+* Color scale limits for every plot with a continuous color scale (feature,
+  hexbin feature, hexbin density and dot plots): a two-handle slider sets the
+  values at which the end colors are placed, bounded by the values shown on
+  the plot; values outside the limits are drawn in the end colors. Diverging
+  palettes get a "symmetric about zero" option.
 
 * Every continuous palette is also offered in a reversed form, listed next to
   the original.

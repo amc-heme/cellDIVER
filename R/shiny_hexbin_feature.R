@@ -61,13 +61,15 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for 
 #'   use with scale_fill_gradient2() with a fixed midpoint at 0. Takes 
 #'   precedence over palette when provided.
-#' @param diverging_limit optional positive number: the absolute value at
-#' which the end colors of the diverging palette are placed (the scale runs
-#' from -diverging_limit to +diverging_limit and values beyond it are clamped).
-#' When NULL, the range of the data is used.
+#' @param color_limits optional numeric vector of length two giving the
+#'   values at which the lowest and highest colors are placed. Values outside
+#'   the limits are shown in the end colors. When NULL, the range of the
+#'   plotted values is used.
 #'
 #' @return A ggplot2 object (or patchwork object for multiple features) with
-#'   hexbin feature plot(s) created according to user specifications.
+#'   hexbin feature plot(s) created according to user specifications. The
+#'   "plotted_range" attribute gives the range of the per-bin values mapped
+#'   to the fill scale.
 #'
 #' 
 #' @noRd
@@ -91,7 +93,7 @@ shiny_hexbin_feature <- function(
     layer = NULL,
     palette = NULL,
     diverging_palette = NULL,
-    diverging_limit = NULL) {
+    color_limits = NULL) {
   
   # Validate that object is not NULL (will keep plot code from running if
   # the subset is NULL, meaning no cells in subset)
@@ -206,20 +208,18 @@ shiny_hexbin_feature <- function(
         )
       ),
       
-      # Override viridis color scale with diverging palette if provided
-      # (takes precedence over standard palette)
-      if (!is.null(diverging_palette)) {
-        # Zero-centered 3-color scale, optionally capped at +/- diverging_limit
-        list(
-          diverging_scale("fill", diverging_palette, diverging_limit)
+      # Replace hextant's viridis fill scale with the diverging palette (if
+      # provided, it takes precedence) or the global/default continuous
+      # palette, applying any user-set color scale limits
+      list(
+        color_scale(
+          "fill",
+          palette =
+            if (!is.null(diverging_palette)) diverging_palette else palette,
+          limits = color_limits,
+          diverging = !is.null(diverging_palette)
         )
-      } else {
-        # Otherwise override the viridis color scale with the global
-        # (or default) continuous palette
-        list(
-          scale_fill_gradientn(colors = palette)
-        )
-      },
+      ),
       
       # Apply original axis limits if this is a subset and user has selected
       # to use original limits
@@ -236,6 +236,10 @@ shiny_hexbin_feature <- function(
     suppressMessages(
       plot <- plot & layers
     )
+    
+    # Record the range of the per-bin values shown, for the color scale
+    # limits slider
+    attr(plot, "plotted_range") <- plotted_range(plot, "feature_value")
     
     return(plot)
     
@@ -287,20 +291,18 @@ shiny_hexbin_feature <- function(
           )
         ),
         
-        # Override viridis color scale with diverging palette if provided
-        # (takes precedence over standard palette)
-        if (!is.null(diverging_palette)) {
-          # Zero-centered 3-color scale, optionally capped at +/- diverging_limit
-          list(
-            diverging_scale("fill", diverging_palette, diverging_limit)
+        # Replace hextant's viridis fill scale with the diverging palette (if
+        # provided, it takes precedence) or the global/default continuous
+        # palette, applying any user-set color scale limits
+        list(
+          color_scale(
+            "fill",
+            palette =
+              if (!is.null(diverging_palette)) diverging_palette else palette,
+            limits = color_limits,
+            diverging = !is.null(diverging_palette)
           )
-        } else {
-          # Otherwise override the viridis color scale with the global
-          # (or default) continuous palette
-          list(
-            scale_fill_gradientn(colors = palette)
-          )
-        },
+        ),
         
         if (is_subset & isTruthy(original_limits)) {
           list(
@@ -332,6 +334,11 @@ shiny_hexbin_feature <- function(
       plot_list,
       ncol = layout_ncol
     )
+    
+    # Record the range of the per-bin values shown across all features, for
+    # the color scale limits slider
+    attr(combined_plot, "plotted_range") <-
+      plotted_range(combined_plot, "feature_value")
     
     return(combined_plot)
   }

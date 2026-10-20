@@ -66,6 +66,10 @@
 #' of bins, and either per-facet density scaling or the expression aggregation
 #' method depending on `plot_type`). These are placed after the projection
 #' menu.
+#' @param color_scale_limits If TRUE, display a checkbox and two-handle slider
+#' for setting the minimum and maximum of the continuous color scale. For
+#' plots with a continuous color/fill scale only (feature, hexbin and dot
+#' plots).
 #'
 #' @noRd
 plot_module_ui <- function(id,
@@ -104,6 +108,7 @@ plot_module_ui <- function(id,
                            limits_checkbox =                       FALSE,
                            custom_colors =                         FALSE,
                            custom_x_axis_ui =                      FALSE,
+                           color_scale_limits =                    FALSE,
                            manual_dimensions =                     FALSE,
                            separate_features =                     FALSE,
                            download_button =                       FALSE,
@@ -1041,43 +1046,79 @@ plot_module_ui <- function(id,
                   label = "High Value",
                   value = "#B2182B"
                   )
-                ),
-              # Absolute value at which the end colors are placed. The range
-              # is updated server-side from the data; leaving the slider at
-              # its maximum uses the full data range (no clipping).
-              sliderInput(
-                inputId = ns("diverging_cap"),
-                label = tagList(
-                  "Color Scale Cap (\u00b1)",
-                  a(id = ns("diverging_cap_info_icon"),
-                    icon("info-circle"),
-                    href = paste0(
-                      "https://amc-heme.github.io/cellDIVER/articles/",
-                      "full_documentation.html#",
-                      "Feature-plots-diverging-colors"
-                      ),
-                    target = "_blank")
-                ),
-                min = 0,
-                max = 1,
-                value = 1,
-                step = 0.01
-              ),
-              bsTooltip(
-                id = ns("diverging_cap_info_icon"),
-                title = paste0(
-                  "Absolute value at which the low and high colors are ",
-                  "placed. Values beyond the cap are shown in the end ",
-                  "colors. The maximum uses the full range of the data."
-                  ),
-                placement = "top",
-                trigger = "hover",
-                options = NULL
-              )
+                )
               )
             )
           )
         } else NULL,
+
+      ## Color scale limits ####
+      # Two-handle slider setting the values at which the end colors of the
+      # continuous color scale are placed. The bounds are updated server-side
+      # from the values shown on the plot. Hidden for feature plots when
+      # coloring by feature or blending (those use categorical/blended
+      # scales); the inputs tested do not exist for other plot types, so the
+      # panel is always shown there.
+      if (color_scale_limits == TRUE){
+        conditionalPanel(
+          condition =
+            glue(
+              "input['{ns('color_by_feature')}'] != true && ",
+              "input['{ns('blend')}'] != true"
+            ),
+          checkboxInput(
+            inputId = ns("use_color_limits"),
+            label = tagList(
+              "Set Color Scale Limits",
+              a(id = ns("color_limits_info_icon"),
+                icon("info-circle"),
+                href = paste0(
+                  "https://amc-heme.github.io/cellDIVER/articles/",
+                  "full_documentation.html#",
+                  "Feature-plots-color-limits"
+                  ),
+                target = "_blank")
+            ),
+            value = FALSE
+          ),
+          bsTooltip(
+            id = ns("color_limits_info_icon"),
+            title = paste0(
+              "Choose the values at which the lowest and highest colors ",
+              "are placed. Values outside the range are shown in the end ",
+              "colors. The range is set from the values shown on the plot."
+              ),
+            placement = "top",
+            trigger = "hover",
+            options = NULL
+          ),
+          conditionalPanel(
+            condition = glue("input['{ns('use_color_limits')}'] == true"),
+            sliderInput(
+              inputId = ns("color_limits"),
+              label = NULL,
+              min = 0,
+              max = 1,
+              value = c(0, 1),
+              step = 0.01
+            ),
+            actionLink(
+              inputId = ns("color_limits_reset"),
+              label = "Reset to data range"
+            ),
+            # Keep the limits centered on zero for diverging palettes
+            conditionalPanel(
+              condition =
+                glue("input['{ns('custom_diverging_colors')}'] == true"),
+              checkboxInput(
+                inputId = ns("color_limits_symmetric"),
+                label = "Symmetric about zero",
+                value = TRUE
+              )
+            )
+          )
+        )
+      } else NULL,
 
       ## Custom x-axis limits ####
       # Currently for ridge plots only
@@ -2947,21 +2988,48 @@ plot_module_server <- function(id,
                           } else NULL
                         }),
 
-                      # Cap for the diverging color scale. NULL (use the data
-                      # range) unless diverging colors are enabled and the
-                      # slider has been moved below its data-derived maximum.
-                      `diverging_cap` =
+                      # User-set limits for the continuous color scale. NULL
+                      # (use the plotted range) unless the limits checkbox is
+                      # on, bounds have been derived from the plot, and the
+                      # slider differs from those bounds. Not used when
+                      # coloring by feature or blending (feature plots).
+                      `color_limits` =
                         reactive(
                           label =
-                            glue("{plot_label}: process diverging_cap selection"),
+                            glue("{plot_label}: process color_limits selection"),
                           {
+                          # The bounds are read without a dependency: they
+                          # are set by an observer on the finished plot, and
+                          # changing them updates the slider, which is what
+                          # should trigger a re-render.
+                          bounds <- isolate(color_limits_bounds())
+                          value <- input$color_limits
+
                           if (
-                            plot_type %in% c("feature", "hexbin_feature", "dot") &&
-                            isTruthy(input$custom_diverging_colors) &&
-                            isTruthy(input$diverging_cap) &&
-                            input$diverging_cap < diverging_cap_max()
+                            plot_type %in%
+                              c("feature", "hexbin_density",
+                                "hexbin_feature", "dot") &&
+                            isTruthy(input$use_color_limits) &&
+                            !isTRUE(input$color_by_feature) &&
+                            !isTRUE(input$blend) &&
+                            !is.null(bounds) &&
+                            is.numeric(value) &&
+                            length(value) == 2
                           ){
-                            input$diverging_cap
+                            # Symmetric option for diverging palettes
+                            if (
+                              isTruthy(input$custom_diverging_colors) &&
+                              isTRUE(input$color_limits_symmetric)
+                            ){
+                              value <- c(-1, 1) * max(abs(value))
+                            }
+
+                            # The untouched slider means "full plotted range"
+                            if (isTRUE(all.equal(value, bounds))){
+                              NULL
+                            } else {
+                              value
+                            }
                           } else NULL
                         }),
 
@@ -3195,65 +3263,91 @@ plot_module_server <- function(id,
                           })
                       )
 
-                 # 6b. Diverging color scale cap -------------------------------
-                 # The slider range is derived from the data so that leaving it
-                 # at the maximum is equivalent to not capping the scale.
-                 if (plot_type %in% c("feature", "hexbin_feature", "dot")){
-                   diverging_cap_max <-
-                     reactive(
-                       label = glue("{plot_label}: diverging cap maximum"),
-                       {
-                         req(plot_switch())
-                         req(isTruthy(input$custom_diverging_colors))
+                 # 6b. Color scale limits --------------------------------------
+                 # The slider bounds are derived from the values mapped to the
+                 # color scale of the finished plot (the "plotted_range"
+                 # attribute set by the plot functions), so the untouched
+                 # slider is equivalent to not setting limits.
+                 color_limits_bounds <- reactiveVal(NULL)
 
-                         if (plot_type == "dot"){
-                           # plot_dot() clips scaled average expression to
-                           # +/- 2.5, so that is the widest useful cap
-                           2.5
-                         } else {
-                           req(object())
-                           req(features())
-
-                           values <-
-                             tryCatch(
-                               SCUBA::fetch_data(
-                                 object(),
-                                 vars = features(),
-                                 layer = SCUBA::default_layer(object())
-                               ),
-                               error = function(e) NULL
-                             )
-                           req(values)
-
-                           # Keep numeric columns only (features and numeric
-                           # metadata)
-                           values <-
-                             values[
-                               , vapply(values, is.numeric, logical(1)),
-                               drop = FALSE
-                             ]
-                           req(ncol(values) > 0)
-
-                           max(abs(range(unlist(values), na.rm = TRUE)))
-                         }
-                       })
-
+                 if (
+                   plot_type %in%
+                     c("feature", "hexbin_density", "hexbin_feature", "dot")
+                 ){
                    observe(
-                     label = glue("{plot_label}: update diverging cap slider"),
+                     label = glue("{plot_label}: update color limits slider"),
                      {
-                       cap_max <- diverging_cap_max()
-                       req(is.finite(cap_max), cap_max > 0)
+                       req(plot_switch())
+                       req(isTruthy(input$use_color_limits))
 
-                       # Round up so the maximum always covers the data
-                       cap_max <- ceiling(cap_max * 100) / 100
+                       plotted <- attr(plot(), "plotted_range")
+                       req(plotted, all(is.finite(plotted)))
+
+                       # Diverging palettes: center the bounds on zero when
+                       # the symmetric option is on
+                       if (
+                         isTruthy(input$custom_diverging_colors) &&
+                         isTRUE(input$color_limits_symmetric)
+                       ){
+                         plotted <- c(-1, 1) * max(abs(plotted))
+                       }
+
+                       # Round outward so the bounds always cover the data
+                       bounds <-
+                         c(floor(plotted[1] * 100) / 100,
+                           ceiling(plotted[2] * 100) / 100)
+                       req(bounds[1] < bounds[2])
+
+                       # Only touch the slider when the bounds change, so
+                       # user-chosen handles survive unrelated re-renders
+                       if (!identical(bounds, isolate(color_limits_bounds()))){
+                         color_limits_bounds(bounds)
+
+                         updateSliderInput(
+                           session,
+                           inputId = "color_limits",
+                           min = bounds[1],
+                           max = bounds[2],
+                           value = bounds,
+                           step = signif(diff(bounds) / 200, 2)
+                         )
+                       }
+                     })
+
+                   # Reset link: return the handles to the full plotted range
+                   observeEvent(
+                     input$color_limits_reset,
+                     label = glue("{plot_label}: reset color limits"),
+                     {
+                       req(color_limits_bounds())
 
                        updateSliderInput(
                          session,
-                         inputId = "diverging_cap",
-                         max = cap_max,
-                         value = cap_max,
-                         step = signif(cap_max / 100, 2)
+                         inputId = "color_limits",
+                         value = color_limits_bounds()
                        )
+                     })
+
+                   # Symmetric option: mirror the handles about zero
+                   observeEvent(
+                     input$color_limits,
+                     label = glue("{plot_label}: mirror color limits"),
+                     {
+                       req(isTruthy(input$custom_diverging_colors))
+                       req(isTRUE(input$color_limits_symmetric))
+
+                       value <- input$color_limits
+                       req(is.numeric(value), length(value) == 2)
+
+                       mirrored <- c(-1, 1) * max(abs(value))
+
+                       if (!isTRUE(all.equal(value, mirrored))){
+                         updateSliderInput(
+                           session,
+                           inputId = "color_limits",
+                           value = mirrored
+                         )
+                       }
                      })
                  }
 
@@ -4489,7 +4583,7 @@ plot_module_server <- function(id,
                                     plot_selections$high_color())
                                 } else NULL
                               } else NULL,
-                            diverging_limit = plot_selections$diverging_cap(),
+                            color_limits = plot_selections$color_limits(),
                             # Palette for blended feature plots
                            blend_palette =
                              # Use value from blend palette, unless custom
@@ -4547,7 +4641,8 @@ plot_module_server <- function(id,
                               lim_orig()[[plot_selections$reduction()]]$xlim_orig,
                             ylim_orig = 
                               lim_orig()[[plot_selections$reduction()]]$ylim_orig,
-                            palette = palette()
+                            palette = palette(),
+                            color_limits = plot_selections$color_limits()
                           )
                         })
                   
@@ -4621,7 +4716,7 @@ plot_module_server <- function(id,
                                   plot_selections$mid_color(),
                                   plot_selections$high_color())
                               } else NULL,
-                            diverging_limit = plot_selections$diverging_cap()
+                            color_limits = plot_selections$color_limits()
                           )
                         })
 
@@ -4722,8 +4817,16 @@ plot_module_server <- function(id,
                             #   reactive({input$separate_features}),
                             group_by = plot_selections$group_by(),
                             show_legend = plot_selections$legend(),
+                            # Use custom colors if defined; otherwise the
+                            # selected continuous palette (NULL = default)
                             palette = 
-                              if (isTruthy(palette()) && is.list(palette())){
+                              if (
+                                isTruthy(plot_selections$min_color()) &
+                                isTruthy(plot_selections$max_color())
+                              ){
+                                c(plot_selections$min_color(),
+                                  plot_selections$max_color())
+                              } else if (isTruthy(palette()) && is.list(palette())){
                                 palette()$continuous_palette()
                               } else if (isTruthy(palette())) {
                                 palette()
@@ -4740,7 +4843,7 @@ plot_module_server <- function(id,
                                   plot_selections$mid_color(),
                                   plot_selections$high_color())
                               } else NULL,
-                            diverging_limit = plot_selections$diverging_cap(),
+                            color_limits = plot_selections$color_limits(),
                             sort_groups = plot_selections$sort_groups(),
                             custom_factor_levels =
                               plot_selections$custom_refactoring(),

@@ -51,9 +51,15 @@
 #'   color scale. When NULL, cellDIVER's default continuous palette
 #'   (lightgrey to blue, matching Feature and Dot plots) is used. hextant's
 #'   viridis scale is always replaced.
+#' @param color_limits optional numeric vector of length two giving the
+#'   values at which the lowest and highest colors are placed. Values outside
+#'   the limits are shown in the end colors. When NULL, the range of the
+#'   plotted values is used.
 #'
 #' @return A ggplot2 object with a hexbin density plot created according to
-#'   user specifications.
+#'   user specifications. The "plotted_range" attribute gives the range of
+#'   the per-bin values (cell counts, or scaled density) mapped to the fill
+#'   scale.
 #'
 #' 
 #' @noRd
@@ -72,7 +78,8 @@ shiny_hexbin_density <- function(
     original_limits = FALSE,
     xlim_orig = NULL,
     ylim_orig = NULL,
-    palette = NULL) {
+    palette = NULL,
+    color_limits = NULL) {
   
   # Validate that object is not NULL (will keep plot code from running if
   # the subset is NULL, meaning no cells in subset)
@@ -163,9 +170,9 @@ shiny_hexbin_density <- function(
     ),
     
     # Override hextant's viridis color scale with the global (or default)
-    # continuous palette
+    # continuous palette, applying any user-set color scale limits
     list(
-      scale_fill_gradientn(colors = palette)
+      color_scale("fill", palette = palette, limits = color_limits)
     ),
     
     # Apply original axis limits if this is a subset and user has selected
@@ -183,6 +190,19 @@ shiny_hexbin_density <- function(
   suppressMessages(
     plot <- plot & layers
   )
+  
+  # Record the range of the per-bin values shown, for the color scale limits
+  # slider. hextant fills by scaled density (0-1) when scaling per facet,
+  # and by the number of cells otherwise.
+  attr(plot, "plotted_range") <-
+    plotted_range(
+      plot,
+      if (!is.null(split_by) && isTRUE(scale_density)){
+        "scaled_density"
+      } else {
+        "number_of_cells"
+      }
+    )
   
   # Return the finished plot
   return(plot)

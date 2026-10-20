@@ -86,6 +86,19 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
       summed <- browser_svg(app, namespace)
       expect_match(summed, "(sum)", fixed = TRUE)
       expect_false(identical(svg, summed))
+      # Color scale limits are bounded by the plotted (per-bin) values, so
+      # the upper bound shrinks when sums are replaced by means.
+      browser_set(app, paste0(namespace, "-use_color_limits"), TRUE)
+      sum_limits <- app$wait_for_value(
+        input = paste0(namespace, "-color_limits"), ignore = list(c(0, 1))
+      )
+      expect_length(sum_limits, 2)
+      browser_set(app, paste0(namespace, "-hexbin_action"), "mean")
+      mean_limits <- app$wait_for_value(
+        input = paste0(namespace, "-color_limits"),
+        ignore = list(c(0, 1), sum_limits)
+      )
+      expect_lt(mean_limits[[2]], sum_limits[[2]])
     } else {
       expect_match(svg, "CD34", fixed = TRUE)
       if (plot_type == "scatter") expect_match(svg, "CD38", fixed = TRUE)

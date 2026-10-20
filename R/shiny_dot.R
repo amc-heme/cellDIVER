@@ -9,17 +9,19 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for use 
 #' with scale_color_gradient2() with a fixed midpoint at 0. Takes precedence over 
 #' palette when provided.
-#' @param diverging_limit optional positive number: the absolute value at
-#' which the end colors of the diverging palette are placed (the scale runs
-#' from -diverging_limit to +diverging_limit and values beyond it are clamped).
-#' When NULL, the range of the data is used.
+#' @param color_limits optional numeric vector of length two giving the
+#'   values at which the lowest and highest colors are placed. Values outside
+#'   the limits are shown in the end colors. When NULL, the range of the
+#'   plotted values is used.
 #' @param sort_groups the order with which to sort groups on the dot plot. This may be set to "ascending", "descending", or "custom". If ascending, groups will be sorted in increasing alphabetical order. If descending, they will be sorted in decreasing alphabetical order. If custom, groups will be sorted according to how they appear in `custom_factor_levels`.
 #' @param custom_factor_levels A character vector giving the order of groups if `sort_groups` is set to "custom".
 #' @param rename_feature_labels a character vector giving alternate names to use
 #' for the features plotted on the x-axis. The length of this vector must match
 #'  the length of features_entered.
 #'
-#' @return a ggplot2 object with a dot plot created according to user specifications.
+#' @return a ggplot2 object with a dot plot created according to user
+#' specifications. The "plotted_range" attribute gives the range of the
+#' mean-centered scaled average expression values mapped to the color scale.
 #'
 #' @noRd
 shiny_dot <-
@@ -30,7 +32,7 @@ shiny_dot <-
     show_legend = TRUE,
     palette = NULL,
     diverging_palette = NULL,
-    diverging_limit = NULL,
+    color_limits = NULL,
     sort_groups = NULL,
     custom_factor_levels = NULL,
     rename_feature_labels = NULL
@@ -126,23 +128,31 @@ shiny_dot <-
           )
         )
 
-      # If a diverging palette is defined, use it with scale_color_gradient2()
-      # (takes precedence over standard palette)
-      if (!is.null(diverging_palette)){
-        # Zero-centered 3-color scale, optionally capped at +/- diverging_limit
-        # (replacing the existing scale produces an expected ggplot2 message)
+      # Apply the color scale when a diverging palette (takes precedence), a
+      # standard palette, or user-set color scale limits are given; otherwise
+      # the default scale from plot_dot() stands. Replacing the existing
+      # scale produces an expected ggplot2 message.
+      if (
+        !is.null(diverging_palette) || !is.null(palette) ||
+        !is.null(color_limits)
+      ){
         suppressMessages(
           plot <-
             plot +
-            diverging_scale("colour", diverging_palette, diverging_limit)
+            color_scale(
+              "colour",
+              palette =
+                if (!is.null(diverging_palette)){
+                  diverging_palette
+                } else if (!is.null(palette)){
+                  palette
+                } else {
+                  c("lightgrey", "blue")
+                },
+              limits = color_limits,
+              diverging = !is.null(diverging_palette)
+            )
         )
-      } else if (!is.null(palette)){
-        # If a standard palette is defined, apply it with scale_color_gradientn()
-        plot <-
-          plot +
-          scale_color_gradientn(
-            colors = palette
-          )
       }
 
       # If custom feature labels are defined, apply them
@@ -158,6 +168,10 @@ shiny_dot <-
             labels = rename_feature_labels
           )
         }
+
+      # Record the range of the scaled average expression values shown, for
+      # the color scale limits slider
+      attr(plot, "plotted_range") <- plotted_range(plot, "avg_exp_scaled")
 
       # Return plot
       plot

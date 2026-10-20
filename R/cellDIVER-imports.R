@@ -19,7 +19,7 @@
 #' @importFrom ggplot2 aes coord_cartesian coord_polar geom_bar geom_col
 #' @importFrom ggplot2 geom_text geom_vline ggsave layer_scales position_stack
 #' @importFrom ggplot2 scale_color_gradient2 scale_fill_gradient2
-#' @importFrom ggplot2 scale_fill_gradientn scale_x_discrete theme_void
+#' @importFrom ggplot2 scale_fill_gradientn scale_x_discrete theme_void waiver
 #' @importFrom ggsci pal_d3 pal_jco pal_lancet pal_locuszoom pal_rickandmorty
 #' @importFrom ggsci pal_startrek
 #' @importFrom glue glue
