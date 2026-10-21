@@ -12,6 +12,11 @@
 #' in `R/`, which keeps masking between Seurat, rlang, shiny and the tidyverse
 #' out of the namespace.
 #'
+#' presto is called by scDE rather than by cellDIVER directly. It is declared
+#' here (and in DESCRIPTION, with the amc-heme fork in Remotes) so that
+#' installing cellDIVER pulls the fork, which updates `GetAssayData(slot =)`
+#' to `layer =` for Seurat 5 objects.
+#'
 #' @importFrom colourpicker colourInput
 #' @importFrom dplyr "%>%" any_of arrange case_when desc group_by left_join n
 #' @importFrom dplyr pull summarise
@@ -25,6 +30,7 @@
 #' @importFrom glue glue
 #' @importFrom methods is
 #' @importFrom patchwork plot_annotation plot_layout
+#' @importFrom presto wilcoxauc
 #' @importFrom rintrojs introjsUI
 #' @importFrom rlog log_error log_info log_warn
 #' @importFrom shiny a actionButton actionLink addResourcePath checkboxGroupInput

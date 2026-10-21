@@ -26,6 +26,20 @@
 * "Choose Projection" menus now have an info tooltip linking to the
   documentation.
 
+## Dependencies
+
+* Seurat 5.5.0 or newer is now required. Seurat 5.5.0 added ggplot2 4
+  compatibility to its plotting code, which is why earlier releases pinned
+  `ggplot2 (<= 3.5.2)`. The cellDIVER test suites (unit, module and browser)
+  pass on Seurat 5.6.0 with ggplot2 4.0.3.
+
+* `presto` is now declared as a dependency with `github::amc-heme/presto` in
+  `Remotes`. scDE calls presto for differential expression, and upstream
+  presto still calls `GetAssayData(slot =)`, which SeuratObject 5.4.0 rejects
+  as defunct, so every DGE test fails on current Seurat. The fork uses
+  `layer =` instead. Install from the fork (or let `Remotes` do it) until that
+  change is merged upstream.
+
 ## Breaking change
 
 * `run_cellDIVER()` and `run_config()` no longer attach their dependencies to
