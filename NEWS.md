@@ -52,6 +52,9 @@
 
 ## Bug fixes
 
+* Dot plots no longer trigger the `aes_string()` deprecation warning from
+  ggplot2; the mappings use the `.data` pronoun.
+
 * The feature picker (and other server-side selectize inputs) stayed empty on
   Shiny 1.12 and later. The plots and DGE tab bodies were rendered lazily on
   the tab switch that also sends their `updateSelectizeInput(server = TRUE)`

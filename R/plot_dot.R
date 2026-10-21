@@ -37,7 +37,7 @@
 #'
 #' @importFrom grDevices colorRampPalette
 #' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string geom_point scale_size scale_radius
+#' @importFrom ggplot2 ggplot aes geom_point scale_size scale_radius
 #' theme element_blank labs scale_color_identity scale_color_distiller
 #' scale_color_gradient guides guide_legend guide_colorbar
 #' facet_grid unit
@@ -423,10 +423,11 @@ plot_dot <-
     plot <-
       ggplot(
         data = plot_data,
-        # aes_string is deprecated in the current ggplot2 version
-        mapping = aes_string(x = 'features_plot', y = 'id')
+        mapping = aes(x = .data$features_plot, y = .data$id)
       ) +
-      geom_point(mapping = aes_string(size = 'pct_exp', color = color_by)) +
+      geom_point(
+        mapping = aes(size = .data$pct_exp, color = .data[[color_by]])
+      ) +
       scale_func(range = c(0, dot_scale), limits = c(scale_min, scale_max)) +
       theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
       guides(size = guide_legend(title = 'Percent Expressed')) +
