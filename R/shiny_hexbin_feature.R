@@ -121,10 +121,21 @@ shiny_hexbin_feature <- function(
     )
   )
   
-  # Set default reduction if not specified
+  # Set default reduction if not specified: the object's default reduction
+  # (e.g. "umap"), since reduction names are case-sensitive
   if (is.null(reduction)) {
-    reduction <- "UMAP"
+    reduction <- tryCatch(
+      SCUBA::default_reduction(object),
+      error = function(e) NULL
+    )
   }
+  
+  validate(
+    need(
+      !is.null(reduction),
+      message = "No dimensional reduction is available in this object."
+    )
+  )
   
   # Use cellDIVER's default continuous palette when none is selected, so
   # hexbin plots match the Feature and Dot plot defaults instead of

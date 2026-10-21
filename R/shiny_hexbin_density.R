@@ -99,14 +99,25 @@ shiny_hexbin_density <- function(
     )
   )
   
-  # Set default reduction if not specified
+  # Set default reduction if not specified: the object's default reduction
+  # (e.g. "umap"), since reduction names are case-sensitive
   if (is.null(reduction)) {
-    reduction <- "UMAP"
+    reduction <- tryCatch(
+      SCUBA::default_reduction(object),
+      error = function(e) NULL
+    )
   }
+  
+  validate(
+    need(
+      !is.null(reduction),
+      message = "No dimensional reduction is available in this object."
+    )
+  )
   
   # Validate reduction exists in object
   available_reductions <- tryCatch({
-    SCUBA::all_keys(object)$reductions
+    reduction_names(object)
   }, error = function(e) {
     NULL
   })
