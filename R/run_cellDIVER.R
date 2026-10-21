@@ -123,6 +123,12 @@ run_cellDIVER <-
     # Add inst/www to the resource path so static html can be loaded
     addResourcePath("resources", system.file("www", package = "cellDIVER"))
 
+    # shinyBS registers the path to its JavaScript/CSS in .onAttach(), which
+    # only runs on library(). Dependencies are no longer attached, so register
+    # it here; without it every bsTooltip() fails in the browser with
+    # "shinyBS is not defined".
+    addResourcePath("sbs", system.file("www", package = "shinyBS"))
+
     # For html files generated in-app (such as auto-generated object dictionary)
     # The auto-gemerated dictionary was previously created in "./resources",
     # in the local file structure, and was therefore not accessible in the app
@@ -2296,6 +2302,15 @@ run_cellDIVER <-
         renderUI({
           dge_tab_ui_dynamic()
         })
+
+      # Render the tab bodies even while their tab is hidden. The modules push
+      # server-side choices into inputs that live in these bodies when the
+      # tab is opened (e.g. the feature picker, via updateSelectizeInput(server
+      # = TRUE)). From Shiny 1.12 that update is sent before the lazily
+      # rendered body, so it would land on an input that does not exist yet
+      # and the picker would stay empty.
+      outputOptions(output, "plots_dynamic_ui", suspendWhenHidden = FALSE)
+      outputOptions(output, "dge_dynamic_ui", suspendWhenHidden = FALSE)
 
       # output$corr_dynamic_ui <-
       #   renderUI({

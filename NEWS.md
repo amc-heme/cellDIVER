@@ -52,6 +52,22 @@
 
 ## Bug fixes
 
+* The feature picker (and other server-side selectize inputs) stayed empty on
+  Shiny 1.12 and later. The plots and DGE tab bodies were rendered lazily on
+  the tab switch that also sends their `updateSelectizeInput(server = TRUE)`
+  choices, and newer Shiny delivers that update before the body exists. The
+  tab bodies are now rendered up front.
+
+* Tooltips did not work: shinyBS only registers its assets when attached with
+  `library()`, which cellDIVER no longer does, so every `bsTooltip()` failed
+  in the browser with "shinyBS is not defined". The resource path is now
+  registered at startup.
+
+* Plot download handlers logged "argument is of length zero" for every plot
+  on startup, because their content type was computed from the file type
+  input before it existed. The type is now inferred from the filename and the
+  file type defaults to png.
+
 * Package code now declares its imports in `NAMESPACE`. 28 of the 40 packages
   in `Imports` had no import directive, so every cellDIVER function depended on
   `run_cellDIVER()` having attached its dependencies first. Calling anything

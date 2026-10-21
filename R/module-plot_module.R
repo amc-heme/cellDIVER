@@ -5182,16 +5182,21 @@ plot_module_server <- function(id,
                  }
 
                  # 14. Download handler ----------------------------------------
+                 # Selected file type ("png" or "svg"), defaulting to png
+                 # until the input exists
+                 download_file_type <- function(){
+                   if (isTruthy(input$file_type)) input$file_type else "png"
+                 }
+
                  output$confirm_download <-
                    downloadHandler(
                      # Filename: takes the label and replaces
                      # spaces with underscores
+                     # Filename: takes the label and replaces spaces with
+                     # underscores. The file type input lives in a dropdown
+                     # that may not be initialized yet, so default to png.
                      filename = function(){
-                       if (input$file_type == "png"){
-                         glue("{sub(' ','_',plot_label)}.png")
-                       } else if (input$file_type == "svg"){
-                         glue("{sub(' ','_',plot_label)}.svg")
-                         }
+                       glue("{sub(' ','_',plot_label)}.{download_file_type()}")
                        },
                      content = function(file){
                        # Conditional: manual dimensions are specified
@@ -5205,7 +5210,7 @@ plot_module_server <- function(id,
                            file,
                            plot = plot(),
                            # Either 'png' or 'svg'
-                           device = input$file_type,
+                           device = download_file_type(),
                            width = manual_dim$width(),
                            height = manual_dim$height(),
                            # Set dpi to selected value so proportions of 
@@ -5225,20 +5230,18 @@ plot_module_server <- function(id,
                            width = 9,
                            height = 6,
                            # Either 'png' or 'svg'
-                           device = input$file_type,
+                           device = download_file_type(),
                            # Set background color to white (background is
                            # transparent on some plots)
                            bg ="#FFFFFF"
                          )
                        }
-                     },#End content function
-                     contentType =
-                       # contentType: uses MIME types
-                       if (input$file_type == "png"){
-                         "image/png"
-                         } else if (input$file_type == "svg"){
-                           "image/svg+xml"
-                           }
+                     }#End content function
+                     # contentType is left unset: Shiny infers it from the
+                     # filename extension at download time. An expression here
+                     # is evaluated when the download is registered, which
+                     # since the output is no longer suspended happens at
+                     # startup, before input$file_type exists.
                    ) #End downloadHandler function
 
                  # The download control lives inside a collapsed

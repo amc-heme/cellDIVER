@@ -41,6 +41,28 @@ test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
   expect_equal(browser_point_count(reset), nrow(metadata))
 })
 
+test_that("the feature picker loads its choices from the server", {
+  # Unlike browser_set_feature(), which registers options client-side, this
+  # drives selectize's own server-side loader, which only works if the
+  # picker exists when the module pushes its choices.
+  app <- browser_app("plots-feature-picker")
+  browser_open_tab(app, "plots", "object_plots-make_dimplot")
+  picker <- "document.querySelector('#object_plots-text_features').selectize"
+  app$wait_for_js(sprintf("!!(%s && %s.settings.load)", picker, picker))
+  app$run_js(sprintf("%s.focus(); %s.onSearchChange('CD3');", picker, picker))
+  app$wait_for_js(sprintf("Object.keys(%s.options).length > 0", picker))
+  options <- app$get_js(sprintf("Object.keys(%s.options)", picker))
+  expect_true("rna_CD34" %in% options)
+
+  logs <- app$get_logs()
+  # No bsTooltip() call may fail in the browser
+  console <- logs[logs$location != "shiny", "message"]
+  expect_false(any(grepl("shinyBS is not defined", console, fixed = TRUE)))
+  # and no download handler may error on startup
+  server <- logs[logs$location == "shiny", "message"]
+  expect_false(any(grepl("confirm_download", server, fixed = TRUE)))
+})
+
 for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
                     "proportion", "hexbin_density", "hexbin_feature")) {
   test_that(paste("browser renders real", plot_type, "plot content"), {

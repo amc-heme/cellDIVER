@@ -51,6 +51,11 @@ run_config <-
     }
     options(shiny.reactlog = TRUE)
 
+    # shinyBS registers the path to its JavaScript/CSS in .onAttach(), which
+    # only runs on library(); register it here so bsTooltip() works (see
+    # run_cellDIVER)
+    addResourcePath("sbs", system.file("www", package = "shinyBS"))
+
     # Load functions in ./R directory ####
     # Get list of files
     # source_files <-
