@@ -525,7 +525,7 @@ subset_selections_server <- function(id,
                   "Categorical Metadata" = "categorical"
                   )
                 )
-          } else if (inherits(object(), "AnnDataR6")){
+          } else if (inherits(object(), c("AnnDataR6", "scuba_source"))){
             # Anndata objects, hide advanced filters
             updateSelectInput(
               inputId = "filter_type",

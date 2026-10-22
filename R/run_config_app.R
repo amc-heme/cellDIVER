@@ -166,11 +166,15 @@ run_config <-
       if (tolower(extension) == "rds"){
         object <- readRDS(object_path)
       } else if (tolower(extension) == "h5ad"){
-        # reticulate/anndata are Suggests: users without anndata objects
-        # should not need a Python environment. Fail with an actionable
-        # message rather than a bare "there is no package called 'anndata'".
-        require_python_support("h5ad")
-        object <- anndata::read_h5ad(object_path)
+        if (use_julia_h5ad()) {
+          object <- SCUBA::open_h5ad(object_path)
+        } else {
+          # reticulate/anndata are Suggests: users without anndata objects
+          # should not need a Python environment. Fail with an actionable
+          # message rather than a bare "there is no package called 'anndata'".
+          require_python_support("h5ad")
+          object <- anndata::read_h5ad(object_path)
+        }
       } else if (extension == "h5mu"){
         require_python_support("h5mu")
         reticulate::py_require("mudata>=0.3.1")

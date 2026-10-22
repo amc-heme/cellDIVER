@@ -178,6 +178,18 @@ relabel_axis.SingleCellExperiment <-
 
 #' @describeIn relabel_axis Anndata objects
 #' @export
+#' @describeIn relabel_axis File-backed objects served by SCUBA's Julia engine
+#' @export
+relabel_axis.scuba_source <-
+  function(
+    object,
+    feature
+  ){
+    # Call SCUBA's method directly: dispatching through the generic from this namespace would
+    # find this very method first and recurse.
+    utils::getS3method("relabel_axis", "scuba_source", envir = asNamespace("SCUBA"))(object, feature)
+  }
+
 relabel_axis.AnnDataR6 <-
   function(
     object,

@@ -90,7 +90,8 @@ generate_config_yaml <-
     # object: must be a supported single-cell object
     if (!(inherits(object, "Seurat") | 
            inherits(object, "SingleCellExperiment") | 
-           inherits(object, "AnnDataR6")
+           inherits(object, "AnnDataR6") |
+           inherits(object, "scuba_source")
          )){
       # Construct error message: state that the object class is invalid, and 
       # provide the valid classes.
@@ -169,6 +170,8 @@ generate_config_yaml <-
             "SingleCellExperiment"
           } else if (inherits(object, "AnnDataR6")){
             "AnnDataR6"
+          } else if (inherits(object, "scuba_source")){
+            "scuba_source"
           } else {
             stop(
               paste0(

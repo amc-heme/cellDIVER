@@ -65,6 +65,18 @@ reduction_names.SingleCellExperiment <-
 #' will return an error if this data is not present in the object.
 #'
 #' @export
+#' @describeIn reduction_names File-backed objects served by SCUBA's Julia engine. Uses
+#'   `uns$cellDIVER_reductions` when the file defines it, otherwise every numeric `obsm` array.
+#' @export
+reduction_names.scuba_source <-
+  function(
+    object
+  ){
+    uns <- object$info$uns_reductions
+    if (!is.null(uns)) return(uns)
+    names(SCUBA::scuba_source_reductions(object))
+  }
+
 reduction_names.AnnDataR6 <-
   function(
     object

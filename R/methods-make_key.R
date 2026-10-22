@@ -71,6 +71,16 @@ make_key.SingleCellExperiment <-
 #' @describeIn make_key Anndata objects
 #' @export
 #' @noRd
+#' @describeIn make_key File-backed objects served by SCUBA's Julia engine (`scuba_source`)
+#' @export
+make_key.scuba_source <-
+  function(
+    object,
+    assay
+  ){
+    paste0(assay, "_")
+  }
+
 make_key.AnnDataR6 <-
   function(
     object,

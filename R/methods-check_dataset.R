@@ -86,6 +86,17 @@ check_dataset.SingleCellExperiment <-
 #' @describeIn check_dataset Anndata objects
 #' @export
 #' @noRd
+#' @describeIn check_dataset File-backed objects served by SCUBA's Julia engine
+#' @export
+check_dataset.scuba_source <-
+  function(
+    object,
+    path = NULL,
+    return_error = FALSE
+  ){
+    # Schema is validated by SCUBA::open_h5ad()
+  }
+
 check_dataset.AnnDataR6 <-
   function(
     object,

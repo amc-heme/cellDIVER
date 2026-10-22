@@ -69,6 +69,19 @@ assay_names.SingleCellExperiment <-
 #' will return an error if this data is not present in the object.
 #'
 #' @export
+#' @describeIn assay_names File-backed objects served by SCUBA's Julia engine. Uses
+#'   `uns$cellDIVER_assays` when the file defines it, otherwise every modality except `raw`.
+#' @export
+assay_names.scuba_source <-
+  function(
+    object
+  ){
+    uns <- object$info$uns_assays
+    if (!is.null(uns)) return(c("X", uns))
+    mods <- SCUBA::scuba_source_modalities(object)
+    c("X", setdiff(mods, c("X", "raw")))
+  }
+
 assay_names.AnnDataR6 <-
   function(
     object

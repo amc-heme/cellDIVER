@@ -709,34 +709,33 @@ run_cellDIVER <-
               }
             )
         } else if (extension == "h5ad") {
-          # .h5ad anndata::read_h5ad
           datasets[[data_key]]$object <-
             tryCatch(
               error = function(cnd) {
                 stop(
                   "There was an error loading the object at path \n",
                   datasets[[data_key]]$object,
-                  "\nLoading was attempted via `anndata::read_h5ad()`."
+                  "\nLoading was attempted via `SCUBA::open_h5ad()` (Julia engine) or ",
+                  "`anndata::read_h5ad()` (reticulate); see options(cellDIVER.h5ad_engine).\n",
+                  conditionMessage(cnd)
                 )
               },
               {
-                # Define path and load object
                 path <- datasets[[data_key]]$object
-
-                require_python_support("h5ad")
-
-                object <-
-                  anndata::read_h5ad(
-                    path
-                  )
-
-                # Check object for valid classes
+                if (use_julia_h5ad()) {
+                  # SCUBA's Julia engine reads the file natively: no Python environment needed
+                  object <- SCUBA::open_h5ad(path)
+                } else {
+                  require_python_support("h5ad")
+                  object <-
+                    anndata::read_h5ad(
+                      path
+                    )
+                }
                 check_dataset(
                   object,
                   path = path
                 )
-
-                # Return object from TryCatch statement
                 object
               }
             )
@@ -788,6 +787,10 @@ run_cellDIVER <-
     # Test if the general dataset info is defined in the browser config for all
     # datasets, or in the dataset config file for all. If neither of these is TRUE,
     # throw an error to the config user.
+    # Objects are loaded once per app process and shared by every session: warm SCUBA's Julia
+    # engine on them now so the first request of a session does not pay for wrapping them.
+    warm_scuba_engine(lapply(datasets, function(d) d$object))
+
     if (
       !(browser_config_has_info(datasets) | dataset_config_has_info(datasets))
     ) {
@@ -2126,7 +2129,7 @@ run_cellDIVER <-
           req(config())
 
           if (!is.null(config()$object_class)) {
-            if ("AnnDataR6" %in% config()$object_class) {
+            if (any(c("AnnDataR6", "scuba_source") %in% config()$object_class)) {
               TRUE
             } else {
               FALSE

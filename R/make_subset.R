@@ -144,6 +144,17 @@ make_subset.default <-
     return(subset)
   }
 
+#' @describeIn make_subset File-backed objects served by SCUBA's Julia engine: same logic as
+#'   AnnData objects (filters evaluated on a fetched table, then `object[cells, ]`)
+#' @export
+make_subset.scuba_source <-
+  function(
+    object,
+    filter_list
+  ){
+    make_subset.AnnDataR6(object, filter_list)
+  }
+
 #' @describeIn make_subset Anndata objects
 #' @export
 make_subset.AnnDataR6 <-

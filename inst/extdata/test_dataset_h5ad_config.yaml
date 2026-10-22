@@ -1,0 +1,50 @@
+config_version: 0.5.0
+label: AML Reference Dataset (h5ad)
+description: AML reference dataset from Triana et al. 2021 (see https://doi.org/10.1038/s41590-021-01059-0).
+  The dataset has been downsampled to include 250 cells and is intended for use with
+  automated app testing only. The dataset includes a pheresis and a bone marrow sample
+  from a single young healthy donor. A panel of 462 genes is included in the dataset,
+  along with 197 surface protein markers. A UMAP projection based on gene expression
+  was computed from the original Seurat object downloaded from Figshare(https://figshare.com/articles/dataset/Expression_of_197_surface_markers_and_462_mRNAs_in_15281_cells_from_blood_and_bone_marrow_from_a_young_healthy_donor/13398065).
+preview:
+  type: dimplot
+  plot_settings:
+    group_by: condensed_cell_type
+    split_by: none
+    reduction: X_umap
+    ncol: 1
+    label: yes
+assays:
+  X:
+    assay: X
+    key: X_
+    suffix_human: ''
+    dropdown_title: Gene
+  protein:
+    assay: protein
+    key: protein_
+    suffix_human: Surface Protein
+    dropdown_title: Surface Protein
+other_assay_options:
+  genes_assay: X
+  adt_assay: none
+include_numeric_metadata: yes
+metadata:
+  condensed_cell_type:
+    meta_colname: condensed_cell_type
+    label: Cell Type
+    groups: ~
+  Batch:
+    meta_colname: Batch
+    label: Batch
+    groups: ~
+other_metadata_options:
+  patient_colname: ~
+reductions:
+  X_pca:
+    reduction: X_pca
+    label: PCA
+  X_umap:
+    reduction: X_umap
+    label: UMAP
+adt_thresholds: ~

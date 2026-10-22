@@ -72,6 +72,19 @@ update_object_metadata.SingleCellExperiment <-
 #' @describeIn update_object_metadata Anndata objects
 #' @export
 #' @noRd
+#' @describeIn update_object_metadata File-backed objects served by SCUBA's Julia engine
+#'   (copy-on-modify: the returned object carries the new table, the input is unchanged)
+#' @export
+update_object_metadata.scuba_source <-
+  function(
+    object,
+    table
+  ){
+    # Call SCUBA's method directly: dispatching through the generic from this namespace would
+    # find this very method first and recurse.
+    utils::getS3method("update_object_metadata", "scuba_source", envir = asNamespace("SCUBA"))(object, table)
+  }
+
 update_object_metadata.AnnDataR6 <-
   function(
     object,
