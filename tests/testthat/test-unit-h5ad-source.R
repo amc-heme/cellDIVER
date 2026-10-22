@@ -60,3 +60,20 @@ test_that("make_subset filters scuba_source objects by metadata and expression",
   # the subset still serves plots' data needs
   expect_equal(nrow(SCUBA::fetch_data(sub, c("X_GAPDH", "Batch"))), length(SCUBA::get_all_cells(sub)))
 })
+
+test_that("open_h5mu objects work with the dispatch helpers", {
+  skip_if_not(exists("open_h5mu", asNamespace("SCUBA")), "SCUBA without open_h5mu()")
+  h5mu <- file.path(Sys.getenv("SCUBA_JL_PATH", unset = "~/build/SCUBA.jl"), "fixtures", "data", "AML.h5mu")
+  skip_if_not(file.exists(h5mu), "AML.h5mu fixture not available")
+  withr::local_options(list(SCUBA.engine = "julia"))
+  obj <- SCUBA::open_h5mu(h5mu)
+  expect_equal(obj$format, "h5mu")
+  expect_equal(make_key(obj, "prot"), "prot_")
+  expect_equal(assay_names(obj), c("rna", "prot"))
+  expect_true("rna_X_umap" %in% reduction_names(obj))
+  expect_null(check_dataset(obj))
+  sub <- make_subset(obj, list(list(var = "Batch", type = "categorical", value = "BM_200AB")))
+  expect_true(all(SCUBA::fetch_metadata(sub, "Batch", return_class = "vector") == "BM_200AB"))
+  d <- SCUBA::fetch_data(sub, c("rna_GAPDH", "prot_CD117-AB"))
+  expect_equal(nrow(d), nrow(SCUBA::fetch_metadata(sub, full_table = TRUE)))
+})

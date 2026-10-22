@@ -740,34 +740,32 @@ run_cellDIVER <-
               }
             )
         } else if (extension == "h5mu") {
-          # MuData objects: import Mudata python package and run read_h5mu
           datasets[[data_key]]$object <-
             tryCatch(
               error = function(cnd) {
                 stop(
                   "There was an error loading the object at path \n",
                   datasets[[data_key]]$object,
-                  "\nLoading was attempted via `read_h5mu` from the Python package."
+                  "\nLoading was attempted via `SCUBA::open_h5mu()` (Julia engine) or ",
+                  "`read_h5mu` from the Python mudata package; see options(cellDIVER.h5ad_engine).\n",
+                  conditionMessage(cnd)
                 )
               },
               {
-                # Define path and load object
                 path <- datasets[[data_key]]$object
-
-                require_python_support("h5mu")
-                reticulate::py_require("mudata>=0.3.1")
-
-                md <- reticulate::import("mudata", as = "md", convert = TRUE)
-
-                object <- md$read_h5mu(path)
-
-                # Check object for valid classes
+                if (use_julia_h5ad() && exists("open_h5mu", asNamespace("SCUBA"))) {
+                  # SCUBA's Julia engine reads MuData natively (modalities as rna_<feature>, etc.)
+                  object <- SCUBA::open_h5mu(path)
+                } else {
+                  require_python_support("h5mu")
+                  reticulate::py_require("mudata>=0.3.1")
+                  md <- reticulate::import("mudata", as = "md", convert = TRUE)
+                  object <- md$read_h5mu(path)
+                }
                 check_dataset(
                   object,
                   path = path
                 )
-
-                # Return object from TryCatch statement
                 object
               }
             )

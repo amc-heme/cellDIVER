@@ -3,7 +3,9 @@
 #' cellDIVER can load AnnData files either through reticulate (`anndata::read_h5ad()`, the
 #' legacy path, which needs a Python environment) or, when the SCUBA package provides its Julia
 #' engine, through `SCUBA::open_h5ad()`, which reads the file natively and serves expression
-#' fetches at native speed. The choice is controlled by `options(cellDIVER.h5ad_engine = )`:
+#' fetches at native speed. `.h5mu` files follow the same switch (`mudata::read_h5mu()` through
+#' reticulate, or `SCUBA::open_h5mu()`, where modalities are addressed by their MuData names,
+#' e.g. `rna_` / `prot_`). The choice is controlled by `options(cellDIVER.h5ad_engine = )`:
 #' `"auto"` (default; Julia when available), `"julia"` (error when unavailable) or
 #' `"reticulate"`. Differential expression (scDE) is not yet available for file-backed objects,
 #' so apps that need DGE on h5ad datasets should use `"reticulate"`.

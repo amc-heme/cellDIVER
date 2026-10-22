@@ -77,8 +77,10 @@ assay_names.scuba_source <-
     object
   ){
     uns <- object$info$uns_assays
-    if (!is.null(uns)) return(c("X", uns))
     mods <- SCUBA::scuba_source_modalities(object)
+    # MuData: every modality is an assay under its own name (no implicit "X")
+    if (identical(object$format, "h5mu")) return(if (!is.null(uns)) uns else mods)
+    if (!is.null(uns)) return(c("X", uns))
     c("X", setdiff(mods, c("X", "raw")))
   }
 

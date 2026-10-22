@@ -176,12 +176,16 @@ run_config <-
           object <- anndata::read_h5ad(object_path)
         }
       } else if (extension == "h5mu"){
-        require_python_support("h5mu")
-        reticulate::py_require("mudata>=0.3.1")
-        
-        md <- reticulate::import("mudata", as = "md", convert = TRUE)
-        
-        object <- md$read_h5mu(object_path)
+        if (use_julia_h5ad() && exists("open_h5mu", asNamespace("SCUBA"))) {
+          object <- SCUBA::open_h5mu(object_path)
+        } else {
+          require_python_support("h5mu")
+          reticulate::py_require("mudata>=0.3.1")
+          
+          md <- reticulate::import("mudata", as = "md", convert = TRUE)
+          
+          object <- md$read_h5mu(object_path)
+        }
       } else if (extension == ""){
         stop(
           "No file extension detected for object at path",
