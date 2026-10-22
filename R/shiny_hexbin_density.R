@@ -173,6 +173,11 @@ shiny_hexbin_density <- function(
     xlab = paste0(reduction, "_1"),
     ylab = paste0(reduction, "_2")
   )
+
+  # Remove hextant's default title when the user disables titles.
+  if (!isTRUE(show_title)) {
+    plot <- plot + labs(title = NULL)
+  }
   
   # Column hextant mapped to fill: scaled density (0-1) when scaling per
   # facet, otherwise the number of cells per bin
