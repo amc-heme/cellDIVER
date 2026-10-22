@@ -14,7 +14,11 @@
   hexbin feature, hexbin density and dot plots): a two-handle slider sets the
   values at which the end colors are placed, bounded by the values shown on
   the plot; values outside the limits are drawn in the end colors. Diverging
-  palettes get a "symmetric about zero" option.
+  palettes get a "symmetric about zero" option. The limits can also be
+  expressed as quantiles (percentiles of the plotted values), and on feature
+  and hexbin feature plots can be applied to the underlying per-cell values
+  before binning or plotting instead of to the color scale (requires hextant
+  0.1.0 for hexbin plots).
 
 * Every continuous palette is also offered in a reversed form, listed next to
   the original.

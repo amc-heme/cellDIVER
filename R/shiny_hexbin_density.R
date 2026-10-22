@@ -51,6 +51,9 @@
 #'   color scale. When NULL, cellDIVER's default continuous palette
 #'   (lightgrey to blue, matching Feature and Dot plots) is used. hextant's
 #'   viridis scale is always replaced.
+#' @param color_limits_quantile if TRUE, the elements of `color_limits`
+#'   are probabilities (0 to 1) evaluated against the plotted values rather
+#'   than values in data units.
 #' @param color_limits optional numeric vector of length two giving the
 #'   values at which the lowest and highest colors are placed. Values outside
 #'   the limits are shown in the end colors. When NULL, the range of the
@@ -79,7 +82,8 @@ shiny_hexbin_density <- function(
     xlim_orig = NULL,
     ylim_orig = NULL,
     palette = NULL,
-    color_limits = NULL) {
+    color_limits = NULL,
+    color_limits_quantile = FALSE) {
   
   # Validate that object is not NULL (will keep plot code from running if
   # the subset is NULL, meaning no cells in subset)
@@ -170,6 +174,24 @@ shiny_hexbin_density <- function(
     ylab = paste0(reduction, "_2")
   )
   
+  # Column hextant mapped to fill: scaled density (0-1) when scaling per
+  # facet, otherwise the number of cells per bin
+  fill_column <-
+    if (!is.null(split_by) && isTRUE(scale_density)){
+      "scaled_density"
+    } else {
+      "number_of_cells"
+    }
+  
+  # Color scale limits given as quantiles are evaluated against the per-bin
+  # values shown
+  scale_limits <-
+    resolve_color_limits(
+      color_limits,
+      quantile = color_limits_quantile,
+      values = plotted_values(plot, fill_column)
+    )
+  
   # Apply additional styling layers to match cellDIVER aesthetics
   layers <- c(
     # Legend position: "right" to match cellDIVER standard, or "none" if not
@@ -183,7 +205,7 @@ shiny_hexbin_density <- function(
     # Override hextant's viridis color scale with the global (or default)
     # continuous palette, applying any user-set color scale limits
     list(
-      color_scale("fill", palette = palette, limits = color_limits)
+      color_scale("fill", palette = palette, limits = scale_limits)
     ),
     
     # Apply original axis limits if this is a subset and user has selected
@@ -205,15 +227,7 @@ shiny_hexbin_density <- function(
   # Record the range of the per-bin values shown, for the color scale limits
   # slider. hextant fills by scaled density (0-1) when scaling per facet,
   # and by the number of cells otherwise.
-  attr(plot, "plotted_range") <-
-    plotted_range(
-      plot,
-      if (!is.null(split_by) && isTRUE(scale_density)){
-        "scaled_density"
-      } else {
-        "number_of_cells"
-      }
-    )
+  attr(plot, "plotted_range") <- plotted_range(plot, fill_column)
   
   # Return the finished plot
   return(plot)

@@ -1084,9 +1084,11 @@ plot_module_ui <- function(id,
           bsTooltip(
             id = ns("color_limits_info_icon"),
             title = paste0(
-              "Choose the values at which the lowest and highest colors ",
-              "are placed. Values outside the range are shown in the end ",
-              "colors. The range is set from the values shown on the plot."
+              "Choose where the lowest and highest colors are placed. ",
+              "'Color scale' keeps the data and shows values outside the ",
+              "range in the end colors; 'Data values' clamps each cell's ",
+              "value before binning or plotting. 'Quantiles' sets the ",
+              "limits as percentiles of those values."
               ),
             placement = "top",
             trigger = "hover",
@@ -1094,6 +1096,28 @@ plot_module_ui <- function(id,
           ),
           conditionalPanel(
             condition = glue("input['{ns('use_color_limits')}'] == true"),
+            # Target: the color scale (plotted values) or the underlying
+            # per-cell values before binning/plotting (feature and hexbin
+            # feature plots only)
+            if (plot_type %in% c("feature", "hexbin_feature")){
+              radioGroupButtons(
+                inputId = ns("color_limits_target"),
+                label = "Apply to",
+                choices =
+                  c("Color scale" = "scale", "Data values" = "data"),
+                selected = "scale",
+                size = "sm"
+              )
+            } else NULL,
+            # Units: data values (slider bounded by the data) or quantiles
+            # (slider from 0 to 100 percent)
+            radioGroupButtons(
+              inputId = ns("color_limits_units"),
+              label = "Units",
+              choices = c("Values" = "value", "Quantiles" = "quantile"),
+              selected = "value",
+              size = "sm"
+            ),
             sliderInput(
               inputId = ns("color_limits"),
               label = NULL,
@@ -1104,12 +1128,16 @@ plot_module_ui <- function(id,
             ),
             actionLink(
               inputId = ns("color_limits_reset"),
-              label = "Reset to data range"
+              label = "Reset to full range"
             ),
-            # Keep the limits centered on zero for diverging palettes
+            # Keep the limits centered on zero for diverging palettes (in
+            # data units only)
             conditionalPanel(
               condition =
-                glue("input['{ns('custom_diverging_colors')}'] == true"),
+                glue(
+                  "input['{ns('custom_diverging_colors')}'] == true && ",
+                  "input['{ns('color_limits_units')}'] != 'quantile'"
+                ),
               checkboxInput(
                 inputId = ns("color_limits_symmetric"),
                 label = "Symmetric about zero",
@@ -2988,11 +3016,16 @@ plot_module_server <- function(id,
                           } else NULL
                         }),
 
-                      # User-set limits for the continuous color scale. NULL
-                      # (use the plotted range) unless the limits checkbox is
-                      # on, bounds have been derived from the plot, and the
-                      # slider differs from those bounds. Not used when
-                      # coloring by feature or blending (feature plots).
+                      # User-set limits for the continuous color scale: NULL
+                      # (use the full range) unless the limits checkbox is
+                      # on, bounds have been derived, and the slider differs
+                      # from those bounds. Otherwise a list with the slider
+                      # value, the target ("scale": limits on the color
+                      # scale; "data": per-cell cutoffs before binning or
+                      # plotting, feature and hexbin feature plots only) and
+                      # the units ("value" or "quantile", the latter in
+                      # percent). Not used when coloring by feature or
+                      # blending (feature plots).
                       `color_limits` =
                         reactive(
                           label =
@@ -3004,6 +3037,17 @@ plot_module_server <- function(id,
                           # should trigger a re-render.
                           bounds <- isolate(color_limits_bounds())
                           value <- input$color_limits
+                          units <-
+                            if (identical(input$color_limits_units, "quantile")){
+                              "quantile"
+                            } else "value"
+                          target <-
+                            if (
+                              plot_type %in% c("feature", "hexbin_feature") &&
+                              identical(input$color_limits_target, "data")
+                            ){
+                              "data"
+                            } else "scale"
 
                           if (
                             plot_type %in%
@@ -3016,21 +3060,60 @@ plot_module_server <- function(id,
                             is.numeric(value) &&
                             length(value) == 2
                           ){
-                            # Symmetric option for diverging palettes
+                            # Symmetric option for diverging palettes (data
+                            # units only)
                             if (
+                              units == "value" &&
                               isTruthy(input$custom_diverging_colors) &&
                               isTRUE(input$color_limits_symmetric)
                             ){
                               value <- c(-1, 1) * max(abs(value))
                             }
 
-                            # The untouched slider means "full plotted range"
+                            # The untouched slider means "full range"
                             if (isTRUE(all.equal(value, bounds))){
                               NULL
                             } else {
-                              value
+                              list(limits = value, target = target, units = units)
                             }
                           } else NULL
+                        }),
+
+                      # Arguments derived from `color_limits` for the plot
+                      # functions: limits on the color scale (values, or
+                      # probabilities when set as quantiles) ...
+                      `color_scale_limits` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: color scale limit arguments"),
+                          {
+                          selection <- plot_selections$color_limits()
+
+                          if (is.null(selection) || selection$target != "scale"){
+                            list(limits = NULL, quantile = FALSE)
+                          } else if (selection$units == "quantile"){
+                            list(limits = selection$limits / 100, quantile = TRUE)
+                          } else {
+                            list(limits = selection$limits, quantile = FALSE)
+                          }
+                        }),
+
+                      # ... and per-cell cutoffs applied before binning or
+                      # plotting (numbers, or "q<percent>" strings)
+                      `data_cutoffs` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: per-cell cutoff arguments"),
+                          {
+                          selection <- plot_selections$color_limits()
+
+                          if (is.null(selection) || selection$target != "data"){
+                            NULL
+                          } else if (selection$units == "quantile"){
+                            paste0("q", selection$limits)
+                          } else {
+                            selection$limits
+                          }
                         }),
 
                       # Super title checkbox (feature plots with more than one
@@ -3264,10 +3347,13 @@ plot_module_server <- function(id,
                       )
 
                  # 6b. Color scale limits --------------------------------------
-                 # The slider bounds are derived from the values mapped to the
-                 # color scale of the finished plot (the "plotted_range"
-                 # attribute set by the plot functions), so the untouched
-                 # slider is equivalent to not setting limits.
+                 # The slider bounds are derived from the finished plot: the
+                 # values mapped to the color scale (the "plotted_range"
+                 # attribute set by the plot functions) or, in "data values"
+                 # mode, the underlying per-cell values before cutoffs
+                 # ("cell_range"). In quantile units the slider is fixed at
+                 # 0-100 percent. The untouched slider is equivalent to not
+                 # setting limits.
                  color_limits_bounds <- reactiveVal(NULL)
 
                  if (
@@ -3280,23 +3366,39 @@ plot_module_server <- function(id,
                        req(plot_switch())
                        req(isTruthy(input$use_color_limits))
 
-                       plotted <- attr(plot(), "plotted_range")
-                       req(plotted, all(is.finite(plotted)))
+                       if (identical(input$color_limits_units, "quantile")){
+                         # Percentiles: fixed range, independent of the plot
+                         bounds <- c(0, 100)
+                         step <- 0.5
+                       } else {
+                         source_attr <-
+                           if (
+                             plot_type %in% c("feature", "hexbin_feature") &&
+                             identical(input$color_limits_target, "data")
+                           ){
+                             "cell_range"
+                           } else {
+                             "plotted_range"
+                           }
+                         plotted <- attr(plot(), source_attr)
+                         req(plotted, all(is.finite(plotted)))
 
-                       # Diverging palettes: center the bounds on zero when
-                       # the symmetric option is on
-                       if (
-                         isTruthy(input$custom_diverging_colors) &&
-                         isTRUE(input$color_limits_symmetric)
-                       ){
-                         plotted <- c(-1, 1) * max(abs(plotted))
+                         # Diverging palettes: center the bounds on zero when
+                         # the symmetric option is on
+                         if (
+                           isTruthy(input$custom_diverging_colors) &&
+                           isTRUE(input$color_limits_symmetric)
+                         ){
+                           plotted <- c(-1, 1) * max(abs(plotted))
+                         }
+
+                         # Round outward so the bounds always cover the data
+                         bounds <-
+                           c(floor(plotted[1] * 100) / 100,
+                             ceiling(plotted[2] * 100) / 100)
+                         req(bounds[1] < bounds[2])
+                         step <- signif(diff(bounds) / 200, 2)
                        }
-
-                       # Round outward so the bounds always cover the data
-                       bounds <-
-                         c(floor(plotted[1] * 100) / 100,
-                           ceiling(plotted[2] * 100) / 100)
-                       req(bounds[1] < bounds[2])
 
                        # Only touch the slider when the bounds change, so
                        # user-chosen handles survive unrelated re-renders
@@ -3309,7 +3411,7 @@ plot_module_server <- function(id,
                            min = bounds[1],
                            max = bounds[2],
                            value = bounds,
-                           step = signif(diff(bounds) / 200, 2)
+                           step = step
                          )
                        }
                      })
@@ -3335,6 +3437,7 @@ plot_module_server <- function(id,
                      {
                        req(isTruthy(input$custom_diverging_colors))
                        req(isTRUE(input$color_limits_symmetric))
+                       req(!identical(input$color_limits_units, "quantile"))
 
                        value <- input$color_limits
                        req(is.numeric(value), length(value) == 2)
@@ -4583,7 +4686,11 @@ plot_module_server <- function(id,
                                     plot_selections$high_color())
                                 } else NULL
                               } else NULL,
-                            color_limits = plot_selections$color_limits(),
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile,
+                            data_cutoffs = plot_selections$data_cutoffs(),
                             # Palette for blended feature plots
                            blend_palette =
                              # Use value from blend palette, unless custom
@@ -4642,7 +4749,10 @@ plot_module_server <- function(id,
                             ylim_orig = 
                               lim_orig()[[plot_selections$reduction()]]$ylim_orig,
                             palette = palette(),
-                            color_limits = plot_selections$color_limits()
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile
                           )
                         })
                   
@@ -4716,7 +4826,11 @@ plot_module_server <- function(id,
                                   plot_selections$mid_color(),
                                   plot_selections$high_color())
                               } else NULL,
-                            color_limits = plot_selections$color_limits()
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile,
+                            data_cutoffs = plot_selections$data_cutoffs()
                           )
                         })
 
@@ -4843,7 +4957,10 @@ plot_module_server <- function(id,
                                   plot_selections$mid_color(),
                                   plot_selections$high_color())
                               } else NULL,
-                            color_limits = plot_selections$color_limits(),
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile,
                             sort_groups = plot_selections$sort_groups(),
                             custom_factor_levels =
                               plot_selections$custom_refactoring(),

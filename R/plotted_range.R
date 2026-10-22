@@ -9,11 +9,25 @@
 #' @param columns character vector of column names to look for in each panel's
 #'   data. Columns that are absent from a panel are ignored.
 #'
-#' @return a numeric vector of length two (minimum, maximum), or `NULL` if none
-#'   of the columns are present in any panel or contain finite values.
+#' @return `plotted_values()` returns the finite values collected across panels
+#'   (possibly empty); `plotted_range()` returns a numeric vector of length two
+#'   (minimum, maximum), or `NULL` if none of the columns are present in any
+#'   panel or contain finite values.
 #'
 #' @noRd
 plotted_range <- function(plot, columns){
+  values <- plotted_values(plot, columns)
+
+  if (length(values) == 0){
+    return(NULL)
+  }
+
+  range(values)
+}
+
+#' @rdname plotted_range
+#' @noRd
+plotted_values <- function(plot, columns){
   values <- numeric()
 
   collect <- function(p){
@@ -40,9 +54,5 @@ plotted_range <- function(plot, columns){
 
   collect(plot)
 
-  if (length(values) == 0){
-    return(NULL)
-  }
-
-  range(values)
+  values
 }

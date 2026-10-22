@@ -250,6 +250,10 @@ When checked, a two-handle slider appears for choosing the values at which the l
 
 The slider's range is set from the values shown on the plot: feature values for feature plots, per-bin aggregates (mean, median or sum) for HexFeature plots, cell counts (or 0 to 1 scaled density when scaling per facet) for HexDensity plots, and mean-centered scaled average expression for dot plots. Leaving both handles at the ends uses the full range of the data, and "Reset to data range" returns the handles there. The range updates when the plotted features change.
 
+**Apply to** chooses what the limits act on. *Color scale* (the default) leaves the data alone and only moves the ends of the color ramp, so values beyond the limits are drawn in the end colors and the legend spans the limits. *Data values*, available for feature plots and HexFeature plots, clamps each cell's value to the limits *before* anything is drawn: for HexFeature plots the clamped cells are then aggregated into hexagons, so a "sum" or "mean" bin can no longer be dominated by a few extreme cells, and for feature plots the points are drawn with the clamped values. The color scale then spans the clamped data, and the slider's range reflects the per-cell values rather than the plotted ones.
+
+**Units** chooses how the limits are expressed. *Values* uses the data's own units with the slider bounded by the range described above. *Quantiles* runs the slider from 0 to 100 percent and places the limits at those percentiles of the per-cell values (in Data values mode) or of the plotted values (in Color scale mode), pooled across all panels. For example, 1 to 99 trims the most extreme one percent at each end. The symmetric option is only offered in value units.
+
 When a diverging palette is in use, a **Symmetric about zero** option (on by default) keeps the limits mirrored about zero, so moving either handle sets both to the same absolute value. This setting is available for [feature plots](#Feature-plots), [hexbin plots](#Hexbin-plots) and [dot plots](#dot-plots), and is hidden for feature plots that color by feature or blend two features.
 
 ### Include Legend {#feature-plots-include-legend}
@@ -302,7 +306,7 @@ HexFeature plots offer the same custom color options as feature plots, including
 
 ### Set Color Scale Limits
 
-Both hexbin plot types allow the minimum and maximum of the fill scale to be set, as described in [Set Color Scale Limits](#Feature-plots-color-limits). For HexFeature plots the range reflects the per-bin aggregated values, so with the "sum" method it is larger than the values of individual cells. For HexDensity plots it reflects cell counts per bin, or scaled density from 0 to 1 when "Scale density independently per facet" is enabled.
+Both hexbin plot types allow the minimum and maximum of the fill scale to be set, as described in [Set Color Scale Limits](#Feature-plots-color-limits). For HexFeature plots the range reflects the per-bin aggregated values, so with the "sum" method it is larger than the values of individual cells; choose *Apply to: Data values* to cap each cell's value before the cells are aggregated instead. For HexDensity plots it reflects cell counts per bin, or scaled density from 0 to 1 when "Scale density independently per facet" is enabled.
 
 ### Include Legend
 

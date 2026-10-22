@@ -9,6 +9,9 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for use 
 #' with scale_color_gradient2() with a fixed midpoint at 0. Takes precedence over 
 #' palette when provided.
+#' @param color_limits_quantile if TRUE, the elements of `color_limits`
+#' are probabilities (0 to 1) evaluated against the plotted values rather
+#' than values in data units.
 #' @param color_limits optional numeric vector of length two giving the
 #'   values at which the lowest and highest colors are placed. Values outside
 #'   the limits are shown in the end colors. When NULL, the range of the
@@ -33,6 +36,7 @@ shiny_dot <-
     palette = NULL,
     diverging_palette = NULL,
     color_limits = NULL,
+    color_limits_quantile = FALSE,
     sort_groups = NULL,
     custom_factor_levels = NULL,
     rename_feature_labels = NULL
@@ -132,9 +136,18 @@ shiny_dot <-
       # standard palette, or user-set color scale limits are given; otherwise
       # the default scale from plot_dot() stands. Replacing the existing
       # scale produces an expected ggplot2 message.
+      # Color scale limits given as quantiles are evaluated against the
+      # scaled average expression values shown
+      scale_limits <-
+        resolve_color_limits(
+          color_limits,
+          quantile = color_limits_quantile,
+          values = plotted_values(plot, "avg_exp_scaled")
+        )
+
       if (
         !is.null(diverging_palette) || !is.null(palette) ||
-        !is.null(color_limits)
+        !is.null(scale_limits)
       ){
         suppressMessages(
           plot <-
@@ -149,7 +162,7 @@ shiny_dot <-
                 } else {
                   c("lightgrey", "blue")
                 },
-              limits = color_limits,
+              limits = scale_limits,
               diverging = !is.null(diverging_palette)
             )
         )

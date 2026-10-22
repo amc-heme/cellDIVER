@@ -128,3 +128,68 @@ test_that("plot functions report their plotted range and apply color limits", {
   expect_equal(feature_scale$limits, c(0, 1))
   expect_identical(feature_scale$name, "rna_CD34")
 })
+
+test_that("resolve_color_limits converts quantiles against the given values", {
+  values <- c(0, 1, 2, 3, 4, NA, Inf)
+
+  expect_null(cellDIVER:::resolve_color_limits(NULL))
+  expect_equal(cellDIVER:::resolve_color_limits(c(1, 3)), c(1, 3))
+  expect_equal(
+    cellDIVER:::resolve_color_limits(c(0.25, 0.75), quantile = TRUE, values),
+    unname(quantile(0:4, c(0.25, 0.75)))
+  )
+  expect_null(
+    cellDIVER:::resolve_color_limits(c(0.1, 0.9), quantile = TRUE, NA_real_)
+  )
+})
+
+test_that("per-cell cutoffs act before binning and the cell range is reported", {
+  object <- browser_object()
+  reduction <- cellDIVER:::reduction_names(object)[[1]]
+  cells <- SCUBA::fetch_data(
+    object, vars = "rna_CD34", layer = SCUBA::default_layer(object)
+  )[, 1]
+
+  summed <- cellDIVER:::shiny_hexbin_feature(
+    object, features_entered = "rna_CD34", nbins = 30,
+    reduction = reduction, split_by = "none", action = "sum"
+  )
+  capped <- cellDIVER:::shiny_hexbin_feature(
+    object, features_entered = "rna_CD34", nbins = 30,
+    reduction = reduction, split_by = "none", action = "sum",
+    data_cutoffs = c(NA, 1)
+  )
+  expect_equal(attr(summed, "cell_range"), range(cells))
+  expect_equal(attr(capped, "cell_range"), range(cells))
+  expect_lt(attr(capped, "plotted_range")[[2]], attr(summed, "plotted_range")[[2]])
+  expect_true(all(capped$data$feature_value <= capped$data$number_of_cells + 1e-8))
+
+  quantiled <- cellDIVER:::shiny_hexbin_feature(
+    object, features_entered = "rna_CD34", nbins = 30,
+    reduction = reduction, split_by = "none", action = "mean",
+    data_cutoffs = c("q1", "q99")
+  )
+  expect_lte(attr(quantiled, "plotted_range")[[2]], unname(quantile(cells, 0.99)) + 1e-8)
+
+  # Quantile color limits are evaluated against the plotted values
+  dot <- suppressWarnings(cellDIVER:::shiny_dot(
+    object, features_entered = c("rna_CD34", "rna_CD38"),
+    group_by = "condensed_cell_type",
+    color_limits = c(0.1, 0.9), color_limits_quantile = TRUE
+  ))
+  expect_equal(
+    dot$scales$get_scales("colour")$limits,
+    unname(quantile(dot$data$avg_exp_scaled, c(0.1, 0.9)))
+  )
+
+  # Feature plots clamp per-cell values and keep their legend title
+  feature <- cellDIVER:::shiny_feature(
+    object, features_entered = "rna_CD34", assay_config = NULL,
+    split_by = "none", raw_feature_names = TRUE, legend_title = "feature",
+    reduction = reduction, data_cutoffs = c(0, 1)
+  )
+  expect_equal(attr(feature, "cell_range"), range(cells))
+  expect_true(all(attr(feature, "plotted_range") >= 0 - 1e-8))
+  expect_true(all(attr(feature, "plotted_range") <= 1 + 1e-8))
+  expect_identical(feature$scales$get_scales("colour")$name, "rna_CD34")
+})

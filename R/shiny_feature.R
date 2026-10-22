@@ -51,6 +51,14 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for use 
 #' with scale_color_gradient2() with a fixed midpoint at 0. Takes precedence over 
 #' palette when provided.
+#' @param data_cutoffs optional vector of length two giving minimum and
+#' maximum cutoffs applied to each cell's value before plotting (passed to
+#' `plot_feature()` as `min_cutoff`/`max_cutoff`, so each may be a number or a
+#' quantile string such as "q99"; use NA for no cutoff on one side). The color
+#' scale then spans the clamped values. Ignored for blended plots.
+#' @param color_limits_quantile if TRUE, the elements of `color_limits` are
+#' probabilities (0 to 1) evaluated against the plotted values rather than
+#' values in data units.
 #' @param color_limits optional numeric vector of length two giving the
 #' values at which the lowest and highest colors are placed. Values outside
 #' the limits are shown in the end colors, and the limits apply to every
@@ -63,7 +71,8 @@
 #'
 #' @return a ggplot2 object with a feature plot created according to user
 #' specifications. For non-blended plots, the "plotted_range" attribute gives
-#' the range of the feature values mapped to the color scale.
+#' the range of the feature values mapped to the color scale (after any
+#' `data_cutoffs`), and the "cell_range" attribute the range before cutoffs.
 #' 
 #' @noRd
 shiny_feature <- function(object, 
@@ -90,6 +99,8 @@ shiny_feature <- function(object,
                           palette = NULL,
                           diverging_palette = NULL,
                           color_limits = NULL,
+                          color_limits_quantile = FALSE,
+                          data_cutoffs = NULL,
                           blend_palette = NULL,
                           blend_layout = NULL,
                           reduction = NULL
@@ -122,6 +133,32 @@ shiny_feature <- function(object,
       message = "Loading plot, please wait..."
     )
   )
+  
+  # Per-cell cutoffs for plot_feature() (NA = no cutoff on that side), and the
+  # range of the underlying per-cell values before cutoffs, reported for the
+  # color scale limits slider in "data values" mode
+  min_cutoff <- if (!is.null(data_cutoffs)) data_cutoffs[1] else NA
+  max_cutoff <- if (!is.null(data_cutoffs)) data_cutoffs[2] else NA
+  cutoffs_set <- !is.null(data_cutoffs) && any(!is.na(data_cutoffs))
+  
+  cell_range <-
+    if (!isTruthy(blend)){
+      tryCatch(
+        {
+          values <-
+            SCUBA::fetch_data(
+              object,
+              vars = features_entered,
+              layer = SCUBA::default_layer(object)
+            )
+          values <-
+            unlist(values[, vapply(values, is.numeric, logical(1)), drop = FALSE])
+          values <- values[is.finite(values)]
+          if (length(values) > 0) range(values) else NULL
+        },
+        error = function(e) NULL
+      )
+    } else NULL
   
   if (length(features_entered) == 1){
     # Single-feature plots ####
@@ -162,15 +199,27 @@ shiny_feature <- function(object,
         # `...` arguments passed to plot_feature
         label = show_label,
         order = order,
+        min_cutoff = min_cutoff,
+        max_cutoff = max_cutoff,
         assay_config = assay_config
         )
     
-    # Apply a final color scale when a diverging palette or user-set color
-    # scale limits are in use (a standard palette alone is already applied
-    # via the colors parameter above). This replaces the scale set by
-    # FeaturePlotSingle, which produces an expected ggplot2 message, so the
-    # legend title is passed explicitly to preserve it.
-    if (isTruthy(diverging_palette) || !is.null(color_limits)){
+    # Color scale limits given as quantiles are evaluated against the
+    # (possibly clamped) values shown
+    scale_limits <-
+      resolve_color_limits(
+        color_limits,
+        quantile = color_limits_quantile,
+        values = plotted_values(feature_plot, features_entered)
+      )
+    
+    # Apply a final color scale when a diverging palette, user-set color
+    # scale limits or per-cell cutoffs are in use (a standard palette alone is
+    # already applied via the colors parameter above). This replaces the scale
+    # set by FeaturePlotSingle, whose limits come from the unclamped data,
+    # which produces an expected ggplot2 message; the legend title is passed
+    # explicitly to preserve it.
+    if (isTruthy(diverging_palette) || !is.null(scale_limits) || cutoffs_set){
       suppressMessages(
         feature_plot <- feature_plot &
           color_scale(
@@ -183,7 +232,7 @@ shiny_feature <- function(object,
               } else {
                 c("lightgrey", "blue")
               },
-            limits = color_limits,
+            limits = scale_limits,
             diverging = isTruthy(diverging_palette),
             name =
               feature_legend_name(legend_title, features_entered, assay_config)
@@ -225,6 +274,7 @@ shiny_feature <- function(object,
     # limits slider
     attr(feature_plot, "plotted_range") <-
       plotted_range(feature_plot, features_entered)
+    attr(feature_plot, "cell_range") <- cell_range
     
     # Return single-feature feature plot
     feature_plot
@@ -273,15 +323,26 @@ shiny_feature <- function(object,
           # `...` arguments passed to FeaturePlot
           label = show_label,
           order = order,
+          min_cutoff = min_cutoff,
+          max_cutoff = max_cutoff,
           assay_config = assay_config
         )
       
-      # Apply a final color scale when a diverging palette or user-set color
-      # scale limits are in use. The one scale (and its limits) applies to
-      # every panel, as with share_scale. Not applied when coloring by
-      # feature, which uses a categorical palette per panel.
+      # Color scale limits given as quantiles are evaluated against the
+      # (possibly clamped) values shown across all panels
+      scale_limits <-
+        resolve_color_limits(
+          color_limits,
+          quantile = color_limits_quantile,
+          values = plotted_values(feature_plot, features_entered)
+        )
+      
+      # Apply a final color scale when a diverging palette, user-set color
+      # scale limits or per-cell cutoffs are in use. The one scale (and its
+      # limits) applies to every panel, as with share_scale. Not applied when
+      # coloring by feature, which uses a categorical palette per panel.
       if (
-        (isTruthy(diverging_palette) || !is.null(color_limits)) &
+        (isTruthy(diverging_palette) || !is.null(scale_limits) || cutoffs_set) &
         !color_by_feature
       ){
         suppressMessages(
@@ -296,7 +357,7 @@ shiny_feature <- function(object,
                 } else {
                   c("lightgrey", "blue")
                 },
-              limits = color_limits,
+              limits = scale_limits,
               diverging = isTruthy(diverging_palette),
               name =
                 if (identical(legend_title, "assay_score")){
@@ -307,9 +368,10 @@ shiny_feature <- function(object,
       }
       
       # Record the range of the feature values shown, for the color scale
-      # limits slider
+      # limits slider, and the per-cell range before cutoffs
       attr(feature_plot, "plotted_range") <-
         plotted_range(feature_plot, features_entered)
+      attr(feature_plot, "cell_range") <- cell_range
       
       # Return the plot
       feature_plot
@@ -331,10 +393,22 @@ shiny_feature <- function(object,
           order = if (is.null(order)) FALSE else order,
           # Show/hide cluster labels
           label = show_label,
+          # Per-cell cutoffs (NA = none)
+          min_cutoff = min_cutoff,
+          max_cutoff = max_cutoff,
           # Reduction: uses the input for reduction if it exists, otherwise
           # it is set to NULL and will use default settings.
           reduction = if (!is.null(reduction)) reduction else NULL
           )
+      
+      # Color scale limits given as quantiles are evaluated against the
+      # (possibly clamped) values shown across all panels
+      scale_limits <-
+        resolve_color_limits(
+          color_limits,
+          quantile = color_limits_quantile,
+          values = plotted_values(feature_plot, features_entered)
+        )
       
       #+
       # Clean up title: this changes the feature names on each plot
@@ -389,7 +463,7 @@ shiny_feature <- function(object,
           # limits are applied with either.
           if (
             isTruthy(diverging_palette) || isTruthy(palette) ||
-            !is.null(color_limits)
+            !is.null(scale_limits) || cutoffs_set
           ){
             color_scale(
               "colour",
@@ -401,7 +475,7 @@ shiny_feature <- function(object,
                 } else {
                   c("lightgrey", "blue")
                 },
-              limits = color_limits,
+              limits = scale_limits,
               diverging = isTruthy(diverging_palette)
             )
           }
@@ -415,9 +489,10 @@ shiny_feature <- function(object,
       )
       
       # Record the range of the feature values shown, for the color scale
-      # limits slider
+      # limits slider, and the per-cell range before cutoffs
       attr(feature_plot, "plotted_range") <-
         plotted_range(feature_plot, features_entered)
+      attr(feature_plot, "cell_range") <- cell_range
       
       # Return finished plot for display
       feature_plot

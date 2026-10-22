@@ -61,6 +61,13 @@
 #' @param diverging_palette A 3-color diverging palette (low, mid, high) for 
 #'   use with scale_fill_gradient2() with a fixed midpoint at 0. Takes 
 #'   precedence over palette when provided.
+#' @param data_cutoffs optional vector of length two giving minimum and
+#'   maximum cutoffs applied to each cell's value *before* cells are
+#'   aggregated into bins. Elements may be numbers or quantile strings such as
+#'   "q99" (quantiles over all cells). Use NA for no cutoff on one side.
+#' @param color_limits_quantile if TRUE, the elements of `color_limits`
+#'   are probabilities (0 to 1) evaluated against the plotted values rather
+#'   than values in data units.
 #' @param color_limits optional numeric vector of length two giving the
 #'   values at which the lowest and highest colors are placed. Values outside
 #'   the limits are shown in the end colors. When NULL, the range of the
@@ -69,7 +76,8 @@
 #' @return A ggplot2 object (or patchwork object for multiple features) with
 #'   hexbin feature plot(s) created according to user specifications. The
 #'   "plotted_range" attribute gives the range of the per-bin values mapped
-#'   to the fill scale.
+#'   to the fill scale, and the "cell_range" attribute the range of the
+#'   underlying per-cell values before any cutoffs.
 #'
 #' 
 #' @noRd
@@ -93,7 +101,9 @@ shiny_hexbin_feature <- function(
     layer = NULL,
     palette = NULL,
     diverging_palette = NULL,
-    color_limits = NULL) {
+    color_limits = NULL,
+    color_limits_quantile = FALSE,
+    data_cutoffs = NULL) {
   
   # Validate that object is not NULL (will keep plot code from running if
   # the subset is NULL, meaning no cells in subset)
@@ -143,6 +153,30 @@ shiny_hexbin_feature <- function(
   if (is.null(palette)) {
     palette <- c("lightgrey", "blue")
   }
+  
+  # Range of the underlying per-cell values (before any cutoffs), reported
+  # for the color scale limits slider in "data values" mode
+  cell_range <-
+    tryCatch(
+      {
+        values <-
+          SCUBA::fetch_data(
+            object,
+            vars = features_entered,
+            layer = SCUBA::default_layer(object)
+          )
+        values <- unlist(values[, vapply(values, is.numeric, logical(1)), drop = FALSE])
+        values <- values[is.finite(values)]
+        if (length(values) > 0) range(values) else NULL
+      },
+      error = function(e) NULL
+    )
+  
+  # Per-cell cutoffs passed to hextant (NA means no cutoff on that side)
+  cell_min_cutoff <-
+    if (!is.null(data_cutoffs) && !is.na(data_cutoffs[1])) data_cutoffs[1] else NULL
+  cell_max_cutoff <-
+    if (!is.null(data_cutoffs) && !is.na(data_cutoffs[2])) data_cutoffs[2] else NULL
   
   # Validate reduction exists in object
   available_reductions <- tryCatch({
@@ -204,10 +238,21 @@ shiny_hexbin_feature <- function(
       split_by = split_by,
       ncol = ncol,
       scales = scales,
+      cell_min_cutoff = cell_min_cutoff,
+      cell_max_cutoff = cell_max_cutoff,
       title = plot_title,
       xlab = paste0(reduction, "_1"),
       ylab = paste0(reduction, "_2")
     )
+    
+    # Color scale limits given as quantiles are evaluated against the
+    # per-bin values shown
+    scale_limits <-
+      resolve_color_limits(
+        color_limits,
+        quantile = color_limits_quantile,
+        values = plotted_values(plot, "feature_value")
+      )
     
     # Apply additional styling layers to match cellDIVER aesthetics
     layers <- c(
@@ -227,7 +272,7 @@ shiny_hexbin_feature <- function(
           "fill",
           palette =
             if (!is.null(diverging_palette)) diverging_palette else palette,
-          limits = color_limits,
+          limits = scale_limits,
           diverging = !is.null(diverging_palette)
         )
       ),
@@ -251,6 +296,7 @@ shiny_hexbin_feature <- function(
     # Record the range of the per-bin values shown, for the color scale
     # limits slider
     attr(plot, "plotted_range") <- plotted_range(plot, "feature_value")
+    attr(plot, "cell_range") <- cell_range
     
     return(plot)
     
@@ -289,29 +335,19 @@ shiny_hexbin_feature <- function(
         split_by = split_by,
         ncol = NULL,  # Will handle layout with patchwork
         scales = scales,
+        cell_min_cutoff = cell_min_cutoff,
+        cell_max_cutoff = cell_max_cutoff,
         title = individual_title,
         xlab = paste0(reduction, "_1"),
         ylab = paste0(reduction, "_2")
       )
       
-      # Apply additional styling layers
+      # Apply additional styling layers (the fill scale is added after all
+      # panels are built, so quantile limits can be taken over every panel)
       layers <- c(
         list(
           theme(
             legend.position = if (show_legend) "right" else "none"
-          )
-        ),
-        
-        # Replace hextant's viridis fill scale with the diverging palette (if
-        # provided, it takes precedence) or the global/default continuous
-        # palette, applying any user-set color scale limits
-        list(
-          color_scale(
-            "fill",
-            palette =
-              if (!is.null(diverging_palette)) diverging_palette else palette,
-            limits = color_limits,
-            diverging = !is.null(diverging_palette)
           )
         ),
         
@@ -341,15 +377,46 @@ shiny_hexbin_feature <- function(
       2
     }
     
+    # Color scale limits given as quantiles are evaluated against the
+    # per-bin values of every panel together
+    scale_limits <-
+      resolve_color_limits(
+        color_limits,
+        quantile = color_limits_quantile,
+        values = unlist(lapply(plot_list, plotted_values, "feature_value"))
+      )
+    
+    # Replace hextant's viridis fill scale on each panel with the diverging
+    # palette (if provided, it takes precedence) or the global/default
+    # continuous palette, applying any user-set color scale limits
+    plot_list <-
+      lapply(
+        plot_list,
+        function(panel){
+          suppressMessages(
+            panel <- panel &
+              color_scale(
+                "fill",
+                palette =
+                  if (!is.null(diverging_palette)) diverging_palette else palette,
+                limits = scale_limits,
+                diverging = !is.null(diverging_palette)
+              )
+          )
+          panel
+        }
+      )
+    
     combined_plot <- patchwork::wrap_plots(
       plot_list,
       ncol = layout_ncol
     )
     
     # Record the range of the per-bin values shown across all features, for
-    # the color scale limits slider
+    # the color scale limits slider, and the per-cell range before cutoffs
     attr(combined_plot, "plotted_range") <-
       plotted_range(combined_plot, "feature_value")
+    attr(combined_plot, "cell_range") <- cell_range
     
     return(combined_plot)
   }

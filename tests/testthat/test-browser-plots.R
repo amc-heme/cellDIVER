@@ -121,6 +121,20 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
         ignore = list(c(0, 1), sum_limits)
       )
       expect_lt(mean_limits[[2]], sum_limits[[2]])
+      # "Data values" bounds the slider by the per-cell range: below any
+      # per-bin sum, and no higher than the per-bin means (equal when a bin
+      # holds a single cell, so the slider may legitimately not move).
+      browser_set(app, paste0(namespace, "-color_limits_target"), "data")
+      app$wait_for_idle(); Sys.sleep(2)
+      cell_limits <- app$get_value(input = paste0(namespace, "-color_limits"))
+      expect_lt(cell_limits[[2]], sum_limits[[2]])
+      expect_lte(cell_limits[[2]], mean_limits[[2]])
+      # "Quantiles" fixes the slider at 0-100 percent
+      browser_set(app, paste0(namespace, "-color_limits_units"), "quantile")
+      quantile_limits <- app$wait_for_value(
+        input = paste0(namespace, "-color_limits"), ignore = list(cell_limits)
+      )
+      expect_equal(quantile_limits, c(0, 100))
     } else {
       expect_match(svg, "CD34", fixed = TRUE)
       if (plot_type == "scatter") expect_match(svg, "CD38", fixed = TRUE)

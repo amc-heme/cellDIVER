@@ -64,7 +64,7 @@ Imports:
     grDevices,
     gtools,
     HDF5Array,
-    hextant,
+    hextant (>= 0.1.0),
     lifecycle,
     methods,
     patchwork,
