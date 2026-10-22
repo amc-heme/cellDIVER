@@ -396,13 +396,15 @@ browser_load_config <- function(app) {
 #' @param object Independently constructed expected subset.
 #' @param group_by Metadata column defining the expected comparison.
 #' @param previous Previous result that must not be returned again.
+#' @param assay Assay / modality the app is configured to test (`"RNA"` for the
+#'   Seurat fixture, `"X"` for the h5ad fixture).
 #' @return The verified result table.
-browser_expect_dge <- function(app, object, group_by, previous = NULL) {
+browser_expect_dge <- function(app, object, group_by, previous = NULL, assay = "RNA") {
   actual <- app$wait_for_value(
     export = "object_dge-dge_table", ignore = list(NULL, previous)
   )
   expected <- scDE::run_dge(
-    object, group_by = group_by, seurat_assay = "RNA",
+    object, group_by = group_by, seurat_assay = assay,
     positive_only = TRUE, lfc_format = "log2", remove_raw_pval = FALSE
   )
   testthat::expect_s3_class(actual, "data.frame")

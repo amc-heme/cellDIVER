@@ -2142,8 +2142,15 @@ run_cellDIVER <-
         reactive({
           req(config())
 
+          # MuData loaded through reticulate, or an .h5mu file served by SCUBA's
+          # Julia engine (class scuba_source with format "h5mu")
           if (!is.null(config()$object_class)) {
             if ("md._core.mudata.MuData" %in% config()$object_class) {
+              TRUE
+            } else if (
+              inherits(object(), "scuba_source") &&
+                identical(object()$format, "h5mu")
+            ) {
               TRUE
             } else {
               FALSE

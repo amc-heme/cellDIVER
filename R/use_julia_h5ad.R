@@ -7,8 +7,9 @@
 #' reticulate, or `SCUBA::open_h5mu()`, where modalities are addressed by their MuData names,
 #' e.g. `rna_` / `prot_`). The choice is controlled by `options(cellDIVER.h5ad_engine = )`:
 #' `"auto"` (default; Julia when available), `"julia"` (error when unavailable) or
-#' `"reticulate"`. Differential expression (scDE) is not yet available for file-backed objects,
-#' so apps that need DGE on h5ad datasets should use `"reticulate"`.
+#' `"reticulate"`. Differential expression on file-backed objects needs scDE >= 0.3.1
+#' (`run_dge.scuba_source`, Presto on `SCUBA::fetch_matrix()`); the DGE tab stays hidden for
+#' `.h5mu` datasets, as it is for MuData objects loaded through reticulate.
 #'
 #' @returns `TRUE` when files should be opened with `SCUBA::open_h5ad()`.
 #' @noRd

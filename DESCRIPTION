@@ -96,7 +96,7 @@ Imports:
     yaml
 Remotes: 
     github::amc-heme/SCUBA,
-    github::amc-heme/scDE
+    github::amc-heme/scDE@feature/scuba-source
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: 

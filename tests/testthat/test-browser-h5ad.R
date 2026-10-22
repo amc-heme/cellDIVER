@@ -51,3 +51,18 @@ for (plot_type in c("feature", "violin", "dot")) {
     expect_false(identical(svg, svg2))
   })
 }
+
+test_that("h5ad dataset: differential expression runs through scDE on the file-backed object", {
+  skip_if_not(
+    exists("run_dge.scuba_source", envir = asNamespace("scDE"), inherits = FALSE),
+    "scDE without run_dge.scuba_source()"
+  )
+  app <- browser_app("h5ad-dge", fixture = "cellDIVER-h5ad")
+  browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
+  expect_equal(
+    app$get_value(input = "object_dge-test_selections-group_by"),
+    "condensed_cell_type"
+  )
+  browser_click(app, "object_dge-submit")
+  browser_expect_dge(app, h5ad_browser_object(), "condensed_cell_type", assay = "X")
+})
