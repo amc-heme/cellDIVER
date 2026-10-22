@@ -313,6 +313,8 @@ subset_selections_ui <-
 #' interface. This avoids inaccurate results in the DGE tab. Subsetting for DGE 
 #' occurs on the group by variable separate of the selections made in this 
 #' module
+#' @param allow_expression_filters Optional reactive indicating whether feature
+#' expression and advanced filters are available. Defaults to TRUE.
 #' 
 #' @return Server code for the subset selections module.
 #' 
@@ -325,7 +327,8 @@ subset_selections_server <- function(id,
                                      assay_config,
                                      meta_categories,
                                      valid_features,
-                                     hide_menu = NULL
+                                     hide_menu = NULL,
+                                     allow_expression_filters = NULL
                                      ){
   # Initialize module 
   moduleServer(
@@ -367,6 +370,14 @@ subset_selections_server <- function(id,
       editing_data$target_row <- NULL
       # Label to display to user
       editing_data$label <- NULL
+
+      expression_filters_allowed <- reactive({
+        if (is.reactive(allow_expression_filters)){
+          isTRUE(allow_expression_filters())
+        } else {
+          TRUE
+        }
+      })
       
       # Confirm button for adding filters should start in a disabled state
       shinyjs::disable(
@@ -509,7 +520,7 @@ subset_selections_server <- function(id,
         }
       })
       
-      # 5. Hide filters not supported by object class --------------------------
+      # 5. Hide filters not supported by object class or analysis method -------
       # SingleCellExperiment objects cannot be subsetted by feature expression
       # using the current make_subset implementation. 
       # For now, "feature expression" and "advanced" filters will be hidden.
@@ -517,26 +528,45 @@ subset_selections_server <- function(id,
         label = 
           glue("{id}: restrict filter choices in SingleCellExperiment objects"),
         {
-          if (inherits(object(), "SingleCellExperiment")){
-            updateSelectInput(
-              inputId = "filter_type",
-              choices =
-                c("Select Type" = "",
-                  "Categorical Metadata" = "categorical"
-                  )
-                )
-          } else if (inherits(object(), "AnnDataR6")){
-            # Anndata objects, hide advanced filters
-            updateSelectInput(
-              inputId = "filter_type",
-              choices =
-                c("Select Type" = "",
-                  "Categorical Metadata" = "categorical",
-                  "Feature Expression" = "numeric"
-                  )
-              )
-            }
+          updateSelectInput(
+            session = session,
+            inputId = "filter_type",
+            choices = subset_filter_type_choices(
+              object = object(),
+              allow_expression_filters = expression_filters_allowed()
+            ),
+            selected = ""
+          )
           })
+
+      # edgeR must not inherit a feature-expression filter that was created
+      # while Wilcoxon was selected. Advanced filters are also removed because
+      # they can encode arbitrary feature-expression restrictions.
+      observeEvent(
+        expression_filters_allowed(),
+        label = glue("{id}: remove expression filters when disabled"),
+        ignoreInit = TRUE,
+        {
+          if (!expression_filters_allowed()){
+            module_data$filters <- Filter(
+              function(filter_i) {
+                !filter_i$type %in% c("numeric", "advanced")
+              },
+              module_data$filters
+            )
+            if (module_data$filter_type %in% c("numeric", "advanced")){
+              module_data$filter_menu_state <- "idle"
+              module_data$filter_type <- "none"
+            }
+            updateSelectizeInput(
+              session = session,
+              inputId = "numeric_feature",
+              selected = character(0),
+              server = TRUE
+            )
+          }
+        }
+      )
       
       # 6. Categorical filters -------------------------------------------------
       ## 6.1. Update choices for categorical metadata variables ####
@@ -1404,8 +1434,8 @@ subset_selections_server <- function(id,
             }
           })
           
-        })
-      }
+      })
+}
 
       # 15. Reset all filters --------------------------------------------------
       ## 15.1. Show/hide reset button ####
@@ -1491,5 +1521,20 @@ subset_selections_server <- function(id,
   )
 }
 
-
+# Filter types supported by the current object and analysis method.
+subset_filter_type_choices <- function(object, allow_expression_filters = TRUE){
+  choices <- c(
+    "Select Type" = "",
+    "Categorical Metadata" = "categorical"
+  )
+  if (!isTRUE(allow_expression_filters) ||
+      inherits(object, "SingleCellExperiment")){
+    return(choices)
+  }
+  choices <- c(choices, "Feature Expression" = "numeric")
+  if (!inherits(object, "AnnDataR6")){
+    choices <- c(choices, "Advanced Subsetting" = "advanced")
+  }
+  choices
+}
 

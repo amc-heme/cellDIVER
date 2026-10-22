@@ -30,7 +30,7 @@ For more information on plot types, go to the "?" button and select "Single-Cell
 
 ## Differential Expression Tab
 
-Use the differential expression tab to identify genes that are upregulated or downregulated between groups of cells in the dataset. Currently, a Wilcoxon rank sum method is used, with plans to add pseudobulk testing in the near future.
+Use the differential expression tab to identify genes that are upregulated or downregulated between groups in the dataset. Standard two-group comparisons can use either a cell-level Wilcoxon rank-sum test or an edgeR pseudobulk test. Marker identification and groups defined by a feature-expression threshold use Wilcoxon.
 
 ### Running a Differential Expression Test
 
@@ -45,7 +45,14 @@ Use the menu on the left hand side of the app to run a differential gene express
 - **Differential expression:** Compare two cell groups to find genes enriched in one group versus the other.  
 - **Marker identification:** Split cells into three or more groups to find genes enriched in each group versus all others.  
 
-**Step 2: Define groups**  
+**Step 2: Choose a statistical method**
+
+- **Wilcoxon rank-sum:** Uses cell-level normalized expression. This fast exploratory method treats cells as observations.
+- **edgeR pseudobulk:** Uses raw counts summed within each biological sample, followed by TMM normalization and a quasi-likelihood test. Use this method when biological replicates are available and inference across samples is the goal.
+
+edgeR requires a configured biological-sample metadata field, at least two retained samples per group, and raw integer counts in the genes assay. Three or more samples per group are recommended. Pseudobulk samples with fewer than the selected minimum number of cells (10 by default) are excluded. Group 1 is the numerator, so a positive log2 fold change means higher expression in Group 1 than Group 2.
+
+**Step 3: Define groups**
 
 - **For Marker Identification:** choose a metadata variable. Groups are automatically created for all values of that variable.
 - **For Differential expression:** can define using metadata or feature expression.
@@ -55,7 +62,7 @@ Use the menu on the left hand side of the app to run a differential gene express
     2. A ridge plot interface will appear. Select a expression threshold by clicking within the plot.
     3. Cells ≥ threshold are assigned to Group 1, cells < threshold are assigned to Group 2.  
     
-**Step 3: Select analysis scope**
+**Step 4: Select analysis scope**
 
 - **Full object:** Run on all cells.  
 - **Subset:** Apply filters based on metadata or feature expression, then run on the filtered cells.
@@ -87,4 +94,3 @@ Each filter criterion displayed has a pencil (<i class="fa fa-pencil"></i>) and 
 ## Datasets
 
 To view the datasets available in this deployment, go to the <span class="options-button-representation"><i class="fas fa-ellipsis"></i></span> button, and select "Choose Dataset". Select a dataset from the widow that appears to change datasets.
-

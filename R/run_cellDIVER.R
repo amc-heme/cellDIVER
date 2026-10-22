@@ -1747,9 +1747,8 @@ run_cellDIVER <-
           label = "designated_genes_assay",
           ignoreNULL = FALSE,
           {
-            config()$other_assay_options$genes_assay
-          }
-        )
+            configured_genes_assay(config())
+          })
 
       ## 2.3. Valid features Expressions ####
       # Create a list of valid features using the assays defined above
@@ -2371,6 +2370,7 @@ run_cellDIVER <-
             metadata_config = metadata_config,
             assay_config = assay_config,
             designated_genes_assay = designated_genes_assay,
+            sample_id_colname = patient_colname,
             meta_categories = meta_categories,
             unique_metadata = unique_metadata,
             meta_choices = meta_choices,
