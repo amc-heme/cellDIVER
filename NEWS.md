@@ -10,7 +10,7 @@
 * Zero-centered diverging palettes for feature, dot and hexbin feature plots:
   a three-color scale with its midpoint at zero.
 
-* Color scale limits for every plot with a continuous color scale (feature,
+* Scale limits for every plot with a continuous color scale (feature,
   hexbin feature, hexbin density and dot plots): a two-handle slider sets the
   values at which the end colors are placed, bounded by the values shown on
   the plot; values outside the limits are drawn in the end colors. Diverging

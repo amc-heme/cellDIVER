@@ -110,7 +110,7 @@ When plot types based on a gene or multiple genes are selected, the feature entr
 
 Allows for the selection of color palettes for categorical and continuous data. Selections made will apply to all plots in the plots tab. The categorical palette applies to DimPlots, scatterplots, cell proportion plots, violin plots and ridge plots; the continuous palette applies to feature plots, dot plots and hexbin plots.
 
-Each continuous palette other than the default (light grey to blue) is also offered in a reversed form, listed directly beneath the original as "*name* (reversed)". Feature, dot and hexbin feature plots can additionally use a zero-centered diverging palette (see [Use Custom Diverging Colors](#Feature-plots-diverging-colors)), and all plots with a continuous color scale allow its minimum and maximum to be set (see [Set Color Scale Limits](#Feature-plots-color-limits)).
+Each continuous palette other than the default (light grey to blue) is also offered in a reversed form, listed directly beneath the original as "*name* (reversed)". Feature, dot and hexbin feature plots can additionally use a zero-centered diverging palette (see [Use Custom Diverging Colors](#Feature-plots-diverging-colors)), and all plots with a continuous color scale allow its minimum and maximum to be set (see [Set Scale Limits](#Feature-plots-color-limits)).
 
 ## Forming Subsets {#Subsets}
 
@@ -242,9 +242,9 @@ When checked, two color pickers appear to set the colors used for the lowest and
 
 When checked, the plot is colored with a three-color, zero-centered scale: one color for negative values, one for zero, and one for positive values. This is intended for data centered on zero, such as scaled expression or module scores. The three colors may be changed with the pickers that appear.
 
-To control where the low and high colors sit, use [Set Color Scale Limits](#Feature-plots-color-limits), which offers a "symmetric about zero" option for diverging palettes.
+To control where the low and high colors sit, use [Set Scale Limits](#Feature-plots-color-limits), which offers a "symmetric about zero" option for diverging palettes.
 
-### Set Color Scale Limits {#Feature-plots-color-limits}
+### Set Scale Limits {#Feature-plots-color-limits}
 
 When checked, a two-handle slider appears for choosing the values at which the lowest and highest colors of the continuous color scale are placed. Values outside the chosen range are drawn in the end colors; the underlying data are not changed. This is useful when a few extreme values would otherwise compress the rest of the scale into a narrow band of colors. The limits apply to every panel of the plot, so panels share one scale while limits are set.
 
@@ -304,9 +304,9 @@ When set to "default", HexDensity plots are titled "Density" and HexFeature plot
 
 HexFeature plots offer the same custom color options as feature plots, including the zero-centered diverging palette. See [Use Custom Diverging Colors](#Feature-plots-diverging-colors).
 
-### Set Color Scale Limits
+### Set Scale Limits
 
-Both hexbin plot types allow the minimum and maximum of the fill scale to be set, as described in [Set Color Scale Limits](#Feature-plots-color-limits). For HexFeature plots the range reflects the per-bin aggregated values, so with the "sum" method it is larger than the values of individual cells; choose *Apply to: Data values* to cap each cell's value before the cells are aggregated instead. For HexDensity plots it reflects cell counts per bin, or scaled density from 0 to 1 when "Scale density independently per facet" is enabled.
+Both hexbin plot types allow the minimum and maximum of the fill scale to be set, as described in [Set Scale Limits](#Feature-plots-color-limits). For HexFeature plots the range reflects the per-bin aggregated values, so with the "sum" method it is larger than the values of individual cells; choose *Apply to: Data values* to cap each cell's value before the cells are aggregated instead. For HexDensity plots it reflects cell counts per bin, or scaled density from 0 to 1 when "Scale density independently per facet" is enabled.
 
 ### Include Legend
 
@@ -372,9 +372,9 @@ Sets the order groups appear on the plot. When set to "ascending", values in the
 
 Dot plots offer the same custom color options as feature plots. The zero-centered diverging palette is well suited to dot plots, since the color of each dot shows mean-centered, scaled average expression. See [Use Custom Diverging Colors](#Feature-plots-diverging-colors).
 
-### Set Color Scale Limits
+### Set Scale Limits
 
-Sets the minimum and maximum of the color scale, as described in [Set Color Scale Limits](#Feature-plots-color-limits). The range reflects the mean-centered scaled average expression values shown, which the dot plot already limits to between -2.5 and 2.5.
+Sets the minimum and maximum of the color scale, as described in [Set Scale Limits](#Feature-plots-color-limits). The range reflects the mean-centered scaled average expression values shown, which the dot plot already limits to between -2.5 and 2.5.
 
 ### Include Legend {#dot-plots-include-legend}
 

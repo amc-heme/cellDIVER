@@ -1052,7 +1052,7 @@ plot_module_ui <- function(id,
           )
         } else NULL,
 
-      ## Color scale limits ####
+      ## Scale limits ####
       # Two-handle slider setting the values at which the end colors of the
       # continuous color scale are placed. The bounds are updated server-side
       # from the values shown on the plot. Hidden for feature plots when
@@ -1069,7 +1069,7 @@ plot_module_ui <- function(id,
           checkboxInput(
             inputId = ns("use_color_limits"),
             label = tagList(
-              "Set Color Scale Limits",
+              "Set Scale Limits",
               a(id = ns("color_limits_info_icon"),
                 icon("info-circle"),
                 href = paste0(
@@ -3346,7 +3346,7 @@ plot_module_server <- function(id,
                           })
                       )
 
-                 # 6b. Color scale limits --------------------------------------
+                 # 6b. Scale limits --------------------------------------------
                  # The slider bounds are derived from the finished plot: the
                  # values mapped to the color scale (the "plotted_range"
                  # attribute set by the plot functions) or, in "data values"
