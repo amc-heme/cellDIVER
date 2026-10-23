@@ -101,7 +101,7 @@ Remotes:
     github::amc-heme/SCUBA@feature/pseudobulk-scuba,
     github::amc-heme/scDE@feature/pseudobulk-scuba,
     github::amc-heme/presto,
-    github::amc-heme/hextant
+    github::amc-heme/hextant@feature/pseudobulk-scuba
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: 
