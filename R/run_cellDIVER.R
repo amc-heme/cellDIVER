@@ -624,174 +624,39 @@ run_cellDIVER <-
       # Store config file in datasets
       datasets[[data_key]]$config <- config_r
 
-      # Load object: different loading code for SingleCellExperiment objects
-      # saved via HDF5 storage
-      if (isTruthy(is_HDF5SummarizedExperiment)) {
-        datasets[[data_key]]$object <-
-          tryCatch(
-            error = function(cnd) {
-              cat("Error when loading SCE object \n")
-              #print(sys.calls(), sep = "\n")
-              print(cnd)
-
-              stop(
-                "There was an error loading the object at path\n",
-                datasets[[data_key]]$object,
-                ": \n\n",
-                "Specific error:\n",
-                cnd,
-                "\nSuggestions:\n",
-                "Loading was attempted via `HDF5Array::loadHDF5SummarizedExperiment`.",
-                "Please check that the config file for the object corresponds ",
-                "to the object.",
-                "\n",
-                "For HDF5-enabled SingleCellExperiment objects, the object ",
-                "path should be set to the folder containing the assays.h5 ",
-                "and the se.rds file. ",
-                "This is the same folder that was created ",
-                "when the object was saved via `HDF5Array::saveHDF5SummarizedExperiment()`. ",
-                "A prefix for these files can be supplied in",
-                "the config app using the HDF5_prefix argument",
-                "\n",
-                "If this object is not an HDF5-enabled SingleCellExperiment ",
-                "object, please ensure that is_HDF5SummarizedExperiment is set ",
-                "to `FALSE` when run_config_app() is called."
-              )
-            },
-            {
-              HDF5Array::loadHDF5SummarizedExperiment(
-                datasets[[data_key]]$object,
-                prefix = HDF5_prefix
-              )
-            }
-          )
-      } else {
-        # All other objects: load based on file extension
-        path <- datasets[[data_key]]$object
-
-        # Convert to lowercase to detect different capitalizations of the
-        # same extension (.Rds or .rds)
-        extension <-
-          tolower(
-            tools::file_ext(path)
-          )
-
-        if (extension == "rds") {
-          datasets[[data_key]]$object <-
-            tryCatch(
-              error = function(cnd) {
-                stop(
-                  "There was an error loading the object at path \n",
-                  datasets[[data_key]]$object,
-                  ": \n\n",
-                  "Specific error:\n",
-                  cnd,
-                  "\nSuggestions:\nLoading was attempted via `readRDS()`. \n",
-                  "Please check that the config file for the object corresponds \n",
-                  "to the object, and that the object path points to a .rds file.\n",
-                  "\n",
-                  "If an object is an HDF5-enabled SingleCellExperiment\n",
-                  "object, the config file must specify this. This is done\n",
-                  "automatically for files produced using cellDIVER version\n",
-                  "0.7.0. and later. To update an older config file, call\n",
-                  "run_config_app() using the object and the config file,\n",
-                  "with `isHDF5SummarizedExperiment` set to `TRUE`. Load the\n",
-                  "config file in the config app, and then save the file."
-                )
-              },
-              {
-                # Define path and load object
-                path <- datasets[[data_key]]$object
-
-                object <-
-                  readRDS(
-                    path
-                  )
-
-                # Check object for valid classes
-                check_dataset(
-                  object,
-                  path = path
-                )
-
-                # Return object from TryCatch statement
-                object
-              }
+      # Load object. One loader covers every format (.rds, HDF5-backed
+      # SingleCellExperiment directories, and .h5ad / .h5mu files, which open
+      # as file-backed SCUBA objects when the Julia engine is available and
+      # through reticulate otherwise). Errors are re-raised with the path and
+      # a pointer to the loader that was used.
+      datasets[[data_key]]$object <-
+        tryCatch(
+          error = function(cnd) {
+            stop(
+              "There was an error loading the object at path\n",
+              datasets[[data_key]]$object,
+              ": \n\n",
+              "Specific error:\n",
+              conditionMessage(cnd),
+              "\n\nSuggestions:\n",
+              "Please check that the config file for the object corresponds ",
+              "to the object. Supported objects are .rds files holding a ",
+              "Seurat or SingleCellExperiment object, directories written by ",
+              "HDF5Array::saveHDF5SummarizedExperiment() (set ",
+              "is_HDF5SummarizedExperiment in the config), and .h5ad / .h5mu ",
+              "files (opened with SCUBA::open_h5ad() / open_h5mu() when the ",
+              "Julia engine is available, otherwise read through reticulate; ",
+              "see options(cellDIVER.h5_engine))."
             )
-        } else if (extension == "h5ad") {
-          # .h5ad anndata::read_h5ad
-          datasets[[data_key]]$object <-
-            tryCatch(
-              error = function(cnd) {
-                stop(
-                  "There was an error loading the object at path \n",
-                  datasets[[data_key]]$object,
-                  "\nLoading was attempted via `anndata::read_h5ad()`."
-                )
-              },
-              {
-                # Define path and load object
-                path <- datasets[[data_key]]$object
-
-                require_python_support("h5ad")
-
-                object <-
-                  anndata::read_h5ad(
-                    path
-                  )
-
-                # Check object for valid classes
-                check_dataset(
-                  object,
-                  path = path
-                )
-
-                # Return object from TryCatch statement
-                object
-              }
+          },
+          {
+            load_single_cell_object(
+              path = datasets[[data_key]]$object,
+              is_HDF5SummarizedExperiment = is_HDF5SummarizedExperiment,
+              HDF5_prefix = HDF5_prefix
             )
-        } else if (extension == "h5mu") {
-          # MuData objects: import Mudata python package and run read_h5mu
-          datasets[[data_key]]$object <-
-            tryCatch(
-              error = function(cnd) {
-                stop(
-                  "There was an error loading the object at path \n",
-                  datasets[[data_key]]$object,
-                  "\nLoading was attempted via `read_h5mu` from the Python package."
-                )
-              },
-              {
-                # Define path and load object
-                path <- datasets[[data_key]]$object
-
-                require_python_support("h5mu")
-                reticulate::py_require("mudata>=0.3.1")
-
-                md <- reticulate::import("mudata", as = "md", convert = TRUE)
-
-                object <- md$read_h5mu(path)
-
-                # Check object for valid classes
-                check_dataset(
-                  object,
-                  path = path
-                )
-
-                # Return object from TryCatch statement
-                object
-              }
-            )
-        } else {
-          # Unrecognized file extensions
-          stop(
-            "File extension (.",
-            extension,
-            "not recognized. Currently supported extensions:\n",
-            ".rds, and .h5ad."
-          )
-        }
-      }
+          }
+        )
     }
 
     # Tests for location of general dataset info ####
@@ -2106,19 +1971,13 @@ run_cellDIVER <-
       # class of the object. The expressions in this section test for specific
       # classes and report to downstream expressions.
       ### 2.13.1. Object is a Seurat object ####
+      # The flags test the loaded object itself: the class recorded in the
+      # config was fixed when the config was written, and a .h5ad / .h5mu
+      # file may now open as a file-backed SCUBA object instead.
       is_seurat <-
         reactive({
-          req(config())
-
-          if (!is.null(config()$object_class)) {
-            if (config()$object_class %in% c("Seurat")) {
-              TRUE
-            } else {
-              FALSE
-            }
-          } else {
-            FALSE
-          }
+          req(object())
+          inherits(object(), "Seurat")
         })
 
       ### 2.13.2. Object is a SCE object with HDF5 Storage ####
@@ -2129,36 +1988,28 @@ run_cellDIVER <-
           isTruthy(config()$is_HDF5SummarizedExperiment)
         })
 
-      ### 2.13.3. Object is an anndata/mudata object ####
+      ### 2.13.3. Object is an anndata object (reticulate) ####
       is_anndata <-
         reactive({
-          req(config())
-
-          if (!is.null(config()$object_class)) {
-            if ("AnnDataR6" %in% config()$object_class) {
-              TRUE
-            } else {
-              FALSE
-            }
-          } else {
-            FALSE
-          }
+          req(object())
+          inherits(object(), c("AnnDataR6", "anndata.AnnData"))
         })
 
-      ### 2.13.4. Object is a MuData object ####
+      ### 2.13.4. Object is a MuData object (reticulate) ####
       is_mudata <-
         reactive({
-          req(config())
+          req(object())
+          inherits(
+            object(),
+            c("md._core.mudata.MuData", "mudata._core.mudata.MuData")
+          )
+        })
 
-          if (!is.null(config()$object_class)) {
-            if ("md._core.mudata.MuData" %in% config()$object_class) {
-              TRUE
-            } else {
-              FALSE
-            }
-          } else {
-            FALSE
-          }
+      ### 2.13.5. Object is a file-backed SCUBA object (.h5ad / .h5mu) ####
+      is_scuba_source <-
+        reactive({
+          req(object())
+          inherits(object(), "scuba_source")
         })
 
       ## 2.14. Object info page ####
@@ -2596,7 +2447,7 @@ run_cellDIVER <-
         {
           log_info(
             glue(
-              "Memory used after loading current object: {to_GB(mem_used())}"
+              "R heap used after loading current object: {to_GB(mem_used())}"
             )
           )
         }
@@ -2622,8 +2473,9 @@ run_cellDIVER <-
         dge_tab_button <- "nav [data-value = 'dge']"
 
         # Disable the DGE tab (for now) if the object is an SCE object with
-        # DelayedArray (HDF5-enabled) matrices
-        # DGE is also currently disabled for MuData objects
+        # DelayedArray (HDF5-enabled) matrices. DGE is also disabled for MuData
+        # objects loaded through reticulate (SCUBA has no accessors for them);
+        # file-backed .h5mu objects (scuba_source) are served normally.
         if (isTruthy(is_HDF5SummarizedExperiment()) | isTruthy(is_mudata())) {
           shinyjs::addClass(
             selector = dge_tab_button,

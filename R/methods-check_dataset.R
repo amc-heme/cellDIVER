@@ -117,3 +117,15 @@ check_dataset.mudata._core.mudata.MuData <-
   ){
     # Do nothing (object passes)
   }
+# File-backed SCUBA objects (.h5ad / .h5mu opened with SCUBA::open_h5ad() /
+# open_h5mu()) always pass: SCUBA validated the file when it opened it
+#' @export
+#' @noRd
+check_dataset.scuba_source <-
+  function(
+    object,
+    path = NULL,
+    return_error = FALSE
+  ){
+    # Do nothing (object passes)
+  }

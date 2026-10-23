@@ -1532,7 +1532,9 @@ subset_filter_type_choices <- function(object, allow_expression_filters = TRUE){
     return(choices)
   }
   choices <- c(choices, "Feature Expression" = "numeric")
-  if (!inherits(object, "AnnDataR6")){
+  # Advanced (string) subsetting evaluates R code against the object; the
+  # Python-backed and file-backed classes have no such interface
+  if (!inherits(object, c("AnnDataR6", "scuba_source"))){
     choices <- c(choices, "Advanced Subsetting" = "advanced")
   }
   choices

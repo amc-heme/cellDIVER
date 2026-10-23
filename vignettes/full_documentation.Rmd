@@ -514,9 +514,11 @@ their metadata and returns a table of genes that differ in expression between
 the groups. cellDIVER supports two statistical methods. The cell-level Wilcoxon
 rank-sum method uses [presto](https://www.biorxiv.org/content/10.1101/653253v1.full)
 on normalized expression and also reports an area under the receiver operator
-curve (auROC). For replicated standard two-group comparisons, the edgeR
-pseudobulk method aggregates raw counts by biological sample, applies TMM
-normalization, and uses edgeR's quasi-likelihood framework.
+curve (auROC). The edgeR pseudobulk method sums raw counts per biological
+sample and group, applies TMM normalization, and uses edgeR's quasi-likelihood
+framework; it is available in both modes whenever the dataset has a sample
+column, and falls back to the cell-level test for contrasts that are not
+replicated.
 
 Two DGE testing modes are available: differential expression and marker identification. These may be selected using the **"Choose test to perform"** menu. When differential expression is selected, two groups of cells are compared and the genes upregulated/downregulated in one group vs. the other are shown. When marker identification is selected, more than two groups will be compared, and genes that serve as markers of each group (those that are particularly upregulated or downregulated in that group) will be displayed. When running differential gene expression, genes marked as upregulated in a group are differentially expressed to the extent shown in that group **relative to the other group**, whereas for marker identification the genes upregulated in the marker class are deferentially expressed to the extent shown in the marker class **relative to all other cells**.
 
@@ -528,7 +530,7 @@ To run a DGE analysis, follow the process below. This process is described in gr
 
 -   If performing marker identification, select the metadata to use for marker classes. If performing differential expression, select two groups based on metadata, or feature expression.
 
--   For differential expression based on categorical metadata, choose Wilcoxon or edgeR pseudobulk. edgeR can run one contrast, all pairwise contrasts, selected groups versus the rest, or selected groups versus a reference. Marker identification and feature-expression-threshold comparisons use Wilcoxon.
+-   Choose Wilcoxon or edgeR pseudobulk. In differential expression mode edgeR can run one contrast, all pairwise contrasts, selected groups versus the rest, or selected groups versus a reference; in marker identification mode it tests every group versus the rest. Feature-expression-threshold comparisons use Wilcoxon.
 
 -   For either marker identification or differential expression, determine if you would like to define groups using the full dataset, or a subset of cells.
 
@@ -550,11 +552,17 @@ The two groups defined in differential gene expression may be defined in one of 
 
 **Wilcoxon rank-sum** is a fast exploratory test on cell-level normalized expression. Because cells from the same biological sample are not independent replicates, its p-values can be overly optimistic when the scientific question concerns differences across biological samples.
 
-**edgeR pseudobulk** is available for comparisons defined by categorical metadata. For sample-level conditions it aggregates raw integer counts by biological sample. For cell-level groups such as clusters it aggregates by biological sample and group, retains adequately represented paired samples, and fits a sample-blocked model. It then performs TMM normalization, expression filtering, dispersion estimation, and quasi-likelihood testing. The dataset configuration must identify the biological-sample metadata field and genes assay. Each retained pseudobulk must contain at least the selected number of cells (10 by default). At least two retained biological samples are required; three or more are recommended.
+**edgeR pseudobulk** sums raw integer counts per biological sample and group (through SCUBA, so the full cell-level matrix is never built, whatever the object format), applies TMM normalization and expression filtering, and tests each contrast with edgeR's quasi-likelihood model. When every sample belongs to one group (for example treated versus control donors) the design is *independent* and the model is `~ 0 + group`. When samples contribute cells to both groups (cluster versus cluster within the same donors, or any marker contrast) the design is *paired* and the model is `~ sample + group`, which tests the group effect within samples. Each sample x group profile must contain at least the selected number of cells (10 by default), and edgeR needs at least two samples per group, or two paired samples; three or more are recommended.
 
-The edgeR contrast control supports a single contrast, every pairwise comparison among the chosen groups, each chosen group versus all other cells, or each chosen group versus a reference group. Leaving "Groups to Test" empty uses every observed group in the current subset. edgeR is not available for marker identification, feature-expression-threshold groups, additional batch covariates, or arbitrary model formulas. The app does not silently substitute normalized expression when raw counts are missing and does not fall back to Wilcoxon when edgeR validation fails.
+**Sample / replicate column.** Choose the metadata column that identifies the biological sample of each cell. The column configured in the dataset configuration (the "Sample / replicate identifier") is selected by default; any categorical metadata exposed in the browser can be chosen instead, except the variable used for the groups. edgeR is not offered when the dataset has no such column.
 
-Group 1 is always the numerator of an edgeR contrast. For one-versus-rest analyses, the named cluster is Group 1; for reference analyses, the reference is Group 2. Positive log2 fold changes therefore indicate higher expression in Group 1.
+**Plan and fallback.** As you change the groups, the subset, the sample column or the minimum cells, the panel under the edgeR options shows the plan for the run: for each contrast, whether edgeR will run (with the design and the number of samples) or whether the cell-level Wilcoxon test will be used instead, and why (for example a group with a single sample). Contrasts that cannot be tested at the sample level are never blocked: the run completes, those contrasts are tested with the cell-level Wilcoxon test, and the `Method` column of the table says which test produced each row. The summary reports the design and the number of contrasts that fell back.
+
+The contrast control supports a single contrast, every pairwise comparison among the chosen groups, each chosen group versus all other cells, or each chosen group versus a reference group. Leaving "Groups to Test" empty uses every observed group in the current subset. Marker identification always runs each group versus the rest. edgeR is not available for feature-expression-threshold groups, additional batch covariates, or arbitrary model formulas, and the app never substitutes normalized expression when raw counts are missing: assays without a raw counts layer are skipped with a notice.
+
+Group 1 is always the numerator of an edgeR contrast. For one-versus-rest analyses, the named group is Group 1; for reference analyses, the reference is Group 2. Positive log2 fold changes therefore indicate higher expression in Group 1.
+
+**File-backed datasets.** `.h5ad` and `.h5mu` files open as file-backed objects served by SCUBA's Julia engine when it is available (see `options(cellDIVER.h5_engine)`); pseudobulk aggregation then streams the file without loading the matrix into R.
 
 ### Groups Defined by Categorical Metadata
 
@@ -592,7 +600,7 @@ When checked, the table returned will only show genes with a positive log2 fold 
 
 After selecting a test and a subset, press update to run DGE on the chosen groups. Depending on the size of the dataset and the performance of the server, this may take up to two minutes to run, but usually completes in under 30 seconds. When the test is complete, a report will display in the main window.
 
-The "test summary" section displays the submitted statistical method and the groups used. For edgeR it reports retained biological-sample counts and excluded pseudobulk profiles for each contrast. The number of cells in the analyzed subset and in each DGE group or marker class is also shown.
+The "test summary" section displays the submitted statistical method (for edgeR, whether the design was paired and how many contrasts fell back to the cell-level test) and the groups used. For edgeR it reports retained biological-sample counts and excluded pseudobulk profiles for each contrast, or the reason a contrast fell back. The number of cells in the analyzed subset and in each DGE group or marker class is also shown.
 
 ### DGE Table {#differential-expression-columns}
 
@@ -604,7 +612,11 @@ The columns of the DGE table are detailed below. The table may be downloaded via
 
 -   Average expression: the average expression of the gene in the group or class listed. This is reported for Wilcoxon results.
 
--   logCPM: the average log2 counts per million across pseudobulk libraries. This is reported for edgeR results.
+-   Average expression for edgeR rows is the average log2 counts per million across the pseudobulk profiles of the contrast.
+
+-   Contrast, Group 1 and Group 2: for multi-contrast edgeR runs (and marker identification with edgeR), the contrast each row belongs to; Group is the numerator (Group 1) of that contrast. The table can be filtered by contrast.
+
+-   Method: the test that produced the row, `edgeR` or `wilcoxon` (the cell-level fallback for a contrast without enough samples). The table can be filtered by method.
 
 -   Log2FC: the log-2 fold change in expression of the gene in the group or class, relative to either the other group (in differential expression mode) or all other cells (in marker identification mode).
 
@@ -618,9 +630,7 @@ The columns of the DGE table are detailed below. The table may be downloaded via
 
 -   Percent expression outside class: the percentage of cells in the indicated group or class that express the gene outside the group/class.
 
--   n_samples_group_1 and n_samples_group_2: the retained biological-sample counts used by edgeR.
-
--   method: the edgeR workflow used to produce the row.
+The "`r icon("vial")` download pseudobulk samples" button, shown after an edgeR run, exports the sample x group profiles behind every contrast: their cell counts, whether they were retained, why they were excluded, and the test used for the contrast.
 
 If either of the percent expression values are very low, or if there is a large difference in percent expression inside the group vs. outside, caution should be taken when interpreting the results. Definitive comparisons are difficult to determine when fewer cells are expressing the feature, and lower expression may be associated with the [dropout effect](https://doi.org/10.1038/nmeth.2967).
 

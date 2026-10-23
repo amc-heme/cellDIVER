@@ -90,7 +90,8 @@ generate_config_yaml <-
     # object: must be a supported single-cell object
     if (!(inherits(object, "Seurat") | 
            inherits(object, "SingleCellExperiment") | 
-           inherits(object, "AnnDataR6")
+           inherits(object, "AnnDataR6") |
+           inherits(object, "scuba_source")
          )){
       # Construct error message: state that the object class is invalid, and 
       # provide the valid classes.
@@ -104,8 +105,9 @@ generate_config_yaml <-
       supported_classes <- 
         paste0(
           'Currently supported classes: Seurat, SingleCellExperiment, ',
-          'and AnnDataR6 (anndata objects loaded via reticulate and the ',
-          '"anndata" R package).'
+          'AnnDataR6 (anndata objects loaded via reticulate and the ',
+          '"anndata" R package) and scuba_source (.h5ad / .h5mu files ',
+          'opened with SCUBA::open_h5ad() / open_h5mu()).'
           )
       
       # If a character input, the input may have been a path. Add additional
@@ -169,6 +171,8 @@ generate_config_yaml <-
             "SingleCellExperiment"
           } else if (inherits(object, "AnnDataR6")){
             "AnnDataR6"
+          } else if (inherits(object, "scuba_source")){
+            "scuba_source"
           } else {
             stop(
               paste0(

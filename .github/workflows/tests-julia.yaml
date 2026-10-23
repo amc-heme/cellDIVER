@@ -1,0 +1,75 @@
+name: Tests (Julia engine)
+
+# Exercises the file-backed (.h5ad / .h5mu) object path, which needs SCUBA's
+# Julia engine. Kept separate from the required "cellDIVER tests" check so that
+# job stays Julia-free and fast; promote this one to a required check once it
+# has proven stable. The Julia-gated tests register themselves only when
+# CELLDIVER_TEST_JULIA=true, so they never appear as skips elsewhere.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-julia-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-julia:
+    name: cellDIVER tests (julia)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      NOT_CRAN: "true"
+      CELLDIVER_TEST_JULIA: "true"
+      SCUBA_TEST_ENGINE: "julia"
+    steps:
+      - name: Check out the proposed code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pandoc
+        uses: r-lib/actions/setup-pandoc@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+
+      - name: Install dependencies and the checked-out package
+        uses: r-lib/actions/setup-r-dependencies@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2.12.1
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          extra-packages: |
+            any::devtools
+            any::JuliaCall
+            local::.
+
+      - name: Warm up the Julia engine (installs SCUBA.jl into the shared environment)
+        shell: Rscript {0}
+        run: |
+          # R_LD_LIBRARY_PATH keeps Julia's bundled libraries ahead of the system ones (see SCUBA::scuba_julia_available)
+          stopifnot(isTRUE(SCUBA::scuba_julia_available()))
+
+      - name: Run the file-backed object tests
+        shell: Rscript {0}
+        run: |
+          testthat::set_max_fails(Inf)
+          results <- as.data.frame(devtools::test(filter = "scuba-source", stop_on_failure = FALSE))
+          if (nrow(results) == 0L || sum(results$passed) == 0L ||
+              any(results$failed > 0L | results$error | results$skipped)) {
+            stop("The file-backed object tests must pass without skips.")
+          }

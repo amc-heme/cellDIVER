@@ -107,3 +107,14 @@ check_dataset.mudata._core.mudata.MuData <-
     )
   }
   
+# File-backed SCUBA objects: SCUBA keys are the modality name followed by an
+# underscore
+#' @export
+#' @noRd
+make_key.scuba_source <-
+  function(
+    object,
+    assay
+  ){
+    paste0(assay, "_")
+  }

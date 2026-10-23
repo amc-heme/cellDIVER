@@ -6,6 +6,7 @@
 \alias{reduction_names.SingleCellExperiment}
 \alias{reduction_names.AnnDataR6}
 \alias{reduction_names.md._core.mudata.MuData}
+\alias{reduction_names.scuba_source}
 \title{Get names of reductions in object}
 \usage{
 reduction_names(object, ...)
@@ -17,6 +18,8 @@ reduction_names(object, ...)
 \method{reduction_names}{AnnDataR6}(object)
 
 \method{reduction_names}{md._core.mudata.MuData}(object)
+
+\method{reduction_names}{scuba_source}(object, ...)
 }
 \arguments{
 \item{object}{a single-cell object. Currently, Seurat and
@@ -47,6 +50,9 @@ For MuData objects, the keys of reductions are the keys of obsm matrices
 in each modality (mod-obsm keys). obsm matrices in each modality are not
 necesarially reductions. It is left to the admin to decide which reductions
 to include.
+
+\item \code{reduction_names(scuba_source)}: File-backed SCUBA objects: the reduction keys
+of the file (e.g. X_umap, rna_X_umap)
 
 }}
 \keyword{internal}

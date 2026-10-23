@@ -459,3 +459,46 @@ browser_click_plot <- function(app, output, fraction = 0.4) {
   app$wait_for_idle()
   invisible(app)
 }
+
+#' Read the replicated pseudobulk browser fixture
+#'
+#' Sources the same file as the `cellDIVER_pseudobulk` fixture app.
+#'
+#' @return The Seurat object served by that app.
+browser_pseudobulk_object <- function() {
+  fixture_environment <- new.env(parent = globalenv())
+  sys.source(
+    testthat::test_path("apps", "cellDIVER_pseudobulk", "pseudobulk_fixture.R"),
+    envir = fixture_environment
+  )
+  fixture_environment$pseudobulk_browser_object()
+}
+
+#' Assert the browser's edgeR result equals a direct scDE run
+#'
+#' @param app Running browser driver.
+#' @param expected The scDE result the app's table must match.
+#' @param previous Previous exported table to wait past.
+#' @return The actual table exported by the app.
+browser_expect_pseudobulk <- function(app, expected, previous = NULL) {
+  actual <- app$wait_for_value(
+    export = "object_dge-dge_table", ignore = list(NULL, previous)
+  )
+  testthat::expect_s3_class(actual, "data.frame")
+  testthat::expect_gt(nrow(actual), 0)
+  testthat::expect_identical(attr(actual, "dge_method"), "edger")
+  columns <- intersect(
+    c("contrast", "method", "group", "feature", "avgExpr", "log2FC", "pval", "pval_adj"),
+    names(expected)
+  )
+  testthat::expect_true(all(columns %in% names(actual)))
+  key <- function(x) paste(x$group, x$feature, if ("contrast" %in% names(x)) x$contrast else "")
+  actual_order <- order(key(actual))
+  expected_order <- order(key(expected))
+  testthat::expect_equal(
+    as.data.frame(actual[actual_order, columns]),
+    as.data.frame(expected[expected_order, columns]),
+    tolerance = 1e-6, ignore_attr = TRUE
+  )
+  actual
+}

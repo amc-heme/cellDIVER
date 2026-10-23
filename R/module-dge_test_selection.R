@@ -58,8 +58,10 @@ dge_test_selections_ui <-
     )
 
   # 2. Statistical method ------------------------------------------------------
-  # edgeR is available for categorical DGE. The server narrows these choices
-  # to Wilcoxon when marker or threshold modes are used.
+  # edgeR pseudobulk is offered in both modes (marker identification runs it
+  # one-vs-rest) whenever the dataset has a usable sample column. The server
+  # narrows the choices to Wilcoxon otherwise, and when groups are defined by
+  # a feature expression threshold.
   method_menu <-
     tagList(
       selectInput(
@@ -71,16 +73,29 @@ dge_test_selections_ui <-
       hidden(
         div(
           id = ns("edger_options"),
+          # The biological sample (replicate) of each cell. Choices are the
+          # categorical metadata of the dataset; the column configured in the
+          # dataset config is selected by default.
           selectInput(
-            inputId = ns("edger_contrast_mode"),
-            label = "Contrasts to Run:",
-            choices = c(
-              "Single contrast" = "single",
-              "All pairwise comparisons" = "pairwise",
-              "Each selected group vs. rest" = "one_vs_rest",
-              "Selected groups vs. reference" = "reference"
-            ),
-            selected = "single"
+            inputId = ns("edger_sample_col"),
+            label = "Sample / Replicate Column:",
+            choices = NULL
+          ),
+          # The contrast selector only applies to differential expression:
+          # marker identification always runs each group vs. the rest
+          div(
+            id = ns("edger_contrast_mode_ui"),
+            selectInput(
+              inputId = ns("edger_contrast_mode"),
+              label = "Contrasts to Run:",
+              choices = c(
+                "Single contrast" = "single",
+                "All pairwise comparisons" = "pairwise",
+                "Each selected group vs. rest" = "one_vs_rest",
+                "Selected groups vs. reference" = "reference"
+              ),
+              selected = "single"
+            )
           ),
           hidden(
             div(
@@ -122,8 +137,10 @@ dge_test_selections_ui <-
           ),
           tags$p(
             paste0(
-              "edgeR uses raw counts aggregated by biological sample. ",
-              "A configured sample identifier and biological replication are required."
+              "edgeR sums raw counts per sample and group and needs at least ",
+              "two samples per group. Contrasts without enough samples are ",
+              "tested with the cell-level Wilcoxon test instead; the plan ",
+              "below updates as you change the selections."
             ),
             class = "help-block"
           ),
@@ -273,11 +290,15 @@ dge_test_selections_ui <-
 #' metadata column.
 #' @param meta_choices metadata variables exposed by the config user.
 #' @param valid_features a list of features that may be selected by the end user.
+#' @param subset_filters Reactive returning the filter list of the subset
+#' selections module. The edgeR preflight resolves the categorical filters from
+#' metadata so it can report the replication of the subset the user is about
+#' to submit.
 #'
 #' @return A reactive list with information on the selected test.
-#'         
+#'
 #' @noRd
-dge_test_selections_server <- 
+dge_test_selections_server <-
   function(id,
            object,
            unique_metadata,
@@ -285,25 +306,44 @@ dge_test_selections_server <-
            assay_config,
            sample_id_colname,
            meta_choices,
-           valid_features
+           valid_features,
+           subset_filters = reactive(list())
            ){
     moduleServer(
       id,
       function(input,output,session){
         # Namespace function: for dynamic UI
         ns <- session$ns
-        
+
         # 1. Process test mode -------------------------------------------------
-        dge_mode <- 
+        dge_mode <-
           reactive({
             input$mode
             })
 
+        ## 1.1. Sample columns usable for pseudobulk ####
+        # Categorical metadata with at least two values, from the config's
+        # unique values (plus the configured sample column when it is not an
+        # exposed category). Metadata only: nothing is read from the matrix.
+        sample_column_candidates <-
+          reactive(
+            label = "Test Selections: Sample Column Candidates",
+            {
+              dge_sample_column_candidates(
+                object = object(),
+                unique_metadata = unique_metadata(),
+                configured_column = sample_id_colname()
+              )
+            })
+
         # Resolve the effective method defensively so an asynchronous input
-        # update can never submit edgeR for an unsupported mode.
+        # update can never submit edgeR for an unsupported configuration:
+        # there must be a sample column to aggregate by, and groups defined
+        # by a feature expression threshold stay cell-level.
         edgeR_available <-
           reactive({
-            identical(dge_mode(), "mode_dge") &&
+            length(sample_column_candidates()) > 0 &&
+              dge_object_supports_edger(object()) &&
               !isTruthy(input$use_feature_expression)
           })
 
@@ -312,46 +352,20 @@ dge_test_selections_server <-
             resolve_dge_method(
               requested_method = input$method,
               dge_mode = dge_mode(),
-              use_feature_expression = input$use_feature_expression
+              use_feature_expression = input$use_feature_expression,
+              sample_column_available = edgeR_available()
             )
-          })
-
-        edgeR_sample_status <-
-          reactive({
-            dge_sample_column_status(
-              object = object(),
-              sample_id_colname = sample_id_colname()
-            )
-          })
-
-        output$edger_sample_status <-
-          renderUI({
-            req(edgeR_available(), identical(dge_method(), "edger"))
-            status <- edgeR_sample_status()
-
-            if (status$valid){
-              tags$p(
-                tags$strong("Biological sample field: "),
-                status$column,
-                class = "text-success"
-              )
-            } else {
-              div(
-                tags$strong("edgeR unavailable: "),
-                status$error,
-                class = "alert alert-warning"
-              )
-            }
           })
 
         observeEvent(
-          list(dge_mode(), input$use_feature_expression),
+          list(dge_mode(), input$use_feature_expression, edgeR_available()),
           label = "Test Selections: Update DGE Method Choices",
           ignoreNULL = FALSE,
           {
             choices <- dge_method_choices(
               dge_mode = dge_mode(),
-              use_feature_expression = input$use_feature_expression
+              use_feature_expression = input$use_feature_expression,
+              sample_column_available = edgeR_available()
             )
             current_method <- isolate(input$method)
             selected_method <- dge_method_input_value(current_method, choices)
@@ -376,12 +390,30 @@ dge_test_selections_server <-
           }
         )
 
+        # Marker identification runs every group against the rest; the
+        # contrast selector only applies to differential expression.
         edger_contrast_mode <- reactive({
-          resolve_edger_contrast_mode(input$edger_contrast_mode)
+          if (identical(dge_mode(), "mode_marker")){
+            "one_vs_rest"
+          } else {
+            resolve_edger_contrast_mode(input$edger_contrast_mode)
+          }
         })
+
+        observe(
+          label = "Test Selections: Show/Hide Contrast Selector",
+          {
+            if (identical(dge_mode(), "mode_dge")){
+              showElement(id = "edger_contrast_mode_ui")
+            } else {
+              hideElement(id = "edger_contrast_mode_ui")
+            }
+          }
+        )
 
         observe({
           multicontrast <- identical(dge_method(), "edger") &&
+            identical(dge_mode(), "mode_dge") &&
             !identical(edger_contrast_mode(), "single")
           if (multicontrast){
             showElement(id = "edger_multicontrast_options")
@@ -542,6 +574,87 @@ dge_test_selections_server <-
             selected = selected_reference
           )
         })
+
+        ## 3.3.1. Sample / replicate column menu ####
+        # Candidate columns minus the current group by variable (a sample
+        # cannot also be the group). The configured column is the default,
+        # and a column the user picked is kept while it remains valid.
+        observe(
+          label = "Test Selections: Update Sample Column Menu",
+          {
+            choices <- setdiff(sample_column_candidates(), group_by_category())
+            current <- isolate(input$edger_sample_col)
+            selected <- dge_sample_column_selection(
+              current = current,
+              configured = sample_id_colname(),
+              choices = choices
+            )
+            updateSelectInput(
+              session = session,
+              inputId = "edger_sample_col",
+              choices = choices,
+              selected = selected
+            )
+          })
+
+        edger_sample_col <-
+          reactive({
+            choices <- setdiff(sample_column_candidates(), group_by_category())
+            column <- input$edger_sample_col
+            if (isTruthy(column) && column %in% choices) column else NULL
+          })
+
+        ## 3.3.2. edgeR preflight ####
+        # Metadata-only preview of the pseudobulk design for the groups,
+        # subset and minimum cells currently selected, through the same
+        # replication rules scDE applies when the test runs. The inputs are
+        # debounced so a picker with "select all" does not re-run the preflight
+        # once per click, and nothing runs while Wilcoxon is selected.
+        edger_preflight_inputs <-
+          reactive(
+            label = "Test Selections: edgeR Preflight Inputs",
+            {
+              if (!identical(dge_method(), "edger")) return(NULL)
+              if (is.null(edger_sample_col())) return(NULL)
+              list(
+                sample_by = edger_sample_col(),
+                group_by = group_by_category(),
+                dge_mode = dge_mode(),
+                contrast_mode = edger_contrast_mode(),
+                group_1 = input$group_1,
+                group_2 = input$group_2,
+                groups = input$edger_groups,
+                reference_group = input$edger_reference_group,
+                min_cells = input$edger_min_cells,
+                filters = subset_filters()
+              )
+            })
+
+        edger_preflight_inputs_debounced <-
+          debounce(edger_preflight_inputs, millis = 400)
+
+        edger_preflight <-
+          reactive(
+            label = "Test Selections: edgeR Preflight",
+            {
+              inputs <- edger_preflight_inputs_debounced()
+              if (is.null(inputs)) return(NULL)
+              tryCatch(
+                dge_edger_preflight(object = object(), inputs = inputs),
+                error = function(err_cnd){
+                  log_warn(
+                    paste0("edgeR preflight failed: ", conditionMessage(err_cnd))
+                  )
+                  list(status = "error", message = conditionMessage(err_cnd))
+                }
+              )
+            })
+
+        output$edger_sample_status <-
+          renderUI({
+            req(edgeR_available(), identical(dge_method(), "edger"))
+            edger_preflight_ui(edger_preflight(), edger_sample_col())
+          })
         
         ## 3.4. Group Marker/Group Choices Based on Config File ####
         # If the group by metadata category has groups defined in the config 
@@ -886,16 +999,15 @@ dge_test_selections_server <-
                               NULL
                             },
                           `edger_sample_col` =
-                            if (identical(dge_method(), "edger") &&
-                                edgeR_sample_status()$valid){
-                              edgeR_sample_status()$column
+                            if (identical(dge_method(), "edger")){
+                              edger_sample_col()
                             } else {
                               NULL
                             },
                           `edger_sample_error` =
                             if (identical(dge_method(), "edger") &&
-                                !edgeR_sample_status()$valid){
-                              edgeR_sample_status()$error
+                                is.null(edger_sample_col())){
+                              dge_missing_sample_column_message
                             } else {
                               NULL
                             },
@@ -904,21 +1016,61 @@ dge_test_selections_server <-
                               input$edger_min_cells
                             } else {
                               NULL
+                            },
+                          `edger_preflight` =
+                            if (identical(dge_method(), "edger")){
+                              edger_preflight()
+                            } else {
+                              NULL
                             }
                           )
                         )
                       }
                   } else if (dge_mode() == "mode_marker"){
-                    # Include classes when marker identification 
-                    # is the selected mode
+                    # Include classes when marker identification
+                    # is the selected mode. With edgeR, every group is tested
+                    # against the rest (a one-vs-rest multi-contrast run).
                     return(
                       list(
                         `dge_mode` = dge_mode(),
                         `dge_method` = dge_method(),
-                        # Leave group_mode defined for compatability with 
+                        # Leave group_mode defined for compatability with
                         # conditional statements in DGE tab, but set to "none"
                         `group_mode` = "none",
-                        `group_by` = group_by_category()
+                        `group_by` = group_by_category(),
+                        `edger_contrast_mode` =
+                          if (identical(dge_method(), "edger")){
+                            "one_vs_rest"
+                          } else {
+                            "single"
+                          },
+                        `edger_groups` = NULL,
+                        `edger_reference_group` = NULL,
+                        `edger_sample_col` =
+                          if (identical(dge_method(), "edger")){
+                            edger_sample_col()
+                          } else {
+                            NULL
+                          },
+                        `edger_sample_error` =
+                          if (identical(dge_method(), "edger") &&
+                              is.null(edger_sample_col())){
+                            dge_missing_sample_column_message
+                          } else {
+                            NULL
+                          },
+                        `edger_min_cells` =
+                          if (identical(dge_method(), "edger")){
+                            input$edger_min_cells
+                          } else {
+                            NULL
+                          },
+                        `edger_preflight` =
+                          if (identical(dge_method(), "edger")){
+                            edger_preflight()
+                          } else {
+                            NULL
+                          }
                         )
                       )
                   }
@@ -929,12 +1081,28 @@ dge_test_selections_server <-
         })
 }
 
+# Metadata column names cellDIVER adds to a subset for the DGE tab
+dge_metacluster_column <- "metacluster"
+dge_threshold_column <- "simple_expr_threshold"
+
+dge_missing_sample_column_message <- paste0(
+  "Choose a sample / replicate column for edgeR, or select Wilcoxon."
+)
+
 # Return method choices for the current analysis mode. Named values are passed
-# directly to Shiny select inputs.
-dge_method_choices <- function(dge_mode, use_feature_expression = FALSE){
+# directly to Shiny select inputs. edgeR is offered in both modes (marker
+# identification runs it one-vs-rest) when a sample column is available,
+# except for groups defined by a feature expression threshold.
+dge_method_choices <- function(dge_mode,
+                               use_feature_expression = FALSE,
+                               sample_column_available = TRUE){
   choices <- c("Wilcoxon rank-sum" = "wilcoxon")
 
-  if (identical(dge_mode, "mode_dge") && !isTRUE(use_feature_expression)){
+  # `dge_mode` is NULL while the mode input initializes: `NULL %in% x` is
+  # logical(0), and `logical(0) && ...` is NA, so wrap it in isTRUE()
+  if (isTRUE(dge_mode %in% c("mode_dge", "mode_marker")) &&
+      !isTRUE(use_feature_expression) &&
+      isTRUE(sample_column_available)){
     choices <- c(
       choices,
       "edgeR pseudobulk" = "edger"
@@ -948,9 +1116,12 @@ dge_method_choices <- function(dge_mode, use_feature_expression = FALSE){
 # updates. Unsupported combinations always resolve to Wilcoxon.
 resolve_dge_method <- function(requested_method,
                                dge_mode,
-                               use_feature_expression = FALSE){
+                               use_feature_expression = FALSE,
+                               sample_column_available = TRUE){
   allowed_methods <- unname(
-    dge_method_choices(dge_mode, isTRUE(use_feature_expression))
+    dge_method_choices(
+      dge_mode, isTRUE(use_feature_expression), isTRUE(sample_column_available)
+    )
   )
 
   if (is.null(requested_method) || !requested_method %in% allowed_methods){
@@ -962,12 +1133,58 @@ resolve_dge_method <- function(requested_method,
 
 # Human-readable statistical method used in the submitted analysis. This is
 # shared by the result summary so it never reports Wilcoxon after an edgeR run.
-dge_method_label <- function(method){
+# `design_type` ("independent" / "paired") qualifies an edgeR run; `fallback`
+# marks a run where every contrast fell back to the cell-level test.
+dge_method_label <- function(method, design_type = NULL, fallback = FALSE){
   if (identical(method, "edger")){
-    "edgeR pseudobulk quasi-likelihood"
+    if (isTRUE(fallback)){
+      return("Cell-level Wilcoxon rank sum (edgeR could not run)")
+    }
+    label <- "edgeR pseudobulk quasi-likelihood"
+    if (identical(design_type, "paired")){
+      label <- paste0(label, " (paired by sample)")
+    }
+    label
   } else {
     "Wilcoxon rank sum"
   }
+}
+
+# Objects on which the pseudobulk test can run. MuData objects loaded through
+# reticulate have no SCUBA accessors; they need the file-backed loader.
+dge_object_supports_edger <- function(object){
+  !inherits(object, c("md._core.mudata.MuData", "mudata._core.mudata.MuData"))
+}
+
+# Categorical metadata usable as a sample / replicate column: the configured
+# categories with at least two values, plus the configured sample column when
+# it is not among them (it may be hidden from the browser menus).
+dge_sample_column_candidates <- function(object,
+                                         unique_metadata,
+                                         configured_column = NULL){
+  candidates <- names(unique_metadata)[
+    vapply(unique_metadata, function(values) length(values) >= 2L, logical(1))
+  ]
+  configured <- dge_sample_column_status(object, configured_column)
+  if (configured$valid && !configured$column %in% candidates){
+    n_values <- tryCatch(
+      SCUBA::n_unique(object, meta_var = configured$column),
+      error = function(err_cnd) 0L
+    )
+    if (isTRUE(n_values >= 2L)){
+      candidates <- c(configured$column, candidates)
+    }
+  }
+  unique(candidates)
+}
+
+# The sample column to select: the user's current choice while it is valid,
+# then the configured column, then the first candidate.
+dge_sample_column_selection <- function(current, configured, choices){
+  if (!length(choices)) return(character(0))
+  if (isTruthy(current) && current %in% choices) return(current)
+  if (isTruthy(configured) && configured %in% choices) return(configured)
+  choices[[1]]
 }
 
 # Resolve the select-input value during Shiny initialization, when the browser
@@ -997,23 +1214,24 @@ show_feature_expression_control <- function(dge_mode, dge_method){
   identical(dge_mode, "mode_dge") && !identical(dge_method, "edger")
 }
 
+# Metadata column names of any object cellDIVER serves. SCUBA covers Seurat,
+# SingleCellExperiment, AnnData and file-backed objects (its default method
+# only warns); MuData objects loaded through reticulate are handled here.
+dge_metadata_columns <- function(object){
+  if (inherits(object, c("md._core.mudata.MuData", "mudata._core.mudata.MuData"))){
+    return(tryCatch(colnames(object$obs), error = function(err_cnd) character()))
+  }
+  columns <- withCallingHandlers(
+    tryCatch(SCUBA::meta_varnames(object), error = function(err_cnd) NULL),
+    warning = function(warn_cnd) invokeRestart("muffleWarning")
+  )
+  if (is.null(columns)) character() else as.character(columns)
+}
+
 # Validate the configuration-level biological sample field. Cell-level missing
-# values and biological replication are validated later on the submitted subset.
+# values and biological replication are checked by the preflight.
 dge_sample_column_status <- function(object, sample_id_colname){
-  metadata_columns <-
-    if (inherits(object, "Seurat")){
-      colnames(object[[]])
-    } else if (inherits(object, "SingleCellExperiment")){
-      if (!requireNamespace("SummarizedExperiment", quietly = TRUE)){
-        character()
-      } else {
-        colnames(SummarizedExperiment::colData(object))
-      }
-    } else if (inherits(object, "AnnDataR6")){
-      colnames(as.data.frame(object$obs))
-    } else {
-      character()
-    }
+  metadata_columns <- dge_metadata_columns(object)
 
   if (length(metadata_columns) == 0L){
     return(list(
@@ -1021,7 +1239,8 @@ dge_sample_column_status <- function(object, sample_id_colname){
       column = NULL,
       error = paste0(
         "Could not inspect metadata columns for this object. edgeR supports ",
-        "Seurat, SingleCellExperiment, and AnnData objects."
+        "Seurat, SingleCellExperiment, AnnData and file-backed (.h5ad / .h5mu) ",
+        "objects."
       )
     ))
   }
@@ -1058,4 +1277,210 @@ dge_sample_column_status <- function(object, sample_id_colname){
   }
 
   list(valid = TRUE, column = sample_id_colname, error = NULL)
+}
+
+# edgeR preflight ---------------------------------------------------------------
+# A metadata-only preview of the pseudobulk design. The cells of the subset the
+# user is about to submit are resolved from the categorical subset filters, the
+# group of each cell from the selections (collapsed into metaclusters when a
+# group picker holds several values), and scDE's replication rules decide, per
+# contrast, whether edgeR will run or the cell-level Wilcoxon test will be used.
+
+# Cells matching the categorical filters of the subset menu, or NULL for every
+# cell. Expression filters are not available under edgeR, so metadata suffices.
+dge_preflight_cells <- function(object, filter_list){
+  filter_list <- Filter(
+    function(filter_i) identical(filter_i$type, "categorical"),
+    filter_list
+  )
+  if (!length(filter_list)) return(NULL)
+  variables <- unique(vapply(filter_list, function(filter_i) filter_i$var, character(1)))
+  metadata <- SCUBA::fetch_metadata(object, vars = variables)
+  keep <- rep(TRUE, nrow(metadata))
+  for (filter_i in filter_list){
+    keep <- keep & as.character(metadata[[filter_i$var]]) %in% filter_i$value
+  }
+  rownames(metadata)[keep]
+}
+
+# The group label of every cell in `cells`, and the groups to contrast. For a
+# single contrast, multi-valued pickers are collapsed into metaclusters named
+# like the subset's metacluster column; cells outside the two groups get NA and
+# are dropped by SCUBA::pseudobulk_design(). Other modes use the metadata as-is.
+dge_preflight_group_labels <- function(object,
+                                       group_by,
+                                       cells = NULL,
+                                       contrast_mode = "single",
+                                       group_1 = NULL,
+                                       group_2 = NULL){
+  values <- SCUBA::fetch_metadata(
+    object, vars = group_by, cells = cells, return_class = "vector"
+  )
+  values <- as.character(values)
+  cell_names <- if (is.null(cells)) SCUBA::get_all_cells(object) else cells
+  if (identical(contrast_mode, "single")){
+    label_1 <- vector_to_text(group_1)
+    label_2 <- vector_to_text(group_2)
+    labels <- ifelse(
+      values %in% group_1, label_1,
+      ifelse(values %in% group_2, label_2, NA_character_)
+    )
+    names(labels) <- cell_names
+    return(list(labels = labels, group_1 = label_1, group_2 = label_2))
+  }
+  names(values) <- cell_names
+  list(labels = values, group_1 = NULL, group_2 = NULL)
+}
+
+# The contrasts a run will test, as the data.frame scDE::check_pseudobulk_design()
+# expects, or NULL while the selections are incomplete.
+dge_preflight_contrasts <- function(dge_mode,
+                                    contrast_mode,
+                                    observed_groups,
+                                    group_1 = NULL,
+                                    group_2 = NULL,
+                                    groups = NULL,
+                                    reference_group = NULL){
+  observed_groups <- observed_groups[!is.na(observed_groups)]
+  if (identical(dge_mode, "mode_marker") || identical(contrast_mode, "one_vs_rest")){
+    selected <- if (identical(dge_mode, "mode_marker") || !length(groups)){
+      observed_groups
+    } else {
+      intersect(groups, observed_groups)
+    }
+    if (length(observed_groups) < 2L || !length(selected)) return(NULL)
+    return(data.frame(group_1 = selected, group_2 = "rest", stringsAsFactors = FALSE))
+  }
+  if (identical(contrast_mode, "single")){
+    if (!length(group_1) || !length(group_2)) return(NULL)
+    return(data.frame(group_1 = group_1, group_2 = group_2, stringsAsFactors = FALSE))
+  }
+  selected <- if (!length(groups)) observed_groups else intersect(groups, observed_groups)
+  if (identical(contrast_mode, "pairwise")){
+    if (length(selected) < 2L) return(NULL)
+    pairs <- utils::combn(selected, 2L)
+    return(data.frame(group_1 = pairs[1, ], group_2 = pairs[2, ], stringsAsFactors = FALSE))
+  }
+  if (identical(contrast_mode, "reference")){
+    if (!isTruthy(reference_group) || !reference_group %in% observed_groups) return(NULL)
+    numerators <- setdiff(selected, reference_group)
+    if (!length(numerators)) return(NULL)
+    return(data.frame(group_1 = numerators, group_2 = reference_group, stringsAsFactors = FALSE))
+  }
+  NULL
+}
+
+# Run the preflight for the current selections. Returns a list with `status`
+# ("ready", "incomplete") and, when ready, scDE's verdict (`contrasts` table
+# with method, design type and reason per contrast) plus the design.
+dge_edger_preflight <- function(object, inputs){
+  min_cells <- inputs$min_cells
+  if (!isTruthy(min_cells) || !is.finite(min_cells) || min_cells < 1){
+    min_cells <- 10L
+  }
+  if (identical(inputs$contrast_mode, "single") &&
+      (!length(inputs$group_1) || !length(inputs$group_2))){
+    return(list(status = "incomplete", message = "Select the groups to compare."))
+  }
+  cells <- dge_preflight_cells(object, inputs$filters)
+  if (!is.null(cells) && !length(cells)){
+    return(list(status = "incomplete", message = "The current subset filters match no cells."))
+  }
+  labels <- dge_preflight_group_labels(
+    object, inputs$group_by, cells = cells, contrast_mode = inputs$contrast_mode,
+    group_1 = inputs$group_1, group_2 = inputs$group_2
+  )
+  contrasts <- dge_preflight_contrasts(
+    dge_mode = inputs$dge_mode,
+    contrast_mode = inputs$contrast_mode,
+    observed_groups = unique(labels$labels),
+    group_1 = labels$group_1,
+    group_2 = labels$group_2,
+    groups = inputs$groups,
+    reference_group = inputs$reference_group
+  )
+  if (is.null(contrasts)){
+    return(list(status = "incomplete", message = "Select the groups to compare."))
+  }
+  design <- SCUBA::pseudobulk_design(
+    object, sample_by = inputs$sample_by, group_by = labels$labels, cells = cells
+  )
+  verdict <- scDE::check_pseudobulk_design(
+    design, contrasts = contrasts, min_cells = as.integer(min_cells)
+  )
+  list(
+    status = "ready",
+    sample_by = inputs$sample_by,
+    min_cells = as.integer(min_cells),
+    design = design,
+    contrasts = verdict$contrasts,
+    any_edger = verdict$any_edger,
+    any_fallback = verdict$any_fallback,
+    warnings = verdict$warnings
+  )
+}
+
+# One line per contrast describing the test it will get and why.
+edger_preflight_text <- function(preflight){
+  if (is.null(preflight)) return(character())
+  if (!identical(preflight$status, "ready")) return(preflight$message)
+  contrasts <- preflight$contrasts
+  vapply(seq_len(nrow(contrasts)), function(i){
+    row <- contrasts[i, ]
+    if (identical(row$method, "edgeR")){
+      design <- if (identical(row$design_type, "paired")){
+        paste0("paired design, ", row$paired_samples, " samples in both groups")
+      } else {
+        paste0("independent samples, ", row$samples_group_1, " vs. ", row$samples_group_2)
+      }
+      paste0(row$contrast, ": edgeR (", design, ")")
+    } else {
+      paste0(row$contrast, ": cell-level Wilcoxon (", row$reason, ")")
+    }
+  }, character(1))
+}
+
+# The status block shown under the edgeR options.
+edger_preflight_ui <- function(preflight, sample_column = NULL){
+  if (is.null(sample_column)){
+    return(
+      div(
+        tags$strong("edgeR unavailable: "),
+        dge_missing_sample_column_message,
+        class = "alert alert-warning"
+      )
+    )
+  }
+  if (is.null(preflight)){
+    return(tags$p("Checking replication...", class = "help-block"))
+  }
+  if (identical(preflight$status, "error")){
+    return(
+      div(
+        tags$strong("Could not check replication: "),
+        preflight$message,
+        class = "alert alert-warning"
+      )
+    )
+  }
+  if (!identical(preflight$status, "ready")){
+    return(tags$p(preflight$message, class = "help-block"))
+  }
+  lines <- edger_preflight_text(preflight)
+  n_edger <- sum(preflight$contrasts$method == "edgeR")
+  n_fallback <- sum(preflight$contrasts$method == "wilcoxon")
+  summary <- paste0(
+    "Sample column: ", sample_column, ". edgeR: ", n_edger, " contrast",
+    if (n_edger == 1L) "" else "s",
+    if (n_fallback > 0L) paste0("; cell-level Wilcoxon fallback: ", n_fallback) else "",
+    "."
+  )
+  div(
+    class = if (n_fallback > 0L) "alert alert-warning" else "text-success",
+    tags$p(tags$strong(summary)),
+    tags$ul(lapply(lines, tags$li)),
+    if (length(preflight$warnings)){
+      tags$p(paste(preflight$warnings, collapse = " "), class = "help-block")
+    }
+  )
 }

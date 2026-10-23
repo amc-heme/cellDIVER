@@ -2,6 +2,29 @@
 
 ## New features
 
+* Pseudobulk differential expression with edgeR, for every supported object
+  class. Raw counts are summed per sample and group by `SCUBA::pseudobulk()`
+  (the full cells x features matrix is never materialised) and tested with
+  edgeR's quasi-likelihood model by `scDE::run_dge(test_use = "edgeR")`.
+  Independent designs (each sample in one group) fit `~ 0 + group`; paired
+  designs (samples contributing cells to both groups, such as cluster versus
+  cluster within donors) fit `~ sample + group`. The DGE tab offers edgeR in
+  both marker identification (every group versus the rest) and differential
+  expression mode, with a sample / replicate column picker that defaults to the
+  configured `patient_colname`, and a live, metadata-only preflight that shows,
+  per contrast, whether edgeR will run or the cell-level Wilcoxon test will be
+  used instead. Contrasts without enough replication fall back automatically to
+  the cell-level test within the same run; every row carries a `Method` column,
+  the summary names the design and the fallbacks, the table can be filtered by
+  contrast and method, and a second download provides the pseudobulk sample
+  table behind each contrast.
+
+* `.h5ad` and `.h5mu` files open as file-backed SCUBA objects (served by
+  SCUBA's Julia engine) when that engine is available, and through reticulate
+  otherwise; `options(cellDIVER.h5_engine = "julia" | "reticulate" | "auto")`
+  forces the choice. File-backed MuData objects get the DGE tab, which stays
+  hidden for MuData objects loaded through reticulate.
+
 * Hexbin plots. Two new plot types, HexDensity and HexFeature, bin cells on
   the projection into hexagons colored by cell count or by the mean, median or
   sum of a feature's values (via the `hextant` package, now in `Imports`).
@@ -55,6 +78,11 @@
   call as `Seurat::DimPlot()`. The apps themselves are unaffected.
 
 ## Bug fixes
+
+* The multi-contrast edgeR call now passes `lfc_format = "log2"`, assays
+  without a raw counts layer are skipped (with a notice) instead of being sent
+  to edgeR, and a single failing assay shows scDE's own message instead of a
+  wrapper around it.
 
 * Dot plots no longer trigger the `aes_string()` deprecation warning from
   ggplot2; the mappings use the `.data` pronoun.
