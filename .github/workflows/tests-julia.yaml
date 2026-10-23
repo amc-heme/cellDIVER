@@ -58,11 +58,32 @@ jobs:
             any::JuliaCall
             local::.
 
-      - name: Warm up the Julia engine (installs SCUBA.jl into the shared environment)
+      # The pseudobulk path needs SCUBA.jl's feature/pseudobulk-scuba branch
+      # (ScubaR.pseudobulk); the registered release does not have it yet.
+      # Switch to the registered package (drop this step and SCUBA_JL_PATH)
+      # once that branch is released.
+      - name: Check out SCUBA.jl
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: amc-heme/SCUBA.jl
+          ref: feature/pseudobulk-scuba
+          path: scuba-jl
+          persist-credentials: false
+
+      # R's launcher puts the system library directory on LD_LIBRARY_PATH;
+      # Julia embedded in R then loads system copies of its bundled libraries
+      # and segfaults. R_LD_LIBRARY_PATH replaces that default (see
+      # SCUBA::scuba_julia_available for the full explanation).
+      - name: Point R at Julia-safe library paths
+        run: |
+          echo "R_LD_LIBRARY_PATH=$(Rscript -e 'cat(file.path(R.home(), "lib"))')" >> "$GITHUB_ENV"
+          echo "SCUBA_JL_PATH=${GITHUB_WORKSPACE}/scuba-jl" >> "$GITHUB_ENV"
+
+      - name: Warm up the Julia engine (develops SCUBA.jl into the shared environment)
         shell: Rscript {0}
         run: |
-          # R_LD_LIBRARY_PATH keeps Julia's bundled libraries ahead of the system ones (see SCUBA::scuba_julia_available)
           stopifnot(isTRUE(SCUBA::scuba_julia_available()))
+          stopifnot(isTRUE(JuliaCall::julia_eval("isdefined(ScubaR, :pseudobulk)")))
 
       - name: Run the file-backed object tests
         shell: Rscript {0}
