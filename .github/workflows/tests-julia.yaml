@@ -58,18 +58,6 @@ jobs:
             any::JuliaCall
             local::.
 
-      # The pseudobulk path needs SCUBA.jl's `aggregate` (ScubaR.pseudobulk),
-      # on main since amc-heme/SCUBA.jl#3 but not in a registered release yet.
-      # Switch to the registered package (drop this step and SCUBA_JL_PATH)
-      # once a release carries it.
-      - name: Check out SCUBA.jl
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: amc-heme/SCUBA.jl
-          ref: main
-          path: scuba-jl
-          persist-credentials: false
-
       # R's launcher puts the system library directory on LD_LIBRARY_PATH;
       # Julia embedded in R then loads system copies of its bundled libraries
       # and segfaults. R_LD_LIBRARY_PATH replaces that default (see
@@ -77,9 +65,10 @@ jobs:
       - name: Point R at Julia-safe library paths
         run: |
           echo "R_LD_LIBRARY_PATH=$(Rscript -e 'cat(file.path(R.home(), "lib"))')" >> "$GITHUB_ENV"
-          echo "SCUBA_JL_PATH=${GITHUB_WORKSPACE}/scuba-jl" >> "$GITHUB_ENV"
 
-      - name: Warm up the Julia engine (develops SCUBA.jl into the shared environment)
+      # SCUBA installs SCUBA.jl itself (from GitHub main while it is
+      # unregistered), so this job also exercises the default install path.
+      - name: Warm up the Julia engine (installs SCUBA.jl into the shared environment)
         shell: Rscript {0}
         run: |
           stopifnot(isTRUE(SCUBA::scuba_julia_available()))
