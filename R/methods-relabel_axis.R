@@ -257,3 +257,20 @@ relabel_axis.mudata._core.mudata.MuData <-
       feature
     )
   }
+#' @describeIn relabel_axis File-backed SCUBA objects: delegated to SCUBA,
+#' which knows the modalities and reductions of the file
+#' @export
+relabel_axis.scuba_source <-
+  function(
+    object,
+    feature,
+    ...
+  ){
+    # SCUBA's method must be called directly: cellDIVER's generic has the same
+    # name, so calling SCUBA::relabel_axis() from here would dispatch back to
+    # this method (S3 looks in the calling environment first) and recurse.
+    scuba_method <- utils::getS3method(
+      "relabel_axis", "scuba_source", envir = asNamespace("SCUBA")
+    )
+    scuba_method(object, feature)
+  }

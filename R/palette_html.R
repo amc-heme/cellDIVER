@@ -6,7 +6,7 @@
 #' vector with each color as an element. It is recommended to use hex codes for
 #' colors, but RBG colors will work if they are entered using a format
 #' interpretable by CSS.
-#' @param type "categorical" for categorical palettes or "continuous" for 
+#' @param type "categorical" for categorical palettes, "continuous" for 
 #' continuous palettes.
 #' @param palette_name Optional, a character vector giving the name of the
 #' palette as you would like it to be displayed. The name will appear to the

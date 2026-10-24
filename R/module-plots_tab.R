@@ -93,23 +93,62 @@ plots_tab_ui <- function(id,
                right = TRUE,
                status = "default"
                ),
-             bsTooltip(
-                id = ns("make_dimplot_help"), 
-                title = 
-                   paste0(
-                      'DimPlots show a summary of gene expression, ',
-                      'representing gene expression in a two-dimensional ',
-                      'space. Cells with similar expression profiles will ',
-                      'cluster together. This plot is most useful as a ',
-                      'starting point for analysis, as it provides a summary ',
-                      'of what cell types are present in the dataset.'
+              bsTooltip(
+                 id = ns("make_dimplot_help"), 
+                 title = 
+                    paste0(
+                       'DimPlots show a summary of gene expression, ',
+                       'representing gene expression in a two-dimensional ',
+                       'space. Cells with similar expression profiles will ',
+                       'cluster together. This plot is most useful as a ',
+                       'starting point for analysis, as it provides a summary ',
+                       'of what cell types are present in the dataset.'
+                       ),
+                 placement = "bottom", 
+                 trigger = "hover",
+                 options = NULL
+              ),
+              
+              # Switch for hexbin density plot
+              materialSwitch(
+                inputId = ns("make_hexbin_density"),
+                label = 
+                  tagList(
+                    "HexDensity Plot",
+                    a(
+                      id = ns("make_hexbin_density_help"),
+                      icon(
+                        "circle-question",
+                        class = "fa-solid"
                       ),
-                placement = "bottom", 
+                      href = 
+                        paste0(
+                          "https://amc-heme.github.io/cellDIVER/articles/",
+                          "scRNA_Plots_Explained.html#hexbin-density"
+                        ),
+                      target = "_blank"
+                    )
+                  ),
+                value = FALSE,
+                right = TRUE,
+                status = "default"
+              ),
+              bsTooltip(
+                id = ns("make_hexbin_density_help"),
+                title = 
+                  paste0(
+                    "Hexbin density plots visualize cell density across ",
+                    "dimension reduction space using hexagonal binning. ",
+                    "This representation reduces overplotting in dense ",
+                    "datasets and makes density patterns easier to ",
+                    "interpret than standard DimPlots."
+                  ),
+                placement = "bottom",
                 trigger = "hover",
                 options = NULL
-             ),
-             
-             # Switch for feature plot
+              ),
+              
+              # Switch for feature plot
              materialSwitch(
                inputId = ns("make_feature"),
                label = 
@@ -132,25 +171,64 @@ plots_tab_ui <- function(id,
                right = TRUE,
                status = "default"
                ),
-             bsTooltip(
-                id = ns("make_feature_help"), 
+              bsTooltip(
+                 id = ns("make_feature_help"), 
+                 title = 
+                    paste0(
+                       'Feature plots are dimensional reduction plots ',
+                       '(DimPlots) colored by feature expression. Feature ',
+                       'plots are great for summarizing feature expression, ',
+                       'but can mis-represent the average expression in ',
+                       'specific cell clusters. Observations in feature plots ',
+                       'should be further queried using violin plots, ridge ',
+                       'plots, dot plots, and differential gene expression ',
+                       'analysis. '
+                    ),
+                 placement = "bottom", 
+                 trigger = "hover",
+                 options = NULL
+              ),
+              
+              # Switch for hexbin feature plot
+              materialSwitch(
+                inputId = ns("make_hexbin_feature"),
+                label = 
+                  tagList(
+                    "HexFeature Plot",
+                    a(
+                      id = ns("make_hexbin_feature_help"),
+                      icon(
+                        "circle-question",
+                        class = "fa-solid"
+                      ),
+                      href = 
+                        paste0(
+                          "https://amc-heme.github.io/cellDIVER/articles/",
+                          "scRNA_Plots_Explained.html#hexbin-feature"
+                        ),
+                      target = "_blank"
+                    )
+                  ),
+                value = FALSE,
+                right = TRUE,
+                status = "default"
+              ),
+              bsTooltip(
+                id = ns("make_hexbin_feature_help"),
                 title = 
-                   paste0(
-                      'Feature plots are dimensional reduction plots ',
-                      '(DimPlots) colored by feature expression. Feature ',
-                      'plots are great for summarizing feature expression, ',
-                      'but can mis-represent the average expression in ',
-                      'specific cell clusters. Observations in feature plots ',
-                      'should be further queried using violin plots, ridge ',
-                      'plots, dot plots, and differential gene expression ',
-                      'analysis. '
-                   ),
-                placement = "bottom", 
+                  paste0(
+                    "Hexbin feature plots aggregate feature expression ",
+                    "within hexagonal bins of dimension reduction space. ",
+                    "This provides a clearer view of expression patterns ",
+                    "in dense datasets by reducing visual clutter from ",
+                    "overlapping cells."
+                  ),
+                placement = "bottom",
                 trigger = "hover",
                 options = NULL
-             ),
-             
-             # Switch for scatterplot
+              ),
+              
+              # Switch for scatterplot
              materialSwitch(
                inputId = ns("make_scatter"),
                label = 
@@ -382,16 +460,17 @@ plots_tab_ui <- function(id,
            ),#End div
          ),
          
-         ## 1.2. Feature Text Entry. #### 
-         # Applies to feature, violin, and dot plots unless the user specifies 
-         # the use of different features for each plot (this is currently only 
-         # possible for dot plots) 
-         conditionalPanel(
-           condition =
-             glue("input['{ns('make_feature')}'] == true |
-                  input['{ns('make_vln')}'] == true |
-                  input['{ns('make_dot')}'] == true |
-                  input['{ns('make_ridge')}'] == true"),
+          ## 1.2. Feature Text Entry. #### 
+          # Applies to feature, violin, dot, ridge, and hexbin feature plots 
+          # unless the user specifies the use of different features for each plot 
+          # (this is currently only possible for dot plots) 
+          conditionalPanel(
+            condition =
+              glue("input['{ns('make_feature')}'] == true |
+                   input['{ns('make_vln')}'] == true |
+                   input['{ns('make_dot')}'] == true |
+                   input['{ns('make_ridge')}'] == true |
+                   input['{ns('make_hexbin_feature')}'] == true"),
            # Content of conditionalPanel
            # Label
            tags$p(tags$strong("Enter features to display on plots:")),
@@ -533,16 +612,19 @@ plots_tab_ui <- function(id,
                        }
                      )
                  )
-             ),
-             bsTooltip(
-               id = ns("continuous_palette_div"),
-               title = "Continous palette applies to Dot Plot and Feature plot.",
-               placement = "top",
-               trigger = "hover",
-               options = NULL
-             )
-           )
-         ),
+              ),
+              bsTooltip(
+                id = ns("continuous_palette_div"),
+                title = paste0(
+                  "Continuous palette applies to Dot Plot, Feature Plot, ",
+                  "and Hexbin plots."
+                  ),
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
+            )
+          ),
          
          ## 1.4. Feature summary statistics ####
          # Panel is hidden until at least one feature has been entered
@@ -638,9 +720,43 @@ plots_tab_ui <- function(id,
                download_button =       TRUE
              )
            )
-         ),
-         
-         ## 1.7. Feature plot options ####
+          ),
+          
+          ## 1.6.1. HexDensity Plot options ####
+          # Panel will display if "Make HexDensity Plot" switch is on
+          conditionalPanel(
+            condition = glue("input['{ns('make_hexbin_density')}'] == true"),
+            collapsible_panel(
+              inputId = ns("hexbin_density_collapsible"),
+              label = "Hexbin Density Plot Specific Options",
+              active = FALSE,
+              plot_module_ui(
+                id = ns("hexbin_density"),
+                plot_type = "hexbin_density",
+                ui_component = "options",
+                meta_choices = meta_choices,
+                plot_label = "Hexbin Density Plot",
+                reductions = reductions,
+                reductions_menu =       TRUE,
+                title_menu =            TRUE,
+                group_by =              FALSE,
+                split_by =              TRUE,
+                ncol_slider =           TRUE,
+                legend_options_menu =   FALSE,
+                order_checkbox =        FALSE,
+                label_checkbox =        FALSE,
+                legend_checkbox =       TRUE,
+                limits_checkbox =       TRUE,
+                custom_colors =         FALSE,
+                manual_dimensions =     TRUE,
+                download_button =       TRUE,
+                hexbin_options =        TRUE,
+                color_scale_limits =    TRUE
+              )
+            )
+          ),
+          
+          ## 1.7. Feature plot options ####
          conditionalPanel(
            condition = glue("input['{ns('make_feature')}'] == true"),
            collapsible_panel(
@@ -671,6 +787,7 @@ plots_tab_ui <- function(id,
                legend_checkbox =            TRUE,
                limits_checkbox =            TRUE,
                custom_colors =              TRUE,
+               color_scale_limits =         TRUE,
                manual_dimensions =          TRUE,
                download_button =            TRUE,
                # Default values for inputs
@@ -682,9 +799,48 @@ plots_tab_ui <- function(id,
                group_by_include_none = FALSE
              )
            )
-         ),
-         
-         ## 1.8. Violin plot options ####
+          ),
+          
+          ## 1.7.1. Hexbin Feature Plot options ####
+          # Panel will display if "Make Hexbin Feature Plot" switch is on
+          conditionalPanel(
+            condition = glue("input['{ns('make_hexbin_feature')}'] == true"),
+            collapsible_panel(
+              inputId = ns("hexbin_feature_collapsible"),
+              label = "Hexbin Feature Plot Specific Options",
+              active = FALSE,
+              plot_module_ui(
+                id = ns("hexbin_feature"),
+                plot_type = "hexbin_feature",
+                ui_component = "options",
+                meta_choices = meta_choices,
+                plot_label = "Hexbin Feature Plot",
+                reductions = reductions,
+                reductions_menu =            TRUE,
+                title_menu =                 TRUE,
+                legend_title_menu =          FALSE,
+                group_by =                   FALSE,
+                split_by =                   TRUE,
+                ncol_slider =                TRUE,
+                super_title_menu =           FALSE,
+                share_scale_checkbox =       FALSE,
+                color_by_feature_checkbox =  FALSE,
+                blend_checkbox =             FALSE,
+                order_checkbox =             FALSE,
+                label_checkbox =             FALSE,
+                legend_checkbox =            TRUE,
+                limits_checkbox =            TRUE,
+                custom_colors =              TRUE,
+                manual_dimensions =          TRUE,
+                download_button =            TRUE,
+                separate_features =          FALSE,
+                hexbin_options =             TRUE,
+                color_scale_limits =         TRUE
+              )
+            )
+          ),
+          
+          ## 1.8. Violin plot options ####
          conditionalPanel(
            condition = glue("input['{ns('make_vln')}'] == true"),
            collapsible_panel(
@@ -730,15 +886,16 @@ plots_tab_ui <- function(id,
                group_by =              TRUE,
                split_by =              FALSE,
                title_menu =            FALSE,
-               sort_groups_menu =      TRUE,
-               dot_x_labels_menu =     TRUE,
-               ncol_slider =           FALSE,
-               order_checkbox =        FALSE,
-               label_checkbox =        FALSE,
-               legend_checkbox =       TRUE,
-               limits_checkbox =       FALSE,
-               custom_colors =         FALSE,
-               manual_dimensions =     TRUE,
+                sort_groups_menu =      TRUE,
+                dot_x_labels_menu =     TRUE,
+                ncol_slider =           FALSE,
+                order_checkbox =        FALSE,
+                label_checkbox =        FALSE,
+                legend_checkbox =       TRUE,
+                limits_checkbox =       FALSE,
+                custom_colors =         TRUE,
+                color_scale_limits =    TRUE,
+                manual_dimensions =     TRUE,
                separate_features =     TRUE,
                download_button =       TRUE
                )
@@ -930,6 +1087,20 @@ plots_tab_ui <- function(id,
                id = ns("feature"),
                plot_type = "feature",
                ui_component = "plot"
+            ),
+            
+            ## 2.2.1. Hexbin Density Plot panel
+            plot_module_ui(
+              id = ns("hexbin_density"),
+              plot_type = "hexbin_density",
+              ui_component = "plot"
+            ),
+            
+            ## 2.2.2. Hexbin Feature Plot panel
+            plot_module_ui(
+              id = ns("hexbin_feature"),
+              plot_type = "hexbin_feature",
+              ui_component = "plot"
             ),
             
             ## 2.3. Panel for violin plot
@@ -1172,17 +1343,17 @@ plots_tab_server <- function(id,
                            return(
                              continuous_palettes[[input$continuous_palette]]
                            )
-                         }
-                       } else {
-                         # If input$continuous_palette is NULL, pass NULL to 
-                         # this reactive expression. Default palettes will be 
-                         # used when the output is NULL.
-                         return(NULL)
-                       }
-                       
-                     })
-                 
-                 # 3. Plot Modules ---------------------------------------------
+                          }
+                        } else {
+                          # If input$continuous_palette is NULL, pass NULL to 
+                          # this reactive expression. Default palettes will be 
+                          # used when the output is NULL.
+                          return(NULL)
+                        }
+                        
+                      })
+                  
+                  # 3. Plot Modules ---------------------------------------------
                  # A server instance of the plot_module is created for each plot
                  ## 3.1. Dimplot ####
                  plot_module_server(
@@ -1203,34 +1374,74 @@ plots_tab_server <- function(id,
                    palette = selected_categorical_palette
                    )
                  
-                 ## 3.2. Feature Plot ####
-                 plot_module_server(
-                   id = "feature",
-                   object = subset, 
-                   # plot_switch: uses the input$make_feature switch
-                   plot_switch = reactive({input$make_feature}),
-                   features_entered = reactive({input$text_features}),
-                   plot_label = "Feature Plot",
-                   raw_feature_names = reactive({input$raw_feature_names}),
-                   n_cells_original = n_cells_original, 
-                   plots_tab_spinner = main_spinner,
-                   # Instructs server on which plot function to run
-                   plot_type = "feature",
-                   valid_features = valid_features,
-                   assay_config = assay_config,
-                   metadata_config = metadata_config,
-                   lim_orig = lim_orig,
-                   # Both palettes are passed to feature plot. Continuous
-                   # palette is used unless "color_by_feature" is TRUE
-                   palette = 
-                     list(
-                       "categorical_palette" = selected_categorical_palette,
-                       "continuous_palette" = selected_continuous_palette
-                       ),
-                   blend_palettes = blend_palettes
-                   )
-                 
-                 ## 3.3. Violin Plot ####
+                  ## 3.2. Feature Plot ####
+                  plot_module_server(
+                    id = "feature",
+                    object = subset, 
+                    # plot_switch: uses the input$make_feature switch
+                    plot_switch = reactive({input$make_feature}),
+                    features_entered = reactive({input$text_features}),
+                    plot_label = "Feature Plot",
+                    raw_feature_names = reactive({input$raw_feature_names}),
+                    n_cells_original = n_cells_original, 
+                    plots_tab_spinner = main_spinner,
+                    # Instructs server on which plot function to run
+                    plot_type = "feature",
+                    valid_features = valid_features,
+                    assay_config = assay_config,
+                    metadata_config = metadata_config,
+                    lim_orig = lim_orig,
+                    # Both palettes are passed to feature plot. Continuous
+                    # palette is used unless "color_by_feature" is TRUE
+                    palette = 
+                      list(
+                        "categorical_palette" = selected_categorical_palette,
+                        "continuous_palette" = selected_continuous_palette
+                        ),
+                    blend_palettes = blend_palettes
+                    )
+                  
+                  ## 3.2.1. Hexbin Density Plot ####
+                  plot_module_server(
+                    id = "hexbin_density",
+                    object = subset,
+                    # plot_switch: uses the input$make_hexbin_density switch
+                    plot_switch = reactive({input$make_hexbin_density}),
+                    plot_label = "Hexbin Density Plot",
+                    raw_feature_names = reactive({input$raw_feature_names}),
+                    n_cells_original = n_cells_original,
+                    plots_tab_spinner = main_spinner,
+                    # Instructs server on which plot function to run
+                    plot_type = "hexbin_density",
+                    lim_orig = lim_orig,
+                    metadata_config = metadata_config,
+                    # Hexbin density plots use the continuous palette (the
+                    # lightgrey-to-blue default unless a palette is selected)
+                    palette = selected_continuous_palette
+                  )
+                  
+                  ## 3.2.2. Hexbin Feature Plot ####
+                  plot_module_server(
+                    id = "hexbin_feature",
+                    object = subset,
+                    # plot_switch: uses the input$make_hexbin_feature switch
+                    plot_switch = reactive({input$make_hexbin_feature}),
+                    features_entered = reactive({input$text_features}),
+                    plot_label = "Hexbin Feature Plot",
+                    raw_feature_names = reactive({input$raw_feature_names}),
+                    n_cells_original = n_cells_original,
+                    plots_tab_spinner = main_spinner,
+                    # Instructs server on which plot function to run
+                    plot_type = "hexbin_feature",
+                    valid_features = valid_features,
+                    assay_config = assay_config,
+                    metadata_config = metadata_config,
+                    lim_orig = lim_orig,
+                    # Use continuous palette for hexbin feature plots
+                    palette = selected_continuous_palette
+                  )
+                  
+                  ## 3.3. Violin Plot ####
                  plot_module_server(
                    id = "violin",
                    object = subset, 
@@ -1248,24 +1459,24 @@ plots_tab_server <- function(id,
                    palette = selected_categorical_palette
                    )
                  
-                 ## 3.4. Dot plot ####
-                 plot_module_server(
-                   id = "dot",
-                   object = subset, 
-                   # plot_switch: uses the input$make_dot switch
-                   plot_switch = reactive({input$make_dot}),
-                   features_entered = reactive({input$text_features}),
-                   raw_feature_names = reactive({input$raw_feature_names}),
-                   plots_tab_spinner = main_spinner,
-                   plot_label = "Dot Plot", 
-                   # Instructs server on which plot function to run
-                   plot_type = "dot",
-                   assay_config = assay_config,
-                   valid_features = valid_features,
-                   separate_features_server = TRUE,
-                   # Use continuous palettes for dot plot
-                   palette = selected_continuous_palette
-                   )
+                  ## 3.4. Dot plot ####
+                  plot_module_server(
+                    id = "dot",
+                    object = subset, 
+                    # plot_switch: uses the input$make_dot switch
+                    plot_switch = reactive({input$make_dot}),
+                    features_entered = reactive({input$text_features}),
+                    raw_feature_names = reactive({input$raw_feature_names}),
+                    plots_tab_spinner = main_spinner,
+                    plot_label = "Dot Plot", 
+                    # Instructs server on which plot function to run
+                    plot_type = "dot",
+                    assay_config = assay_config,
+                    valid_features = valid_features,
+                    separate_features_server = TRUE,
+                    # Pass continuous palette for dot plot
+                    palette = selected_continuous_palette
+                    )
                  
                  ## 3.5. Scatterplot ####
                  plot_module_server(

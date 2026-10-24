@@ -101,3 +101,22 @@ update_object_metadata.md._core.mudata.MuData <-
     
     object
   }
+
+# File-backed SCUBA objects: the metadata table lives in R, so SCUBA replaces
+# it in the returned copy
+#' @export
+#' @noRd
+update_object_metadata.scuba_source <-
+  function(
+    object,
+    table,
+    ...
+  ){
+    # SCUBA's method must be called directly: cellDIVER's generic has the same
+    # name, so calling SCUBA::update_object_metadata() from here would dispatch
+    # back to this method (S3 looks in the calling environment first).
+    scuba_method <- utils::getS3method(
+      "update_object_metadata", "scuba_source", envir = asNamespace("SCUBA")
+    )
+    scuba_method(object, table)
+  }

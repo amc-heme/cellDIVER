@@ -12,21 +12,35 @@
 #' in `R/`, which keeps masking between Seurat, rlang, shiny and the tidyverse
 #' out of the namespace.
 #'
+#' presto is called by scDE rather than by cellDIVER directly. It is declared
+#' here (and in DESCRIPTION, with the amc-heme fork in Remotes) so that
+#' installing cellDIVER pulls the fork, which updates `GetAssayData(slot =)`
+#' to `layer =` for Seurat 5 objects.
+#'
+#' edgeR is likewise called by scDE (`run_dge(test_use = "edgeR")`), where it
+#' is only suggested. cellDIVER imports one function so that installing the
+#' app guarantees the pseudobulk method is available.
+#'
 #' @importFrom colourpicker colourInput
+#' @importFrom edgeR glmQLFTest
 #' @importFrom dplyr "%>%" any_of arrange case_when desc group_by left_join n
 #' @importFrom dplyr pull summarise
 #' @importFrom DT datatable DTOutput formatSignif renderDT
 #' @importFrom ggplot2 aes coord_cartesian coord_polar geom_bar geom_col
 #' @importFrom ggplot2 geom_text geom_vline ggsave layer_scales position_stack
-#' @importFrom ggplot2 scale_x_discrete theme_void
+#' @importFrom ggplot2 scale_color_gradient2 scale_fill_gradient2
+#' @importFrom ggplot2 scale_fill_gradientn scale_x_discrete theme_void waiver
 #' @importFrom ggsci pal_d3 pal_jco pal_lancet pal_locuszoom pal_rickandmorty
 #' @importFrom ggsci pal_startrek
 #' @importFrom glue glue
 #' @importFrom methods is
 #' @importFrom patchwork plot_annotation plot_layout
+#' @importFrom presto wilcoxauc
 #' @importFrom rintrojs introjsUI
+#' @importFrom rlang abort
 #' @importFrom rlog log_error log_info log_warn
-#' @importFrom shiny a actionButton actionLink addResourcePath checkboxInput
+#' @importFrom shiny a actionButton actionLink addResourcePath checkboxGroupInput
+#' @importFrom shiny checkboxInput
 #' @importFrom shiny clickOpts conditionalPanel div downloadButton
 #' @importFrom shiny downloadHandler downloadLink eventReactive
 #' @importFrom shiny exportTestValues fileInput fluidPage fluidRow
@@ -35,6 +49,7 @@
 #' @importFrom shiny is.reactive isolate isTruthy mainPanel modalButton
 #' @importFrom shiny modalDialog moduleServer navbarPage need NS observe
 #' @importFrom shiny observeEvent onFlush onSessionEnded outputOptions
+#' @importFrom shiny debounce
 #' @importFrom shiny plotOutput reactive reactiveVal reactiveValues
 #' @importFrom shiny removeModal removeUI renderImage renderPlot renderPrint
 #' @importFrom shiny renderText renderUI req restoreInput selectInput
@@ -56,7 +71,7 @@
 #' @importFrom SingleCellExperiment altExp "altExp<-" altExpNames altExps
 #' @importFrom SingleCellExperiment mainExpName "mainExpName<-"
 #' @importFrom sortable add_rank_list bucket_list rank_list
-#' @importFrom stats cor
+#' @importFrom stats cor setNames
 #' @importFrom stringr str_sort
 #' @importFrom SummarizedExperiment assay "assay<-" "colData<-"
 #' @importFrom tibble add_row as_tibble tibble

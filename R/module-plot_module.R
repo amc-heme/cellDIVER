@@ -62,6 +62,14 @@
 #' is selected.
 #' @param download_button If TRUE, display a download button that will save a
 #' .png image of the plot to disk.
+#' @param hexbin_options If TRUE, display the hexbin-specific controls (number
+#' of bins, and either per-facet density scaling or the expression aggregation
+#' method depending on `plot_type`). These are placed after the projection
+#' menu.
+#' @param color_scale_limits If TRUE, display a checkbox and two-handle slider
+#' for setting the minimum and maximum of the continuous color scale. For
+#' plots with a continuous color/fill scale only (feature, hexbin and dot
+#' plots).
 #'
 #' @noRd
 plot_module_ui <- function(id,
@@ -100,9 +108,11 @@ plot_module_ui <- function(id,
                            limits_checkbox =                       FALSE,
                            custom_colors =                         FALSE,
                            custom_x_axis_ui =                      FALSE,
+                           color_scale_limits =                    FALSE,
                            manual_dimensions =                     FALSE,
                            separate_features =                     FALSE,
                            download_button =                       FALSE,
+                           hexbin_options =                        FALSE,
                            # Modifiers to elements above
                            # Default values for inputs
                            label_default =                         TRUE,
@@ -247,7 +257,9 @@ plot_module_ui <- function(id,
             "DimPlot" = "DimPlots-split-by",
             "Feature Plot" = "Feature-plots-split-by",
             "Cell Proportion" = "cell-proportion-plot-comparison-metadata",
-            "Violin Plot" = "violin-plots-split-by"
+            "Violin Plot" = "violin-plots-split-by",
+            "Hexbin Density Plot" = "Hexbin-plots-split-by",
+            "Hexbin Feature Plot" = "Hexbin-plots-split-by"
           )
         #assign anchor based on plot_label
         anchor <- plot_to_anchor[[plot_label]]
@@ -316,11 +328,144 @@ plot_module_ui <- function(id,
           }
         }
 
+        # html anchors pointing to the relevant documentation section
+        plot_to_anchor <-
+          list(
+            "DimPlot" = "DimPlots-projection",
+            "Feature Plot" = "Feature-plots-projection",
+            "Hexbin Density Plot" = "Hexbin-plots-projection",
+            "Hexbin Feature Plot" = "Hexbin-plots-projection"
+          )
+        anchor <- plot_to_anchor[[plot_label]]
+
         selectInput(
           inputId = ns("reduction"),
-          label = "Choose Projection",
+          label = tagList(
+            "Choose Projection",
+            a(id = ns("reduction_info_icon"),
+              icon("info-circle"),
+              href = paste0("https://amc-heme.github.io/cellDIVER/articles/",
+                            "full_documentation.html#", anchor),
+              target = "_blank")
+          ),
           choices = reductions()
           )
+      } else NULL,
+
+      bsTooltip(
+        id = ns("reduction_info_icon"),
+        title = paste0(
+          "Select the dimensional reduction (projection) used to position ",
+          "cells on the plot."
+          ),
+        placement = "top",
+        trigger = "hover",
+        options = NULL
+      ),
+
+      ## Hexbin options ####
+      # Number of bins (both hexbin plot types), per-facet density scaling
+      # (density plots) and expression aggregation method (feature plots).
+      # Placed directly after the split by/projection menus, ahead of the
+      # title options and download button.
+      if (hexbin_options == TRUE){
+        tagList(
+          sliderInput(
+            inputId = ns("hexbin_nbins"),
+            label = tagList(
+              "Number of Bins",
+              a(id = ns("hexbin_nbins_info_icon"),
+                icon("info-circle"),
+                href = paste0("https://amc-heme.github.io/cellDIVER/articles/",
+                              "full_documentation.html#",
+                              "Hexbin-plots-number-of-bins"),
+                target = "_blank")
+            ),
+            min = 20,
+            max = 200,
+            value = 80,
+            step = 10
+          ),
+          bsTooltip(
+            id = ns("hexbin_nbins_info_icon"),
+            title = paste0(
+              "Number of hexagonal bins across each axis. Higher values ",
+              "give smaller bins and more detail."
+              ),
+            placement = "top",
+            trigger = "hover",
+            options = NULL
+          ),
+
+          # Density plots: scale density per facet (only relevant when
+          # splitting by a metadata variable)
+          if (plot_type == "hexbin_density"){
+            conditionalPanel(
+              condition = glue("input['{ns('split_by')}'] != 'none'"),
+              checkboxInput(
+                inputId = ns("hexbin_scale_density"),
+                label = tagList(
+                  "Scale density independently per facet",
+                  a(id = ns("hexbin_scale_density_info_icon"),
+                    icon("info-circle"),
+                    href = paste0(
+                      "https://amc-heme.github.io/cellDIVER/articles/",
+                      "full_documentation.html#",
+                      "Hexbin-density-scale-per-facet"
+                      ),
+                    target = "_blank")
+                ),
+                value = FALSE
+              ),
+              bsTooltip(
+                id = ns("hexbin_scale_density_info_icon"),
+                title = paste0(
+                  "When enabled, each facet uses its own color scale (0-1) ",
+                  "to show relative density within each group."
+                  ),
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
+            )
+          } else NULL,
+
+          # Feature plots: method used to aggregate expression within each bin
+          if (plot_type == "hexbin_feature"){
+            tagList(
+              selectInput(
+                inputId = ns("hexbin_action"),
+                label = tagList(
+                  "Expression Aggregation Method",
+                  a(id = ns("hexbin_action_info_icon"),
+                    icon("info-circle"),
+                    href = paste0(
+                      "https://amc-heme.github.io/cellDIVER/articles/",
+                      "full_documentation.html#",
+                      "Hexbin-feature-aggregation"
+                      ),
+                    target = "_blank")
+                ),
+                choices = c(
+                  "Mean" = "mean",
+                  "Median" = "median",
+                  "Sum" = "sum"
+                ),
+                selected = "mean"
+              ),
+              bsTooltip(
+                id = ns("hexbin_action_info_icon"),
+                title = paste0(
+                  "How the expression values of the cells in each hexagon ",
+                  "are combined: mean, median, or sum."
+                  ),
+                placement = "top",
+                trigger = "hover",
+                options = NULL
+              )
+            )
+          } else NULL
+        )
       } else NULL,
 
       ## Title selection and custom title ####
@@ -334,7 +479,9 @@ plot_module_ui <- function(id,
           "DimPlot" = "DimPlots-title-options",
           "Feature Plot" = "Feature-plots-title-options",
           "Cell Proportion" = "cell-proportion-plot-title-options",
-          "Ridge" = "ridge-title-options"
+          "Ridge" = "ridge-title-options",
+          "Hexbin Density Plot" = "Hexbin-plots-title-options",
+          "Hexbin Feature Plot" = "Hexbin-plots-title-options"
         )
         #assign anchor based on plot_label
         anchor <- plot_to_anchor[[plot_label]]
@@ -863,6 +1010,144 @@ plot_module_ui <- function(id,
           )
         } else NULL,
 
+      ## Checkbox for custom diverging colors on Feature plot ####
+      if (custom_colors == TRUE){
+        tagList(
+          # Checkbox to select custom diverging colors (3-color palette)
+          checkboxInput(
+            inputId = ns("custom_diverging_colors"),
+            label = "Use Custom Diverging Colors (3 colors, center=0)",
+            # FALSE by default
+            value = FALSE
+          ),
+          conditionalPanel(
+            condition = glue("input['{ns('custom_diverging_colors')}'] == true"),
+            tagList(
+              div(
+                class = "two-color-input-left",
+                colourInput(
+                  inputId = ns("low_color"),
+                  label = "Low Value",
+                  value = "#2166AC"
+                  )
+                ),
+              div(
+                class = "two-color-input-right",
+                colourInput(
+                  inputId = ns("mid_color"),
+                  label = "Mid Value (0)",
+                  value = "#F7F7F7"
+                  )
+                ),
+              div(
+                class = "two-color-input-left",
+                colourInput(
+                  inputId = ns("high_color"),
+                  label = "High Value",
+                  value = "#B2182B"
+                  )
+                )
+              )
+            )
+          )
+        } else NULL,
+
+      ## Scale limits ####
+      # Two-handle slider setting the values at which the end colors of the
+      # continuous color scale are placed. The bounds are updated server-side
+      # from the values shown on the plot. Hidden for feature plots when
+      # coloring by feature or blending (those use categorical/blended
+      # scales); the inputs tested do not exist for other plot types, so the
+      # panel is always shown there.
+      if (color_scale_limits == TRUE){
+        conditionalPanel(
+          condition =
+            glue(
+              "input['{ns('color_by_feature')}'] != true && ",
+              "input['{ns('blend')}'] != true"
+            ),
+          checkboxInput(
+            inputId = ns("use_color_limits"),
+            label = tagList(
+              "Set Scale Limits",
+              a(id = ns("color_limits_info_icon"),
+                icon("info-circle"),
+                href = paste0(
+                  "https://amc-heme.github.io/cellDIVER/articles/",
+                  "full_documentation.html#",
+                  "Feature-plots-color-limits"
+                  ),
+                target = "_blank")
+            ),
+            value = FALSE
+          ),
+          bsTooltip(
+            id = ns("color_limits_info_icon"),
+            title = paste0(
+              "Choose where the lowest and highest colors are placed. ",
+              "'Color scale' keeps the data and shows values outside the ",
+              "range in the end colors; 'Data values' clamps each cell's ",
+              "value before binning or plotting. 'Quantiles' sets the ",
+              "limits as percentiles of those values."
+              ),
+            placement = "top",
+            trigger = "hover",
+            options = NULL
+          ),
+          conditionalPanel(
+            condition = glue("input['{ns('use_color_limits')}'] == true"),
+            # Target: the color scale (plotted values) or the underlying
+            # per-cell values before binning/plotting (feature and hexbin
+            # feature plots only)
+            if (plot_type %in% c("feature", "hexbin_feature")){
+              radioGroupButtons(
+                inputId = ns("color_limits_target"),
+                label = "Apply to",
+                choices =
+                  c("Color scale" = "scale", "Data values" = "data"),
+                selected = "scale",
+                size = "sm"
+              )
+            } else NULL,
+            # Units: data values (slider bounded by the data) or quantiles
+            # (slider from 0 to 100 percent)
+            radioGroupButtons(
+              inputId = ns("color_limits_units"),
+              label = "Units",
+              choices = c("Values" = "value", "Quantiles" = "quantile"),
+              selected = "value",
+              size = "sm"
+            ),
+            sliderInput(
+              inputId = ns("color_limits"),
+              label = NULL,
+              min = 0,
+              max = 1,
+              value = c(0, 1),
+              step = 0.01
+            ),
+            actionLink(
+              inputId = ns("color_limits_reset"),
+              label = "Reset to full range"
+            ),
+            # Keep the limits centered on zero for diverging palettes (in
+            # data units only)
+            conditionalPanel(
+              condition =
+                glue(
+                  "input['{ns('custom_diverging_colors')}'] == true && ",
+                  "input['{ns('color_limits_units')}'] != 'quantile'"
+                ),
+              checkboxInput(
+                inputId = ns("color_limits_symmetric"),
+                label = "Symmetric about zero",
+                value = TRUE
+              )
+            )
+          )
+        )
+      } else NULL,
+
       ## Custom x-axis limits ####
       # Currently for ridge plots only
       if (custom_x_axis_ui == TRUE){
@@ -1066,19 +1351,21 @@ plot_module_server <- function(id,
                  # when the plots tab interface is hidden and shown again
                  scroll_restore <- cellDIVER:::makeReactiveTrigger()
 
-                 # Return error notification if the plot type is not in the list
-                 # of supported types
-                 if (!plot_type %in%
-                     c("dimplot",
-                       "feature",
-                       "violin",
-                       "dot",
-                       "scatter",
-                       "ridge",
-                       "proportion",
-                       "pie"
-                       )
-                 ){
+                  # Return error notification if the plot type is not in the list
+                  # of supported types
+                  if (!plot_type %in%
+                      c("dimplot",
+                        "feature",
+                        "hexbin_density",
+                        "hexbin_feature",
+                        "violin",
+                        "dot",
+                        "scatter",
+                        "ridge",
+                        "proportion",
+                        "pie"
+                        )
+                  ){
                    showNotification(
                      ui =
                        icon_notification_ui(
@@ -1152,13 +1439,14 @@ plot_module_server <- function(id,
                      })
                    }
 
-                 # 3. Title Settings Menu --------------------------------------
-                 # Title settings and custom titles are enabled for the plot
-                 # types below
-                 if (plot_type %in%
-                     c("dimplot", "feature", "ridge", "proportion", "pie")){
-                   # Reactive trigger for updating single custom title input
-                   update_title_single <- makeReactiveTrigger()
+                # 3. Title Settings Menu --------------------------------------
+                # Title settings and custom titles are enabled for the plot
+                # types below
+                if (plot_type %in%
+                    c("dimplot", "feature", "ridge", "proportion", "pie", 
+                      "hexbin_density", "hexbin_feature")){
+                  # Reactive trigger for updating single custom title input
+                  update_title_single <- makeReactiveTrigger()
 
                    ## 3.1. Allow/disallow custom title ####
                    # If the menu is present, add the "custom" option
@@ -1327,10 +1615,12 @@ plot_module_server <- function(id,
                                group_by = plot_selections$group_by(),
                                metadata_config = metadata_config(),
                                features_entered =
-                                 if (plot_type %in% c("feature", "ridge")){
+                                 if (plot_type %in%
+                                     c("feature", "ridge", "hexbin_feature")){
                                    features_entered()
                                  } else NULL,
                                assay_config = assay_config(),
+                               action = plot_selections$hexbin_action(),
                                show_modality_key = 
                                  # "Raw" feature names setting from plots tab
                                  # Apply value of checkbox if provided to the 
@@ -1386,10 +1676,12 @@ plot_module_server <- function(id,
                            group_by = plot_selections$group_by(),
                            metadata_config = metadata_config(),
                            features_entered =
-                             if (plot_type %in% c("feature", "ridge")){
+                             if (plot_type %in%
+                                 c("feature", "ridge", "hexbin_feature")){
                                features_entered()
                                } else NULL,
                            assay_config = assay_config(),
+                           action = plot_selections$hexbin_action(),
                            show_modality_key = 
                              # "Raw" feature names setting from plots tab
                              raw_feature_names()
@@ -1443,6 +1735,7 @@ plot_module_server <- function(id,
                               metadata_config = metadata_config(),
                               features_entered = features_entered(),
                               assay_config = assay_config(),
+                              action = plot_selections$hexbin_action(),
                               show_modality_key = 
                                 # "Raw" feature names setting from plots tab
                                 raw_feature_names()
@@ -1567,55 +1860,67 @@ plot_module_server <- function(id,
                          )
                    }
 
-                   ## 3.7. Custom title value ####
-                   # Used for dimplots, stacked bar plots, pie charts
-                   if (plot_type %in% c("dimplot", "proportion", "pie")){
-                     plot_title <-
-                       reactive(
-                         label = glue("{plot_label}: custom title value"),
-                         {
-                         # Only runs when the plot is enabled
-                         req(plot_switch())
+                    ## 3.7. Custom title value ####
+                    # Used for dimplots, stacked bar plots, pie charts, and hexbin
+                    # density plots
+                    if (plot_type %in% c("dimplot", "proportion", "pie", 
+                                         "hexbin_density")){
+                      plot_title <-
+                        reactive(
+                          label = glue("{plot_label}: custom title value"),
+                          {
+                          # Only runs when the plot is enabled
+                          req(plot_switch())
 
-                         # Define default title to use if a custom title is not
-                         # requested. Default is the label of the group by
-                         # category, or the name itself if the label is not
-                         # defined in the config file
-                         group_by_label <-
-                           metadata_config()[[plot_selections$group_by()]]$label
+                          # Define default title to use if a custom title is not
+                          # requested. For hexbin_density plots, the default is
+                          # "Density". For dimplots, proportion, and pie charts,
+                          # the default is the label of the group_by category, or
+                          # the name itself if the label is not defined in the 
+                          # config file.
+                          if (plot_type == "hexbin_density") {
+                            # Hexbin density plots don't use group_by, so use
+                            # simple "Density" as default title
+                            default_title <- "Density"
+                          } else {
+                            # For dimplots, proportion, pie charts: use group_by
+                            # label
+                            group_by_label <-
+                              metadata_config()[[plot_selections$group_by()]]$label
 
-                         default_title <-
-                           if (isTruthy(group_by_label)){
-                             group_by_label
-                           } else {
-                             plot_selections$group_by()
-                           }
+                            default_title <-
+                              if (isTruthy(group_by_label)){
+                                group_by_label
+                              } else {
+                                plot_selections$group_by()
+                              }
+                          }
 
-                         # Return title based on selections in title settings
-                         # menu
-                         if (isTruthy(input$title_settings)){
-                           if (input$title_settings == "default"){
-                             default_title
-                           } else if (input$title_settings == "custom"){
-                             # Use the custom title entered by the
-                             # user in this case
-                             custom_title_single()
-                           } else if (input$title_settings == "none"){
-                             # NULL is passed to the title argument, removing it
-                             NULL
-                           }
-                         } else{
-                           # Use default title if selection menu does not exist
-                           default_title
-                         }
-                       })
-                   }
+                          # Return title based on selections in title settings
+                          # menu
+                          if (isTruthy(input$title_settings)){
+                            if (input$title_settings == "default"){
+                              default_title
+                            } else if (input$title_settings == "custom"){
+                              # Use the custom title entered by the
+                              # user in this case
+                              custom_title_single()
+                            } else if (input$title_settings == "none"){
+                              # NULL is passed to the title argument, removing it
+                              NULL
+                            }
+                          } else{
+                            # Use default title if selection menu does not exist
+                            default_title
+                          }
+                        })
+                    }
 
                    ## 3.8. Custom title value for feature, ridge plots ####
                    # Must pass either single or multiple custom title output
                    # depending on the current number of panels on the feature
-                   # plot, or NULL
-                   if (plot_type %in% c("feature", "ridge")){
+                   # plot, or NULL. Also used for hexbin feature plots.
+                   if (plot_type %in% c("feature", "ridge", "hexbin_feature")){
                      variable_length_custom_title <-
                        reactive(
                          label = glue("{plot_label}: custom title value"),
@@ -1668,25 +1973,38 @@ plot_module_server <- function(id,
                            # cases, NULL is returned, which will prompt 
                            # plotting functions to use their defaults.
                            if (feature_based_title == TRUE){
-                             if (raw_feature_names() == FALSE){
-                               # For feature based default titles, the 
-                               # feature names are modified to remove the 
-                               # assay key, unless the "raw" feature names 
-                               # checkbox is TRUE.
-                               sapply(
-                                 features_entered(),
-                                 function(feature, assay_config){
-                                   hr_name(
-                                     machine_readable_name = feature,
-                                     assay_config = assay_config,
-                                     use_suffix = TRUE
-                                   )
-                                 },
-                                 assay_config()
-                               )
+                             default_titles <-
+                               if (raw_feature_names() == FALSE){
+                                 # For feature based default titles, the 
+                                 # feature names are modified to remove the 
+                                 # assay key, unless the "raw" feature names 
+                                 # checkbox is TRUE.
+                                 sapply(
+                                   features_entered(),
+                                   function(feature, assay_config){
+                                     hr_name(
+                                       machine_readable_name = feature,
+                                       assay_config = assay_config,
+                                       use_suffix = TRUE
+                                     )
+                                   },
+                                   assay_config()
+                                 )
                                } else {
-                               features_entered()
+                                 features_entered()
                                }
+
+                             # Hexbin feature plots: name the aggregation
+                             # method after the feature, e.g. "CD34 (mean)",
+                             # matching the default from initial_title()
+                             if (plot_type == "hexbin_feature"){
+                               paste0(
+                                 default_titles,
+                                 " (", plot_selections$hexbin_action(), ")"
+                               )
+                             } else {
+                               default_titles
+                             }
                            } else {
                              NULL
                            }
@@ -2452,19 +2770,49 @@ plot_module_server <- function(id,
                                 input$split_by == "none")
                              ){
                                input$ncol
-                             } else NULL
-                           })
-                         } else if (plot_type == "violin"){
-                           # Condition to record ncol for violin plot
-                           # Equal to conditions where there are multiple panels
-                           reactive(
-                             label = glue("{plot_label}: process ncol slection"),
-                             {
-                             if (length(features_entered()) > 1){
-                               input$ncol
-                               } else NULL
-                             })
-                           },
+                              } else NULL
+                            })
+                          } else if (plot_type == "violin"){
+                            # Condition to record ncol for violin plot
+                            # Equal to conditions where there are multiple panels
+                            reactive(
+                              label = glue("{plot_label}: process ncol slection"),
+                              {
+                              if (length(features_entered()) > 1){
+                                input$ncol
+                                } else NULL
+                              })
+                          } else if (plot_type == "hexbin_density"){
+                            # For hexbin density plots, ncol applies when split_by
+                            # is set
+                            reactive(
+                              label = glue("{plot_label}: process ncol slection"),
+                              {
+                                if (!is.null(input$split_by)){
+                                  if (input$split_by != "none"){
+                                    input$ncol
+                                  } else NULL
+                                } else NULL
+                              })
+                          } else if (plot_type == "hexbin_feature"){
+                            # For hexbin feature plots, ncol applies when split_by
+                            # is set OR when multiple features are plotted
+                            reactive(
+                              label = glue("{plot_label}: process ncol slection"),
+                              {
+                                req(features_entered())
+                                
+                                # Process ncol for single feature plots when
+                                # split_by is set, or for multiple feature plots
+                                if (
+                                  (length(features_entered()) == 1 &
+                                   input$split_by != "none") |
+                                  (length(features_entered()) > 1)
+                                ){
+                                  input$ncol
+                                } else NULL
+                              })
+                            },
 
                      # Title above all panels (feature plots)
                      `super_title` =
@@ -2625,17 +2973,156 @@ plot_module_server <- function(id,
                          } else NULL
                        }),
 
-                     `max_color` =
-                       reactive(
-                         label =
-                           glue("{plot_label}: process max_color slection"),
-                         {
-                         if (isTruthy(input$custom_colors)){
-                           input$max_color
-                           } else NULL
-                         }),
+                      `max_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process max_color slection"),
+                          {
+                          if (isTruthy(input$custom_colors)){
+                            input$max_color
+                            } else NULL
+                          }),
 
-                     # Super title checkbox (feature plots with more than one
+                      # Custom diverging colors (3 colors: low, mid, high)
+                      `low_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process low_color selection"),
+                          {
+                          # Pass color value if custom diverging colors checkbox
+                          # exists and is selected
+                          if (isTruthy(input$custom_diverging_colors)){
+                            input$low_color
+                          } else NULL
+                        }),
+
+                      `mid_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process mid_color selection"),
+                          {
+                          if (isTruthy(input$custom_diverging_colors)){
+                            input$mid_color
+                          } else NULL
+                        }),
+
+                      `high_color` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process high_color selection"),
+                          {
+                          if (isTruthy(input$custom_diverging_colors)){
+                            input$high_color
+                          } else NULL
+                        }),
+
+                      # User-set limits for the continuous color scale: NULL
+                      # (use the full range) unless the limits checkbox is
+                      # on, bounds have been derived, and the slider differs
+                      # from those bounds. Otherwise a list with the slider
+                      # value, the target ("scale": limits on the color
+                      # scale; "data": per-cell cutoffs before binning or
+                      # plotting, feature and hexbin feature plots only) and
+                      # the units ("value" or "quantile", the latter in
+                      # percent). Not used when coloring by feature or
+                      # blending (feature plots).
+                      `color_limits` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: process color_limits selection"),
+                          {
+                          # The bounds are read without a dependency: they
+                          # are set by an observer on the finished plot, and
+                          # changing them updates the slider, which is what
+                          # should trigger a re-render.
+                          bounds <- isolate(color_limits_bounds())
+                          value <- input$color_limits
+                          units <-
+                            if (identical(input$color_limits_units, "quantile")){
+                              "quantile"
+                            } else "value"
+                          target <-
+                            if (
+                              plot_type %in% c("feature", "hexbin_feature") &&
+                              identical(input$color_limits_target, "data")
+                            ){
+                              "data"
+                            } else "scale"
+
+                          if (
+                            plot_type %in%
+                              c("feature", "hexbin_density",
+                                "hexbin_feature", "dot") &&
+                            isTruthy(input$use_color_limits) &&
+                            !isTRUE(input$color_by_feature) &&
+                            !isTRUE(input$blend) &&
+                            !is.null(bounds) &&
+                            is.numeric(value) &&
+                            length(value) == 2
+                          ){
+                            # Symmetric option for diverging palettes (data
+                            # units only): use the mirrored value the slider
+                            # is being moved to (see "mirror color limits"),
+                            # so the plot and the slider agree
+                            if (
+                              units == "value" &&
+                              isTruthy(input$custom_diverging_colors) &&
+                              isTRUE(input$color_limits_symmetric)
+                            ){
+                              value <-
+                                symmetric_color_limits(
+                                  value,
+                                  color_limits_mirrored()
+                                )
+                            }
+
+                            # The untouched slider means "full range"
+                            if (isTRUE(all.equal(value, bounds))){
+                              NULL
+                            } else {
+                              list(limits = value, target = target, units = units)
+                            }
+                          } else NULL
+                        }),
+
+                      # Arguments derived from `color_limits` for the plot
+                      # functions: limits on the color scale (values, or
+                      # probabilities when set as quantiles) ...
+                      `color_scale_limits` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: color scale limit arguments"),
+                          {
+                          selection <- plot_selections$color_limits()
+
+                          if (is.null(selection) || selection$target != "scale"){
+                            list(limits = NULL, quantile = FALSE)
+                          } else if (selection$units == "quantile"){
+                            list(limits = selection$limits / 100, quantile = TRUE)
+                          } else {
+                            list(limits = selection$limits, quantile = FALSE)
+                          }
+                        }),
+
+                      # ... and per-cell cutoffs applied before binning or
+                      # plotting (numbers, or "q<percent>" strings)
+                      `data_cutoffs` =
+                        reactive(
+                          label =
+                            glue("{plot_label}: per-cell cutoff arguments"),
+                          {
+                          selection <- plot_selections$color_limits()
+
+                          if (is.null(selection) || selection$target != "data"){
+                            NULL
+                          } else if (selection$units == "quantile"){
+                            paste0("q", selection$limits)
+                          } else {
+                            selection$limits
+                          }
+                        }),
+
+                      # Super title checkbox (feature plots with more than one
                      # split_by category)
 
                      # Include legend
@@ -2818,9 +3305,174 @@ plot_module_server <- function(id,
                              v == 7 ~ 17,
                              v == 8 ~ 21,
                              v == 9 ~ 26
-                           )
-                         })
-                     )
+                            )
+                          }),
+                      
+                      # Hexbin-specific parameters (inputs drawn by
+                      # plot_module_ui when hexbin_options = TRUE)
+                      `hexbin_nbins` =
+                        reactive(
+                          label = 
+                            glue("{plot_label}: process hexbin_nbins selection"),
+                          {
+                            if (plot_type %in% 
+                                c("hexbin_density", "hexbin_feature")){
+                              if (!is.null(input$hexbin_nbins)){
+                                input$hexbin_nbins
+                              } else {
+                                80  # Default value
+                              }
+                            } else NULL
+                          }),
+                      
+                      `hexbin_scale_density` =
+                        reactive(
+                          label = 
+                            glue(
+                              "{plot_label}: process hexbin_scale_density selection"
+                            ),
+                          {
+                            if (plot_type == "hexbin_density"){
+                              isTruthy(input$hexbin_scale_density)
+                            } else NULL
+                          }),
+                      
+                      `hexbin_action` =
+                        reactive(
+                          label = 
+                            glue("{plot_label}: process hexbin_action selection"),
+                          {
+                            if (plot_type == "hexbin_feature"){
+                              if (!is.null(input$hexbin_action)){
+                                input$hexbin_action
+                              } else {
+                                "mean"  # Default value
+                              }
+                            } else NULL
+                          })
+                      )
+
+                 # 6b. Scale limits --------------------------------------------
+                 # The slider bounds are derived from the finished plot: the
+                 # values mapped to the color scale (the "plotted_range"
+                 # attribute set by the plot functions) or, in "data values"
+                 # mode, the underlying per-cell values before cutoffs
+                 # ("cell_range"). In quantile units the slider is fixed at
+                 # 0-100 percent. The untouched slider is equivalent to not
+                 # setting limits.
+                 color_limits_bounds <- reactiveVal(NULL)
+
+                 if (
+                   plot_type %in%
+                     c("feature", "hexbin_density", "hexbin_feature", "dot")
+                 ){
+                   observe(
+                     label = glue("{plot_label}: update color limits slider"),
+                     {
+                       req(plot_switch())
+                       req(isTruthy(input$use_color_limits))
+
+                       if (identical(input$color_limits_units, "quantile")){
+                         # Percentiles: fixed range, independent of the plot
+                         bounds <- c(0, 100)
+                         step <- 0.5
+                       } else {
+                         source_attr <-
+                           if (
+                             plot_type %in% c("feature", "hexbin_feature") &&
+                             identical(input$color_limits_target, "data")
+                           ){
+                             "cell_range"
+                           } else {
+                             "plotted_range"
+                           }
+                         plotted <- attr(plot(), source_attr)
+                         req(plotted, all(is.finite(plotted)))
+
+                         # Diverging palettes: center the bounds on zero when
+                         # the symmetric option is on
+                         if (
+                           isTruthy(input$custom_diverging_colors) &&
+                           isTRUE(input$color_limits_symmetric)
+                         ){
+                           plotted <- c(-1, 1) * max(abs(plotted))
+                         }
+
+                         # Round outward so the bounds always cover the data
+                         bounds <-
+                           c(floor(plotted[1] * 100) / 100,
+                             ceiling(plotted[2] * 100) / 100)
+                         req(bounds[1] < bounds[2])
+                         step <- signif(diff(bounds) / 200, 2)
+                       }
+
+                       # Only touch the slider when the bounds change, so
+                       # user-chosen handles survive unrelated re-renders
+                       if (!identical(bounds, isolate(color_limits_bounds()))){
+                         color_limits_bounds(bounds)
+
+                         updateSliderInput(
+                           session,
+                           inputId = "color_limits",
+                           min = bounds[1],
+                           max = bounds[2],
+                           value = bounds,
+                           step = step
+                         )
+                       }
+                     })
+
+                   # Reset link: return the handles to the full plotted range
+                   observeEvent(
+                     input$color_limits_reset,
+                     label = glue("{plot_label}: reset color limits"),
+                     {
+                       req(color_limits_bounds())
+
+                       updateSliderInput(
+                         session,
+                         inputId = "color_limits",
+                         value = color_limits_bounds()
+                       )
+                     })
+
+                   # Symmetric option: mirror the handles about zero. The
+                   # last symmetric value is kept so that moving one handle
+                   # mirrors that handle (the range can be narrowed as well
+                   # as widened); see symmetric_color_limits().
+                   color_limits_mirrored <- reactiveVal(NULL)
+
+                   observeEvent(
+                     list(input$color_limits_symmetric, input$color_limits_units),
+                     label = glue("{plot_label}: forget mirrored color limits"),
+                     {
+                       color_limits_mirrored(NULL)
+                     })
+
+                   observeEvent(
+                     input$color_limits,
+                     label = glue("{plot_label}: mirror color limits"),
+                     {
+                       req(isTruthy(input$custom_diverging_colors))
+                       req(isTRUE(input$color_limits_symmetric))
+                       req(!identical(input$color_limits_units, "quantile"))
+
+                       value <- input$color_limits
+                       req(is.numeric(value), length(value) == 2)
+
+                       mirrored <-
+                         symmetric_color_limits(value, color_limits_mirrored())
+                       color_limits_mirrored(mirrored)
+
+                       if (!isTRUE(all.equal(value, mirrored))){
+                         updateSliderInput(
+                           session,
+                           inputId = "color_limits",
+                           value = mirrored
+                         )
+                       }
+                     })
+                 }
 
                  # 7. Determine if a subset has been used  ---------------------
                  # This variable will be a boolean used in downstream
@@ -2960,7 +3612,7 @@ plot_module_server <- function(id,
                                )
                              } else NULL # No slider when conditions not
                            }
-                       })
+                        })
                  } else if (plot_type == "violin"){
                    # Violin plots: appears when multiple features are entered
                    ncol_slider <-
@@ -2999,6 +3651,95 @@ plot_module_server <- function(id,
                              value = ncol_settings[3]
                              )
                          } else NULL
+                       })
+                 } else if (plot_type == "hexbin_density"){
+                   # Hexbin density plots: appears when split_by != "none"
+                   ncol_slider <-
+                     eventReactive(
+                       c(plot_selections$split_by(),
+                         object(),
+                         plot_switch()
+                         ),
+                       label = glue("{plot_label}: Make ncol Slider"),
+                       ignoreNULL = TRUE,
+                       {
+                         # Do not render when split_by is "none"
+                         if (plot_selections$split_by() == "none"){
+                           NULL
+                         } else {
+                           # Define min, max, and default values for slider
+                           ncol_settings <-
+                             ncol_settings(
+                               object = object(),
+                               rule = "split_by",
+                               split_by = plot_selections$split_by()
+                             )
+
+                           # Create slider input
+                           sliderInput(
+                             inputId = ns("ncol"),
+                             label = "Number of Columns: ",
+                             min = ncol_settings[1],
+                             max = ncol_settings[2],
+                             step = 1,
+                             ticks = FALSE,
+                             value = ncol_settings[3]
+                           )
+                         }
+                       })
+                 } else if (plot_type == "hexbin_feature"){
+                   # Hexbin feature plots: appears when split_by is defined OR
+                   # multiple features are entered
+                   ncol_slider <-
+                     eventReactive(
+                       c(plot_selections$split_by(),
+                         features_entered(),
+                         object(),
+                         plot_switch()
+                         ),
+                       label = glue("{plot_label}: Make ncol Slider"),
+                       ignoreNULL = TRUE,
+                       {
+                         # Determine number of panels based on split_by and features
+                         has_split <- !is.null(plot_selections$split_by()) && 
+                                      plot_selections$split_by() != "none"
+                         n_features <- length(features_entered())
+                         
+                         # Show slider when multiple features OR split_by is active
+                         if (n_features > 1 || has_split) {
+                           # Determine rule based on whether split_by is active
+                           if (has_split && n_features == 1) {
+                             # Single feature with split_by: use split_by rule
+                             ncol_settings <-
+                               ncol_settings(
+                                 object = object(),
+                                 rule = "split_by",
+                                 split_by = plot_selections$split_by()
+                               )
+                           } else {
+                             # Multiple features (with or without split_by): 
+                             # use features rule
+                             ncol_settings <-
+                               ncol_settings(
+                                 object = object(),
+                                 rule = "features",
+                                 features_entered = features_entered()
+                               )
+                           }
+
+                           # Create slider input
+                           sliderInput(
+                             inputId = ns("ncol"),
+                             label = "Number of Columns: ",
+                             min = ncol_settings[1],
+                             max = ncol_settings[2],
+                             step = 1,
+                             ticks = FALSE,
+                             value = ncol_settings[3]
+                           )
+                         } else {
+                           NULL
+                         }
                        })
                  }
 
@@ -3751,7 +4492,8 @@ plot_module_server <- function(id,
                  # or the separate features text entry depending on whether
                  # separate features are used in the module and whether the
                  # checkbox to use them is selected.
-                 if (plot_type %in% c("feature", "violin", "dot")){
+                 if (plot_type %in% c("feature", "violin", "dot", 
+                                      "hexbin_feature")){
                    features <-
                      reactive(
                        label = glue("{plot_label}: Features for Plot"),
@@ -3929,24 +4671,47 @@ plot_module_server <- function(id,
                              lim_orig()[[plot_selections$reduction()]]$xlim_orig,
                            ylim_orig =
                              lim_orig()[[plot_selections$reduction()]]$ylim_orig,
-                           palette =
-                             if (plot_selections$color_by_feature() == FALSE){
-                               # Use custom colors if defined; if not, use the
-                               # palette if defined; if not, pass NULL to use
-                               # Seurat defaults.
-                               if (
-                                 isTruthy(plot_selections$min_color()) &
-                                 isTruthy(plot_selections$max_color())
-                               ){
-                                 c(plot_selections$min_color(),
-                                   plot_selections$max_color())
-                               } else if (isTruthy(palette())) {
-                                 palette$continuous_palette()
-                               } else NULL
-                             } else {
-                               palette$categorical_palette()
-                             },
-                           # Palette for blended feature plots
+                            palette =
+                              if (plot_selections$color_by_feature() == FALSE){
+                                # Use custom colors if defined; if not, use the
+                                # palette if defined; if not, pass NULL to use
+                                # Seurat defaults.
+                                if (
+                                  isTruthy(plot_selections$min_color()) &
+                                  isTruthy(plot_selections$max_color())
+                                ){
+                                  c(plot_selections$min_color(),
+                                    plot_selections$max_color())
+                                } else if (is.list(palette)) {
+                                  palette$continuous_palette()
+                                } else NULL
+                              } else {
+                                if (is.list(palette)) {
+                                  palette$categorical_palette()
+                                } else if (is.function(palette)) {
+                                  palette()
+                                } else NULL
+                              },
+                            # Diverging palette (3 colors with midpoint at 0)
+                            diverging_palette =
+                              if (plot_selections$color_by_feature() == FALSE){
+                                # Use custom diverging colors if defined
+                                if (
+                                  isTruthy(plot_selections$low_color()) &
+                                  isTruthy(plot_selections$mid_color()) &
+                                  isTruthy(plot_selections$high_color())
+                                ){
+                                  c(plot_selections$low_color(),
+                                    plot_selections$mid_color(),
+                                    plot_selections$high_color())
+                                } else NULL
+                              } else NULL,
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile,
+                            data_cutoffs = plot_selections$data_cutoffs(),
+                            # Palette for blended feature plots
                            blend_palette =
                              # Use value from blend palette, unless custom
                              if (plot_selections$blend_palette() != "custom"){
@@ -3970,10 +4735,126 @@ plot_module_server <- function(id,
                              if (input$title_settings == "none") FALSE else TRUE,
                            # From 3.5.
                            custom_titles = variable_length_custom_title()
-                           )
-                         })
+                            )
+                          })
 
-                 } else if (plot_type == "violin") {
+                  } else if (plot_type == "hexbin_density") {
+                    ### 11.2.3. Hexbin Density Plot ####
+                    plot <-
+                      reactive(
+                        label = glue("{plot_label}: Create Plot"),
+                        {
+                          # Only runs when the plot is enabled
+                          req(plot_switch())
+                          
+                          # Create hexbin density plot using shiny_hexbin_density()
+                          shiny_hexbin_density(
+                            object = object(),
+                            nbins = plot_selections$hexbin_nbins(),
+                            reduction = plot_selections$reduction(),
+                            split_by = plot_selections$split_by(),
+                            scale_density = plot_selections$hexbin_scale_density(),
+                            ncol = plot_selections$ncol(),
+                            scales = "fixed",
+                            show_title = 
+                              if (input$title_settings == "none") FALSE else TRUE,
+                            plot_title = plot_title(),
+                            show_legend = plot_selections$legend(),
+                            is_subset = is_subset(),
+                            original_limits = plot_selections$limits(),
+                            # Original x- and y- axis limits: use the values for
+                            # the currently selected reduction
+                            xlim_orig = 
+                              lim_orig()[[plot_selections$reduction()]]$xlim_orig,
+                            ylim_orig = 
+                              lim_orig()[[plot_selections$reduction()]]$ylim_orig,
+                            palette = palette(),
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile
+                          )
+                        })
+                  
+                  } else if (plot_type == "hexbin_feature") {
+                    ### 11.2.4. Hexbin Feature Plot ####
+                    plot <-
+                      reactive(
+                        label = glue("{plot_label}: Create Plot"),
+                        {
+                          # Only runs when the plot is enabled
+                          req(plot_switch())
+                          
+                          # Also, only runs if all features exist in the current
+                          # object. This avoids errors observed when switching
+                          # between objects (#115)
+                          valid_keyed_features <-
+                            valid_features() %>% 
+                            unlist() %>% 
+                            unname()
+                          
+                          req(
+                            all(features() %in% valid_keyed_features)
+                          )
+                          
+                          # Create hexbin feature plot using shiny_hexbin_feature()
+                          shiny_hexbin_feature(
+                            object = object(),
+                            features_entered = features(),
+                            nbins = plot_selections$hexbin_nbins(),
+                            action = plot_selections$hexbin_action(),
+                            reduction = plot_selections$reduction(),
+                            split_by = plot_selections$split_by(),
+                            ncol = plot_selections$ncol(),
+                            scales = "fixed",
+                            show_title = 
+                              if (input$title_settings == "none") FALSE else TRUE,
+                            custom_titles = variable_length_custom_title(),
+                            show_legend = plot_selections$legend(),
+                            is_subset = is_subset(),
+                            original_limits = plot_selections$limits(),
+                            # Original x- and y- axis limits: use the values for
+                            # the currently selected reduction
+                            xlim_orig = 
+                              lim_orig()[[plot_selections$reduction()]]$xlim_orig,
+                            ylim_orig = 
+                              lim_orig()[[plot_selections$reduction()]]$ylim_orig,
+                            # Assay and layer will use defaults (NULL) for now
+                            assay = NULL,
+                            layer = NULL,
+                            # Use custom colors if defined; otherwise the
+                            # selected continuous palette (NULL = default)
+                            palette =
+                              if (
+                                isTruthy(plot_selections$min_color()) &
+                                isTruthy(plot_selections$max_color())
+                              ){
+                                c(plot_selections$min_color(),
+                                  plot_selections$max_color())
+                              } else {
+                                palette()
+                              },
+                            # Diverging palette (3 colors with midpoint at 0)
+                            diverging_palette = 
+                              # Use custom diverging colors if defined
+                              if (
+                                isTruthy(plot_selections$low_color()) &
+                                isTruthy(plot_selections$mid_color()) &
+                                isTruthy(plot_selections$high_color())
+                              ){
+                                c(plot_selections$low_color(),
+                                  plot_selections$mid_color(),
+                                  plot_selections$high_color())
+                              } else NULL,
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile,
+                            data_cutoffs = plot_selections$data_cutoffs()
+                          )
+                        })
+
+                  } else if (plot_type == "violin") {
                    ### 11.2.3. Violin Plot ####
                    plot <-
                      reactive(
@@ -4060,22 +4941,51 @@ plot_module_server <- function(id,
                            all(features() %in% valid_keyed_features)
                            )
 
-                         shiny_dot(
-                           object = object(),
-                           # Features argument: uses value returned by reactive
-                           features = features(),
-                           # use_separate_features =
-                           #   reactive({input$use_separate_features}),
-                           # separate_features =
-                           #   reactive({input$separate_features}),
-                           group_by = plot_selections$group_by(),
-                           show_legend = plot_selections$legend(),
-                           palette = palette(),
-                           sort_groups = plot_selections$sort_groups(),
-                           custom_factor_levels =
-                             plot_selections$custom_refactoring(),
-                           rename_feature_labels = dot_x_labels()
-                           )
+                          shiny_dot(
+                            object = object(),
+                            # Features argument: uses value returned by reactive
+                            features = features(),
+                            # use_separate_features =
+                            #   reactive({input$use_separate_features}),
+                            # separate_features =
+                            #   reactive({input$separate_features}),
+                            group_by = plot_selections$group_by(),
+                            show_legend = plot_selections$legend(),
+                            # Use custom colors if defined; otherwise the
+                            # selected continuous palette (NULL = default)
+                            palette = 
+                              if (
+                                isTruthy(plot_selections$min_color()) &
+                                isTruthy(plot_selections$max_color())
+                              ){
+                                c(plot_selections$min_color(),
+                                  plot_selections$max_color())
+                              } else if (isTruthy(palette()) && is.list(palette())){
+                                palette()$continuous_palette()
+                              } else if (isTruthy(palette())) {
+                                palette()
+                              } else NULL,
+                            # Diverging palette (3 colors with midpoint at 0)
+                            diverging_palette = 
+                              # Use custom diverging colors if defined
+                              if (
+                                isTruthy(plot_selections$low_color()) &
+                                isTruthy(plot_selections$mid_color()) &
+                                isTruthy(plot_selections$high_color())
+                              ){
+                                c(plot_selections$low_color(),
+                                  plot_selections$mid_color(),
+                                  plot_selections$high_color())
+                              } else NULL,
+                            color_limits =
+                              plot_selections$color_scale_limits()$limits,
+                            color_limits_quantile =
+                              plot_selections$color_scale_limits()$quantile,
+                            sort_groups = plot_selections$sort_groups(),
+                            custom_factor_levels =
+                              plot_selections$custom_refactoring(),
+                            rename_feature_labels = dot_x_labels()
+                            )
                          })
                  } else if (plot_type == "scatter"){
                    ### 11.2.5. Scatterplot ####
@@ -4409,20 +5319,21 @@ plot_module_server <- function(id,
                  }
 
                  # 14. Download handler ----------------------------------------
-                 # Note: SVG export uses ggsave(device = "svg"), which routes
-                 # through the svglite package when it is installed. svglite is
-                 # listed in Imports for this reason, even though it is never
-                 # called directly.
+                 # Selected file type ("png" or "svg"), defaulting to png
+                 # until the input exists
+                 download_file_type <- function(){
+                   if (isTruthy(input$file_type)) input$file_type else "png"
+                 }
+
                  output$confirm_download <-
                    downloadHandler(
                      # Filename: takes the label and replaces
                      # spaces with underscores
+                     # Filename: takes the label and replaces spaces with
+                     # underscores. The file type input lives in a dropdown
+                     # that may not be initialized yet, so default to png.
                      filename = function(){
-                       if (input$file_type == "png"){
-                         glue("{sub(' ','_',plot_label)}.png")
-                       } else if (input$file_type == "svg"){
-                         glue("{sub(' ','_',plot_label)}.svg")
-                         }
+                       glue("{sub(' ','_',plot_label)}.{download_file_type()}")
                        },
                      content = function(file){
                        # Conditional: manual dimensions are specified
@@ -4436,7 +5347,7 @@ plot_module_server <- function(id,
                            file,
                            plot = plot(),
                            # Either 'png' or 'svg'
-                           device = input$file_type,
+                           device = download_file_type(),
                            width = manual_dim$width(),
                            height = manual_dim$height(),
                            # Set dpi to selected value so proportions of 
@@ -4456,20 +5367,18 @@ plot_module_server <- function(id,
                            width = 9,
                            height = 6,
                            # Either 'png' or 'svg'
-                           device = input$file_type,
+                           device = download_file_type(),
                            # Set background color to white (background is
                            # transparent on some plots)
                            bg ="#FFFFFF"
                          )
                        }
-                     },#End content function
-                     contentType =
-                       # contentType: uses MIME types
-                       if (input$file_type == "png"){
-                         "image/png"
-                         } else if (input$file_type == "svg"){
-                           "image/svg+xml"
-                           }
+                     }#End content function
+                     # contentType is left unset: Shiny infers it from the
+                     # filename extension at download time. An expression here
+                     # is evaluated when the download is registered, which
+                     # since the output is no longer suspended happens at
+                     # startup, before input$file_type exists.
                    ) #End downloadHandler function
 
                  # The download control lives inside a collapsed

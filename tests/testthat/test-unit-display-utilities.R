@@ -36,6 +36,36 @@ test_that("continuous palettes preserve all gradient stops regardless of n", {
   )
 })
 
+test_that("reversed continuous palettes interleave with the originals", {
+  palettes <- list(
+    default = c("lightgrey", "blue"),
+    inferno = c("#000004", "#BB3754", "#FCFFA4"),
+    mako = c("#0B0405", "#357BA2", "#DEF5E5")
+  )
+  reversed <- cellDIVER:::reverse_continuous_palettes(palettes)
+
+  expect_identical(
+    names(reversed),
+    c("default", "inferno", "inferno (reversed)", "mako", "mako (reversed)")
+  )
+  expect_false("default (reversed)" %in% names(reversed))
+  for (name in c("inferno", "mako")) {
+    expect_identical(reversed[[name]], palettes[[name]])
+    expect_identical(
+      reversed[[paste0(name, " (reversed)")]], rev(palettes[[name]])
+    )
+  }
+
+  preview <- cellDIVER:::palette_html(
+    reversed[["inferno (reversed)"]], type = "continuous", n = 1,
+    output_html = TRUE
+  )
+  expect_match(
+    preview, "linear-gradient(to right, #FCFFA4, #BB3754, #000004)",
+    fixed = TRUE
+  )
+})
+
 test_that("plot column defaults change at the intended panel boundaries", {
   feature_counts <- c(1, 3, 4, 9, 11, 12, 20)
   expected_defaults <- c(1, 3, 2, 3, 3, 4, 4)
