@@ -1992,7 +1992,10 @@ run_cellDIVER <-
       is_anndata <-
         reactive({
           req(object())
-          inherits(object(), c("AnnDataR6", "anndata.AnnData"))
+          inherits(
+            object(),
+            c("AnnDataR6", "anndata.AnnData", "anndata._core.anndata.AnnData")
+          )
         })
 
       ### 2.13.4. Object is a MuData object (reticulate) ####
