@@ -79,6 +79,12 @@
 
 ## Bug fixes
 
+* The subset filter dialog no longer saves a categorical filter with no
+  values. The confirm button was disabled client-side while the selection was
+  empty, but a late refresh of the value choices could empty it after the
+  button was enabled, and the resulting filter matched no cells. The server
+  now keeps the dialog open and asks for at least one value.
+
 * The multi-contrast edgeR call now passes `lfc_format = "log2"`, assays
   without a raw counts layer are skipped (with a notice) instead of being sent
   to edgeR, and a single failing assay shows scDE's own message instead of a
