@@ -138,6 +138,39 @@ browser_open_tab <- function(app, tab, anchor) {
   invisible(app)
 }
 
+#' Choose the differential expression method and wait for the server to apply it
+#'
+#' The method picker's choices are re-sent by the server once the object's
+#' metadata is known, with the selection the server last saw. On a slow
+#' runner that update can arrive after the test has already chosen edgeR
+#' and silently put the picker back to Wilcoxon. Select, let Shiny settle,
+#' confirm the value, retry if it was overwritten, and finally wait for the
+#' edgeR options panel, which the server shows only once it has applied
+#' the choice.
+#'
+#' @param app Running browser driver.
+#' @param value `"edger"` or `"wilcoxon"`.
+#' @return The driver, invisibly.
+browser_select_method <- function(app, value) {
+  input <- "object_dge-test_selections-method"
+  for (attempt in 1:3) {
+    browser_set(app, input, value)
+    app$wait_for_idle(duration = 1000)
+    if (identical(app$get_value(input = input), value)) break
+  }
+  testthat::expect_identical(app$get_value(input = input), value)
+  if (identical(value, "edger")) {
+    app$wait_for_js(
+      paste0(
+        "getComputedStyle(document.getElementById(",
+        "'object_dge-test_selections-edger_options')).display !== 'none'"
+      ),
+      timeout = 30000
+    )
+  }
+  invisible(app)
+}
+
 #' Set a dynamically named bound browser input
 #'
 #' Fails when the target is absent: `set_inputs()` only logs "Unable to find

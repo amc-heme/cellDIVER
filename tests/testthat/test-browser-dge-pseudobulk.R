@@ -14,7 +14,7 @@ test_that("browser edgeR run between the two batches matches scDE", {
   app <- pseudobulk_app("dge-pseudobulk-batches")
   browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_set(app, "object_dge-test_selections-mode", "mode_dge")
-  browser_set(app, "object_dge-test_selections-method", "edger")
+  browser_select_method(app, "edger")
   # the configured replicate column is preselected
   app$wait_for_js(
     "document.getElementById('object_dge-test_selections-edger_sample_col').value === 'sample'",
@@ -51,7 +51,7 @@ test_that("browser paired contrast reports its design and a sparse contrast fall
   app <- pseudobulk_app("dge-pseudobulk-paired")
   browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
   browser_set(app, "object_dge-test_selections-mode", "mode_dge")
-  browser_set(app, "object_dge-test_selections-method", "edger")
+  browser_select_method(app, "edger")
   browser_set(app, "object_dge-test_selections-group_by", "condensed_cell_type")
   browser_set(app, "object_dge-test_selections-group_1", "B Cells")
   browser_set(app, "object_dge-test_selections-group_2", "NK Cells")
@@ -100,7 +100,7 @@ test_that("browser paired contrast reports its design and a sparse contrast fall
 test_that("browser marker identification with edgeR tests every cell type vs the rest", {
   app <- pseudobulk_app("dge-pseudobulk-markers")
   browser_open_tab(app, "dge", "object_dge-test_selections-group_by")
-  browser_set(app, "object_dge-test_selections-method", "edger")
+  browser_select_method(app, "edger")
   browser_set(app, "object_dge-test_selections-group_by", "condensed_cell_type")
   browser_set(app, "object_dge-test_selections-edger_min_cells", 2)
   object <- browser_pseudobulk_object()
