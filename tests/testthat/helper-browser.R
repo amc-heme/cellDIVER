@@ -177,20 +177,58 @@ browser_select_method <- function(app, value) {
 #' input binding" and carries on, which turns a missing element into a
 #' misleading timeout much later in the test.
 #'
+#' Also confirms the value the server holds afterwards. Many pickers are
+#' refreshed by the server when another input changes (the group pickers after
+#' `group_by`, the filter values after the filter variable, the method picker
+#' after the object loads), and that refresh selects a default. On a slow
+#' runner it can arrive after the test's own value and silently overwrite it,
+#' which then surfaces as a wrong result or a timeout much later. Let Shiny
+#' settle, read the value back, and set it again if it was overwritten.
+#'
 #' @param app Running browser driver.
 #' @param input Fully namespaced input ID.
 #' @param value Value to send through the real input binding.
+#' @param verify Confirm the value from the server and retry. `FALSE` for
+#'   one-shot menus the server resets on purpose after reading them (the
+#'   subset filter type picker).
 #' @return The driver, invisibly, after reactive updates settle.
-browser_set <- function(app, input, value) {
+browser_set <- function(app, input, value, verify = TRUE) {
   testthat::expect_true(
     app$get_js(sprintf("document.getElementById('%s') !== null", input)),
     label = paste0("input '", input, "' exists in the DOM")
   )
-  do.call(app$set_inputs, c(
-    stats::setNames(list(value), input), list(wait_ = FALSE)
-  ))
-  app$wait_for_idle()
+  for (attempt in 1:3) {
+    do.call(app$set_inputs, c(
+      stats::setNames(list(value), input), list(wait_ = FALSE)
+    ))
+    app$wait_for_idle(duration = 500)
+    if (!verify || browser_value_matches(app$get_value(input = input), value)) break
+  }
+  if (!verify) return(invisible(app))
+  testthat::expect_true(
+    browser_value_matches(app$get_value(input = input), value),
+    label = paste0(
+      "input '", input, "' holds ", paste(format(value), collapse = ", "),
+      " after being set"
+    )
+  )
   invisible(app)
+}
+
+#' Compare a value read back from Shiny with the value that was set
+#'
+#' Read-back values come as character vectors (or lists for multi-selects)
+#' and in widget order, so compare as unordered character sets; numbers and
+#' logicals are compared through their character form.
+#'
+#' @param actual Value from `app$get_value(input = )`.
+#' @param expected Value passed to `browser_set()`.
+#' @return `TRUE` when both describe the same selection.
+browser_value_matches <- function(actual, expected) {
+  actual <- as.character(unlist(actual))
+  expected <- as.character(unlist(expected))
+  if (is.null(actual) || !length(actual)) return(!length(expected))
+  setequal(actual, expected)
 }
 
 #' Choose a value in a server-side selectize input
@@ -213,7 +251,7 @@ browser_set <- function(app, input, value) {
 browser_set_feature <- function(app, input, values) {
   values <- as.character(values)
   id <- jsonlite::toJSON(input, auto_unbox = TRUE)
-  app$run_js(sprintf(
+  script <- sprintf(
     paste0(
       "(() => { const element = document.getElementById(%s);",
       " const control = element && element.selectize;",
@@ -224,8 +262,14 @@ browser_set_feature <- function(app, input, values) {
       " control.setValue(values, false); })()"
     ),
     id, id, jsonlite::toJSON(values)
-  ))
-  app$wait_for_idle()
+  )
+  # A late `updateSelectizeInput()` from the server can clear the selection
+  # (see browser_set()): confirm the value and select again if needed.
+  for (attempt in 1:3) {
+    app$run_js(script)
+    app$wait_for_idle(duration = 500)
+    if (browser_value_matches(app$get_value(input = input), values)) break
+  }
   # Fail here rather than at a downstream timeout if the value did not stick.
   testthat::expect_setequal(app$get_value(input = input), values)
   invisible(app)
@@ -284,7 +328,8 @@ browser_expand_panel <- function(app, panel) {
 browser_filter <- function(app, namespace, variable, values, panel = NULL) {
   if (!is.null(panel)) browser_expand_panel(app, panel)
   browser_click(app, paste0(namespace, "-add_filter"))
-  browser_set(app, paste0(namespace, "-filter_type"), "categorical")
+  # the type picker is reset to blank by the server once it has read it
+  browser_set(app, paste0(namespace, "-filter_type"), "categorical", verify = FALSE)
   browser_set(app, paste0(namespace, "-categorical_var"), variable)
   browser_set(app, paste0(namespace, "-categorical_values"), values)
   browser_click(app, paste0(namespace, "-filter_confirm"))
