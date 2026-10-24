@@ -98,7 +98,7 @@ Imports:
     waiter (>= 0.2.5),
     yaml
 Remotes: 
-    github::amc-heme/SCUBA@feature/pseudobulk-scuba,
+    github::amc-heme/SCUBA@feature/julia-engine,
     github::amc-heme/scDE@feature/pseudobulk-scuba,
     github::amc-heme/presto,
     github::amc-heme/hextant@feature/pseudobulk-scuba
