@@ -58,15 +58,15 @@ jobs:
             any::JuliaCall
             local::.
 
-      # The pseudobulk path needs SCUBA.jl's feature/pseudobulk-scuba branch
-      # (ScubaR.pseudobulk); the registered release does not have it yet.
+      # The pseudobulk path needs SCUBA.jl's `aggregate` (ScubaR.pseudobulk),
+      # on main since amc-heme/SCUBA.jl#3 but not in a registered release yet.
       # Switch to the registered package (drop this step and SCUBA_JL_PATH)
-      # once that branch is released.
+      # once a release carries it.
       - name: Check out SCUBA.jl
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: amc-heme/SCUBA.jl
-          ref: feature/pseudobulk-scuba
+          ref: main
           path: scuba-jl
           persist-credentials: false
 
