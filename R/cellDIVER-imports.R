@@ -17,7 +17,12 @@
 #' installing cellDIVER pulls the fork, which updates `GetAssayData(slot =)`
 #' to `layer =` for Seurat 5 objects.
 #'
+#' edgeR is likewise called by scDE (`run_dge(test_use = "edgeR")`), where it
+#' is only suggested. cellDIVER imports one function so that installing the
+#' app guarantees the pseudobulk method is available.
+#'
 #' @importFrom colourpicker colourInput
+#' @importFrom edgeR glmQLFTest
 #' @importFrom dplyr "%>%" any_of arrange case_when desc group_by left_join n
 #' @importFrom dplyr pull summarise
 #' @importFrom DT datatable DTOutput formatSignif renderDT
@@ -32,6 +37,7 @@
 #' @importFrom patchwork plot_annotation plot_layout
 #' @importFrom presto wilcoxauc
 #' @importFrom rintrojs introjsUI
+#' @importFrom rlang abort
 #' @importFrom rlog log_error log_info log_warn
 #' @importFrom shiny a actionButton actionLink addResourcePath checkboxGroupInput
 #' @importFrom shiny checkboxInput
@@ -43,6 +49,7 @@
 #' @importFrom shiny is.reactive isolate isTruthy mainPanel modalButton
 #' @importFrom shiny modalDialog moduleServer navbarPage need NS observe
 #' @importFrom shiny observeEvent onFlush onSessionEnded outputOptions
+#' @importFrom shiny debounce
 #' @importFrom shiny plotOutput reactive reactiveVal reactiveValues
 #' @importFrom shiny removeModal removeUI renderImage renderPlot renderPrint
 #' @importFrom shiny renderText renderUI req restoreInput selectInput

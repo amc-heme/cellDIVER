@@ -161,6 +161,14 @@ dge_tab_ui <- function(id,
               label = "Download Table",
               icon = icon("table")
               )
+            ),
+          # Pseudobulk sample table (edgeR runs only)
+          hidden(
+            downloadButton(
+              outputId = ns("download_pseudobulk"),
+              label = "Download Pseudobulk Samples",
+              icon = icon("vial")
+              )
             )
           ) # End dge-sidebar div
         ), # End sidebarPanel (1.3.1)
@@ -338,7 +346,10 @@ dge_tab_server <- function(id,
           assay_config = assay_config,
           sample_id_colname = sample_id_colname,
           meta_choices = meta_choices,
-          valid_features = valid_features
+          valid_features = valid_features,
+          # Reactive wrapper: subset_selections is created below, and the
+          # reactive is only evaluated afterwards
+          subset_filters = reactive({ subset_selections$selections() })
           )
       
       ## 1.2 Chosen group by category 
@@ -707,7 +718,7 @@ dge_tab_server <- function(id,
                         )
                       
                       # Use case_when to create metacluster 
-                      meta_table$metacluster <- 
+                      meta_table[[dge_metacluster_column]] <- 
                         case_when(
                           # If the cell has a value for the group by category, 
                           # assign a group name to it based on the members of the
@@ -775,7 +786,7 @@ dge_tab_server <- function(id,
                           )
                       
                       # Create metadata column based on simple threshold
-                      meta_table$simple_expr_threshold <-
+                      meta_table[[dge_threshold_column]] <-
                         case_when(
                           # Avoiding "+" and "-" declarations for now
                           # "High" when expresssion value is greater than
@@ -963,39 +974,65 @@ dge_tab_server <- function(id,
 
                   edgeR_selected <-
                     identical(test_selections()$dge_method, "edger")
+                  marker_mode <-
+                    identical(test_selections()$dge_mode, "mode_marker")
+                  contrast_mode <- test_selections()$edger_contrast_mode
+                  if (is.null(contrast_mode)) contrast_mode <- "single"
+                  # Marker identification with edgeR is a one-vs-rest
+                  # multi-contrast run over every group of the subset
                   edgeR_multicontrast <-
                     edgeR_selected &&
-                    !identical(
-                      test_selections()$edger_contrast_mode,
-                      "single"
-                    )
+                    (marker_mode || !identical(contrast_mode, "single"))
 
                   if (edgeR_selected &&
                       isTruthy(test_selections()$edger_sample_error)){
                     stop(test_selections()$edger_sample_error)
                   }
+
+                  # edgeR sums raw counts, so only assays with a counts layer
+                  # can be tested; the others are reported and skipped
+                  if (edgeR_selected){
+                    eligible_assays <- dge_counts_assays(subset(), selected_assays)
+                    skipped_assays <- setdiff(selected_assays, eligible_assays)
+                    if (!length(eligible_assays)){
+                      stop(
+                        "None of the selected assays (",
+                        paste(selected_assays, collapse = ", "),
+                        ") has a raw counts layer, which edgeR needs."
+                      )
+                    }
+                    if (length(skipped_assays)){
+                      showNotification(
+                        paste0(
+                          "edgeR skipped assays without raw counts: ",
+                          paste(skipped_assays, collapse = ", "), "."
+                        ),
+                        type = "warning",
+                        duration = 10
+                      )
+                      selected_assays <- eligible_assays
+                    }
+                  }
                   
                   # Run DGE for each selected assay
                   dge_results_list <- list()
-                  failed_assays <- character()
+                  # The condition object of each assay that failed, so a
+                  # single failure can be re-raised with scDE's own message
+                  failed_conditions <- list()
                   edger_assay_details <- list()
                   
                   # Determine group_by variable (shared across all assays)
                   group_by_variable <- 
                     if (metaclusters_present()){
-                      "metacluster"
+                      dge_metacluster_column
                     } else if (thresholding_present()){
-                      "simple_expr_threshold"
+                      dge_threshold_column
                     } else {
                       group_by_category()
                     }
 
-                  edgeR_group_by <-
-                    if (metaclusters_present()){
-                      "metacluster"
-                    } else {
-                      group_by_category()
-                    }
+                  # Single edgeR contrast: the two groups, collapsed into
+                  # metacluster names when a picker holds several values
                   edgeR_group_1 <-
                     if (metaclusters_present()){
                       vector_to_text(test_selections()$group_1)
@@ -1029,9 +1066,10 @@ dge_tab_server <- function(id,
                             group_by = group_by_category(),
                             sample_by = test_selections()$edger_sample_col,
                             contrast_mode =
-                              test_selections()$edger_contrast_mode,
+                              if (marker_mode) "one_vs_rest" else contrast_mode,
                             groups =
-                              if (length(test_selections()$edger_groups)){
+                              if (!marker_mode &&
+                                  length(test_selections()$edger_groups)){
                                 test_selections()$edger_groups
                               } else {
                                 NULL
@@ -1042,12 +1080,13 @@ dge_tab_server <- function(id,
                             seurat_assay = assay_name,
                             min_cells = test_selections()$edger_min_cells,
                             positive_only = input$pos,
-                            remove_raw_pval = FALSE
+                            remove_raw_pval = FALSE,
+                            robust = FALSE
                           )
                         } else if (edgeR_selected){
                           scDE::run_dge(
                             object = subset(),
-                            group_by = edgeR_group_by,
+                            group_by = group_by_variable,
                             layer = "counts",
                             seurat_assay = assay_name,
                             test_use = "edgeR",
@@ -1057,7 +1096,8 @@ dge_tab_server <- function(id,
                             min_cells = test_selections()$edger_min_cells,
                             positive_only = input$pos,
                             lfc_format = "log2",
-                            remove_raw_pval = FALSE
+                            remove_raw_pval = FALSE,
+                            robust = FALSE
                           )
                         } else {
                           scDE::run_dge(
@@ -1101,42 +1141,47 @@ dge_tab_server <- function(id,
                           "DGE Tab: Failed for assay ", 
                           assay_name, 
                           ": ", 
-                          assay_error$message
+                          conditionMessage(assay_error)
                           )
                         )
                       
-                      # Add to list of failed assays
-                      failed_assays[assay_name] <<- assay_error$message
+                      # Keep the condition for the error handling below
+                      failed_conditions[[assay_name]] <<- assay_error
                     })
                   }
                   
                   # Handle results: check if any assays succeeded
                   if (length(dge_results_list) == 0) {
-                    stop(
+                    if (length(selected_assays) == 1L){
+                      # One assay: re-raise scDE's condition unchanged so the
+                      # user sees its actionable message
+                      stop(failed_conditions[[1]])
+                    }
+                    rlang::abort(
                       paste0(
                         "Differential expression analysis failed for all ",
-                        "selected assays. ",
-                        paste(
-                          names(failed_assays),
-                          failed_assays,
-                          sep = ": ",
-                          collapse = "; "
-                        )
-                        )
+                        "selected assays."
+                      ),
+                      class = "dge_all_assays_failed",
+                      assay_errors = vapply(
+                        failed_conditions, conditionMessage, character(1)
                       )
+                    )
                   } else {
                     # At least one assay succeeded - combine results
                     dge_table <- dplyr::bind_rows(dge_results_list)
                     
                     # Show warning notification if some assays failed
-                    if (length(failed_assays) > 0) {
+                    if (length(failed_conditions) > 0) {
                       showNotification(
                         paste0(
                           "Warning: Differential expression analysis ",
                           "failed for the following assays: ",
                           paste(
-                            names(failed_assays),
-                            failed_assays,
+                            names(failed_conditions),
+                            vapply(
+                              failed_conditions, conditionMessage, character(1)
+                            ),
                             sep = ": ",
                             collapse = "; "
                           ),
@@ -1156,7 +1201,7 @@ dge_tab_server <- function(id,
                         "Successful: ", 
                         length(dge_results_list), 
                         ", Failed: ", 
-                        length(failed_assays)
+                        length(failed_conditions)
                         )
                       )
                   }
@@ -1164,7 +1209,7 @@ dge_tab_server <- function(id,
                     if (edgeR_selected) "edger" else "wilcoxon"
                   attr(dge_table, "dge_contrast_mode") <-
                     if (edgeR_selected){
-                      test_selections()$edger_contrast_mode
+                      if (marker_mode) "one_vs_rest" else contrast_mode
                     } else {
                       "single"
                     }
@@ -1178,6 +1223,9 @@ dge_tab_server <- function(id,
                       attr(dge_table, "edger_assay_details") <-
                         edger_assay_details[names(dge_results_list)]
                     }
+                    # The design of the first assay's result, for the summary
+                    attr(dge_table, "edger_design_type") <-
+                      dge_results_design_type(edger_assay_details[[1]])
                   }
                   
                   # Compute on values of table (for use with automated tests)
@@ -1308,6 +1356,25 @@ dge_tab_server <- function(id,
                   dge_table %>% 
                   dplyr::filter(
                     assay %in% dge_table_filters$assay()
+                  )
+              }
+
+              # Filter by contrast and by method (multi-contrast and
+              # pseudobulk results only)
+              if ("contrast" %in% colnames(dge_table) &&
+                  isTruthy(dge_table_filters$contrast())){
+                dge_table <-
+                  dge_table %>%
+                  dplyr::filter(
+                    contrast %in% dge_table_filters$contrast()
+                  )
+              }
+              if ("method" %in% colnames(dge_table) &&
+                  isTruthy(dge_table_filters$method())){
+                dge_table <-
+                  dge_table %>%
+                  dplyr::filter(
+                    method %in% dge_table_filters$method()
                   )
               }
               
@@ -1502,20 +1569,28 @@ dge_tab_server <- function(id,
                 `Average Expression` = "avgExpr", 
                 `AUC` = "auc",
                 `Adjusted p-value` = "pval_adj",
-                `Assay` = "assay"
+                `Assay` = "assay",
+                # Pseudobulk results: the test behind each row, and the
+                # contrast of multi-contrast runs
+                `Method` = "method",
+                `Contrast` = "contrast",
+                `Group 1` = "group_1",
+                `Group 2` = "group_2"
                 )
             
             table <- dplyr::rename(table, any_of(rename_cols))
             
             # Reorder columns to place Assay column early in the table ####
-            # Desired order: Feature, Group, Assay, log2FC, then remaining cols
-            # Only reorder if Assay column is present
+            # Desired order: Feature, Group, Contrast, Method, Assay, log2FC,
+            # then remaining cols. Only reorder if Assay column is present
             if ("Assay" %in% colnames(table)) {
               # Get all column names
               all_cols <- colnames(table)
               
               # Define the desired order for the first columns
-              priority_cols <- c("Feature", group_rename, "Assay", "log2FC")
+              priority_cols <- c(
+                "Feature", group_rename, "Contrast", "Method", "Assay", "log2FC"
+              )
               
               # Get priority columns that exist in the table
               first_cols <- priority_cols[priority_cols %in% all_cols]
@@ -1578,9 +1653,9 @@ dge_tab_server <- function(id,
             # Define metadata used to split plot (DGE groups/marker classes) 
             metadata_column <- 
               if (metaclusters_present()){
-                "metacluster"
+                dge_metacluster_column
               } else if (thresholding_present()){
-                  "simple_expr_threshold"
+                dge_threshold_column
               } else {
                 group_by_category()
                 }
@@ -1613,11 +1688,9 @@ dge_tab_server <- function(id,
               # Split by groups or marker classes used for DGE
               split_by = 
                 if (metaclusters_present()){
-                  # Use "metacluster" when metaclusers present
-                  "metacluster"
+                  dge_metacluster_column
                 } else if (thresholding_present()){
-                  # When thresholding present, use "simple_expr_threshold"
-                  "simple_expr_threshold"
+                  dge_threshold_column
                 } else {
                   # Standard DGE: split by the group by category
                   group_by_category()
@@ -1708,6 +1781,13 @@ dge_tab_server <- function(id,
             id = "download_table"
             )
           
+          # The pseudobulk sample table exists for edgeR runs only
+          if (identical(attr(dge_table_content(), "dge_method"), "edger")){
+            showElement(id = "download_pseudobulk")
+          } else {
+            hideElement(id = "download_pseudobulk")
+          }
+          
           # Show UMAP options panel
           showElement(
             id = "options_panel_ui"
@@ -1785,6 +1865,28 @@ dge_tab_server <- function(id,
           contentType = "text/csv"
           ) # End downloadHandler
       
+      # Pseudobulk sample table: the retained and excluded sample x group
+      # profiles behind every edgeR contrast, and the test used per contrast
+      output$download_pseudobulk <-
+        downloadHandler(
+          filename = function() {
+            group_var <- test_selections()$group_by
+            if (!is.null(group_var) && !is.na(group_var)){
+              glue("DGE_pseudobulk_samples_{group_var}.csv")
+            } else {
+              "DGE_pseudobulk_samples.csv"
+            }
+          },
+          content = function(file) {
+            write.csv(
+              edger_details_table(dge_table_content()),
+              file = file,
+              row.names = FALSE
+              )
+            },
+          contentType = "text/csv"
+          )
+      
       # Dev mode: status of filter table values
       if (session$userData$dev_mode == TRUE){
         output$dge_filter_status <-
@@ -1813,11 +1915,123 @@ dge_tab_server <- function(id,
 # failures. Shiny escapes the condition text, while keeping the specific reason
 # visible to the user.
 dge_edger_error_ui <- function(err_cnd){
+  assay_errors <- err_cnd$assay_errors
   icon_notification_ui(
     icon_name = "exclamation-triangle",
     tagList(
       tags$strong("edgeR could not run: "),
-      conditionMessage(err_cnd)
+      conditionMessage(err_cnd),
+      # One failure per assay when several assays were tested
+      if (length(assay_errors)){
+        tags$ul(
+          lapply(
+            names(assay_errors),
+            function(assay) tags$li(paste0(assay, ": ", assay_errors[[assay]]))
+          )
+        )
+      }
     )
   )
+}
+
+# Assays (among `assays`) holding a raw counts layer, which edgeR needs.
+# Layers are listed through SCUBA so every object class is covered.
+dge_counts_assays <- function(object, assays, counts_layer = "counts"){
+  has_counts <- vapply(assays, function(assay){
+    layers <- tryCatch(
+      SCUBA::layer_names(object, assay = assay),
+      error = function(err_cnd) character()
+    )
+    counts_layer %in% layers
+  }, logical(1))
+  assays[has_counts]
+}
+
+# The design type recorded in one assay's edgeR details: the single-contrast
+# design, or the designs of a multi-contrast run ("mixed" when they differ).
+dge_results_design_type <- function(assay_details){
+  details <- assay_details$details
+  multi <- assay_details$multicontrast_details
+  if (!is.null(multi) && is.data.frame(multi$contrast_table)){
+    types <- unique(multi$contrast_table$design_type[
+      multi$contrast_table$method == "edgeR"
+    ])
+    types <- types[!is.na(types)]
+    if (!length(types)) return(NA_character_)
+    return(if (length(types) == 1L) types else "mixed")
+  }
+  if (!is.null(details) && !is.null(details$design_type)){
+    return(details$design_type)
+  }
+  NA_character_
+}
+
+# Flatten the pseudobulk profiles behind an edgeR result (any of the three
+# attribute shapes) into one table for download: one row per sample x group
+# profile and contrast, with whether it was retained and why not, plus the
+# test used for the contrast.
+edger_details_table <- function(results){
+  profile_rows <- function(details, contrast = NA_character_, assay = NA_character_){
+    if (is.null(details)) return(NULL)
+    retained <- details$retained_profiles
+    excluded <- details$excluded_profiles
+    rows <- list()
+    if (is.data.frame(retained) && nrow(retained)){
+      rows$retained <- data.frame(
+        sample = retained$sample, group = retained$group,
+        n_cells = retained$n_cells, retained = TRUE,
+        exclusion_reason = NA_character_, stringsAsFactors = FALSE
+      )
+    }
+    if (is.data.frame(excluded) && nrow(excluded)){
+      rows$excluded <- data.frame(
+        sample = excluded$sample, group = excluded$group,
+        n_cells = excluded$n_cells, retained = FALSE,
+        exclusion_reason = excluded$exclusion_reason, stringsAsFactors = FALSE
+      )
+    }
+    rows <- dplyr::bind_rows(rows)
+    if (!nrow(rows)){
+      rows <- data.frame(
+        sample = NA_character_, group = NA_character_, n_cells = NA_integer_,
+        retained = NA, exclusion_reason = NA_character_, stringsAsFactors = FALSE
+      )
+    }
+    rows$assay <- assay
+    rows$contrast <- contrast
+    rows$method <- details$method
+    rows$design_type <- details$design_type
+    rows$fallback_reason <- details$fallback_reason
+    rows
+  }
+  assay_rows <- function(details, multi, assay = NA_character_){
+    if (!is.null(multi)){
+      return(dplyr::bind_rows(lapply(names(multi$contrasts), function(contrast){
+        profile_rows(multi$contrasts[[contrast]], contrast = contrast, assay = assay)
+      })))
+    }
+    details_contrast <-
+      if (!is.null(details)) paste(details$group_1, "vs", details$group_2) else NA_character_
+    profile_rows(details, contrast = details_contrast, assay = assay)
+  }
+  assay_details <- attr(results, "edger_assay_details")
+  table <-
+    if (!is.null(assay_details)){
+      dplyr::bind_rows(lapply(names(assay_details), function(assay){
+        assay_rows(
+          assay_details[[assay]]$details,
+          assay_details[[assay]]$multicontrast_details,
+          assay = assay
+        )
+      }))
+    } else {
+      assay_rows(
+        attr(results, "edger_details"),
+        attr(results, "edger_multicontrast_details"),
+        assay = if ("assay" %in% names(results)) unique(results$assay)[1] else NA_character_
+      )
+    }
+  if (is.null(table) || !nrow(table)) return(data.frame())
+  table[, c("assay", "contrast", "method", "design_type", "sample", "group",
+            "n_cells", "retained", "exclusion_reason", "fallback_reason")]
 }

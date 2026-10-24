@@ -58,6 +58,7 @@ Imports:
     cowplot,
     dplyr,
     DT,
+    edgeR (>= 4.0.0),
     ggplot2,
     ggsci,
     glue,
@@ -76,8 +77,8 @@ Imports:
     rlog (>= 0.1.0),
     scales,
     scattermore,
-    SCUBA,
-    scDE,
+    SCUBA (>= 2.0.0.9000),
+    scDE (>= 0.4.0),
     Seurat (>= 5.5.0),
     SeuratObject,
     shiny (>= 1.6.1),
@@ -97,15 +98,16 @@ Imports:
     waiter (>= 0.2.5),
     yaml
 Remotes: 
-    github::amc-heme/SCUBA,
+    github::amc-heme/SCUBA@feature/julia-engine,
     github::amc-heme/scDE,
     github::amc-heme/presto,
-    github::amc-heme/hextant
+    github::amc-heme/hextant@feature/pseudobulk-scuba
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: 
     R (>= 3.5.0)
 Suggests: 
+    Matrix,
     anndata,
     jsonlite,
     profvis (>= 0.3.7),

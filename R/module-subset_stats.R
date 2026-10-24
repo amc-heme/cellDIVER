@@ -308,7 +308,7 @@ subset_stats_server <-
             if (is.null(submitted_method)){
               submitted_method <- dge_method()
             }
-            dge_method_label(submitted_method)
+            dge_results_method_label(results, submitted_method)
           })
 
           output$edger_sample_summary <- renderUI({
@@ -339,9 +339,9 @@ subset_stats_server <-
                     # expression threshold if either of those modes are enabled.
                     # Otherwise, use the group by variable (category).
                     if (metaclusters_present()){
-                      "metacluster"
+                      dge_metacluster_column
                       } else if (thresholding_present()){
-                      "simple_expr_threshold"
+                      dge_threshold_column
                       } else {
                       group_by_category()
                       }
@@ -370,7 +370,8 @@ subset_stats_server <-
                   group_2 = dge_group_2(),
                   thresholding = thresholding_present(),
                   contrast_mode = dge_contrast_mode(),
-                  n_contrasts = length(unique(event_expr()$contrast))
+                  n_contrasts = length(unique(event_expr()$contrast)),
+                  design_type = attr(event_expr(), "edger_design_type")
                 )
               })
           
@@ -578,14 +579,16 @@ dge_mode_description <- function(mode,
                                  group_2 = NULL,
                                  thresholding = FALSE,
                                  contrast_mode = "single",
-                                 n_contrasts = NULL){
+                                 n_contrasts = NULL,
+                                 design_type = NULL){
+  paired <- if (identical(design_type, "paired")) ", paired by sample" else ""
   if (identical(mode, "mode_dge")){
     if (!identical(contrast_mode, "single")){
       return(
         paste0(
           "Differential Expression (",
           if (is.null(n_contrasts)) 0L else n_contrasts,
-          " edgeR ", gsub("_", "-", contrast_mode), " contrasts)"
+          " edgeR ", gsub("_", "-", contrast_mode), " contrasts", paired, ")"
         )
       )
     }
@@ -600,40 +603,84 @@ dge_mode_description <- function(mode,
     return(
       paste0(
         "Differential Expression (", group_1_label,
-        " vs. ", group_2_label, ")"
+        " vs. ", group_2_label, paired, ")"
       )
     )
   }
 
+  # Marker identification with edgeR is a one-vs-rest multi-contrast run
+  if (identical(contrast_mode, "one_vs_rest")){
+    return(
+      paste0(
+        "Marker Identification (", length(observed_groups),
+        " groups; edgeR one-vs-rest", paired, ")"
+      )
+    )
+  }
   paste0("Marker Identification (", length(observed_groups), " groups)")
+}
+
+# Method label for a submitted result: edgeR runs report their design and
+# whether some or all contrasts fell back to the cell-level test.
+dge_results_method_label <- function(results, submitted_method){
+  if (!identical(submitted_method, "edger") || is.null(results)){
+    return(dge_method_label(submitted_method))
+  }
+  methods <- if ("method" %in% names(results)) unique(results$method) else "edgeR"
+  design_type <- attr(results, "edger_design_type")
+  if (all(methods == "wilcoxon")){
+    return(dge_method_label("edger", fallback = TRUE))
+  }
+  label <- dge_method_label("edger", design_type = design_type)
+  if ("wilcoxon" %in% methods){
+    n_fallback <- length(unique(results$contrast[results$method == "wilcoxon"]))
+    label <- paste0(
+      label, "; cell-level Wilcoxon fallback for ", n_fallback, " contrast",
+      if (n_fallback == 1L) "" else "s"
+    )
+  }
+  label
 }
 
 # Format retained/excluded pseudobulk information from either edgeR result
 # shape without making the UI depend on internal model objects.
 edger_sample_summary_text <- function(results){
+  # One contrast: retained samples per group, or the fallback and its reason
+  contrast_text <- function(details){
+    if (identical(details$method, "wilcoxon")){
+      return(paste0("cell-level Wilcoxon (", details$fallback_reason, ")"))
+    }
+    retained <- details$sample_summary
+    retained_text <- paste0(
+      retained$group, ": ", retained$retained_samples, collapse = "; "
+    )
+    excluded <- nrow(details$excluded_profiles)
+    paste0(
+      if (identical(details$design_type, "paired")) "paired; " else "",
+      retained_text, "; excluded: ", excluded
+    )
+  }
   format_summary <- function(details, multi){
     if (!is.null(multi)){
       summaries <- vapply(names(multi$contrasts), function(contrast){
-        contrast_details <- multi$contrasts[[contrast]]
-        retained <- contrast_details$sample_summary
-        retained_text <- paste0(
-          retained$group, ": ", retained$retained_samples,
-          collapse = "; "
-        )
-        excluded <- nrow(contrast_details$excluded_profiles)
-        paste0(
-          contrast, " [", retained_text, "; excluded: ", excluded, "]"
-        )
+        paste0(contrast, " [", contrast_text(multi$contrasts[[contrast]]), "]")
       }, character(1))
       return(paste(summaries, collapse = " | "))
     }
 
-    if (is.null(details) || !is.data.frame(details$sample_summary)){
+    if (is.null(details)){
+      return(NULL)
+    }
+    if (identical(details$method, "wilcoxon")){
+      return(contrast_text(details))
+    }
+    if (!is.data.frame(details$sample_summary)){
       return(NULL)
     }
     retained <- details$sample_summary
     excluded <- nrow(details$excluded_profiles)
     paste0(
+      if (identical(details$design_type, "paired")) "Paired by sample. " else "",
       paste0(retained$group, ": ", retained$retained_samples, collapse = "; "),
       ". ", excluded, " sample/group pseudobulk profile(s) excluded."
     )

@@ -944,6 +944,21 @@ subset_selections_server <- function(id,
         input$filter_confirm,
         label = glue("{id}: respond to confirm button"),
         {
+          # The confirm button is disabled client-side while the selection is
+          # incomplete, but the server must not rely on that: a late refresh
+          # of the value choices can empty the selection after the button was
+          # enabled, and a filter with no values matches no cells. Keep the
+          # dialog open instead of saving it.
+          if (module_data$filter_type == "categorical" &&
+              !isTruthy(input$categorical_values)){
+            showNotification(
+              "Choose at least one value before confirming the filter.",
+              type = "warning",
+              session = session
+            )
+            return()
+          }
+
           # Record filter in list of filters
           if (module_data$filter_type == "categorical"){
             # Categorical filters
@@ -1532,7 +1547,9 @@ subset_filter_type_choices <- function(object, allow_expression_filters = TRUE){
     return(choices)
   }
   choices <- c(choices, "Feature Expression" = "numeric")
-  if (!inherits(object, "AnnDataR6")){
+  # Advanced (string) subsetting evaluates R code against the object; the
+  # Python-backed and file-backed classes have no such interface
+  if (!inherits(object, c("AnnDataR6", "scuba_source"))){
     choices <- c(choices, "Advanced Subsetting" = "advanced")
   }
   choices

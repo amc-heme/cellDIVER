@@ -159,51 +159,13 @@ run_config <-
     # Load object ####
     # object_path and config_path are specified using run_config
     print("Loading object...")
-    # Separate loading functions are needed for different object types
-    # SCE objects with DelayedArray assays: path is a directory, not a file
-    if (is_HDF5SummarizedExperiment == TRUE){
-      # Directory is loaded via loadHDF5SummarizedExperiment
-      object <- HDF5Array::loadHDF5SummarizedExperiment(object_path, prefix = HDF5_prefix)
-    } else {
-      # All other formats: choose loading function based on extension
-      extension <- tools::file_ext(object_path)
-      
-      if (tolower(extension) == "rds"){
-        object <- readRDS(object_path)
-      } else if (tolower(extension) == "h5ad"){
-        # reticulate/anndata are Suggests: users without anndata objects
-        # should not need a Python environment. Fail with an actionable
-        # message rather than a bare "there is no package called 'anndata'".
-        require_python_support("h5ad")
-        object <- anndata::read_h5ad(object_path)
-      } else if (extension == "h5mu"){
-        require_python_support("h5mu")
-        reticulate::py_require("mudata>=0.3.1")
-        
-        md <- reticulate::import("mudata", as = "md", convert = TRUE)
-        
-        object <- md$read_h5mu(object_path)
-      } else if (extension == ""){
-        stop(
-          "No file extension detected for object at path",
-          object_path,
-          ". Please provide a path to an object with an extension of ",
-          ".rds or .h5ad."
-          )
-      } else {
-        stop(
-          "Unrecognized file extension (.",
-          extension,
-          "). Currently supported extensions: .rds, and .h5ad."
-          )
-        }
-    }
-
-    # Test if the loaded object is of a supported class; if not, return an error
-    check_dataset(
-      object,
-      path = object_path,
-      return_error = TRUE
+    # One loader covers every format; unsupported classes raise an error here
+    object <-
+      load_single_cell_object(
+        path = object_path,
+        is_HDF5SummarizedExperiment = isTRUE(is_HDF5SummarizedExperiment),
+        HDF5_prefix = HDF5_prefix,
+        return_error = TRUE
       )
 
     # Define Config file path for loading ####

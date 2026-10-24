@@ -157,6 +157,41 @@ dge_table_filtering_ui <- function(id){
             )
           ),
         
+        # Filter by contrast / method (pseudobulk results) ####
+        # Both menus stay empty until a result has the matching column
+        collapsible_panel(
+          inputId = ns("contrast_header"),
+          label = tags$span("Filter by Contrast: "),
+          transparent = TRUE,
+          size = "s",
+          shinyWidgets::virtualSelectInput(
+            inputId = ns("contrast"),
+            label = NULL,
+            choices = NULL,
+            selected = character(0),
+            multiple = TRUE,
+            search = TRUE,
+            optionsCount = 5,
+            zIndex = 3
+            )
+          ),
+        collapsible_panel(
+          inputId = ns("method_header"),
+          label = tags$span("Filter by Test Method: "),
+          transparent = TRUE,
+          size = "s",
+          shinyWidgets::virtualSelectInput(
+            inputId = ns("method"),
+            label = NULL,
+            choices = NULL,
+            selected = character(0),
+            multiple = TRUE,
+            search = FALSE,
+            optionsCount = 3,
+            zIndex = 3
+            )
+          ),
+
         # Average Expression filter interface
         # Collapsible panel is within a container to show/hide the whole
         # interface based on the presence/absence of the average 
@@ -735,6 +770,22 @@ dge_table_filtering_server <-
               )
           }
           
+          # Contrast and method filters: pseudobulk / multi-contrast results
+          for (column in c("contrast", "method")){
+            choices <-
+              if (column %in% colnames(dge_table())){
+                unique(as.character(dge_table()[[column]]))
+              } else {
+                character(0)
+              }
+            shinyWidgets::updateVirtualSelect(
+              session = session,
+              inputId = column,
+              choices = choices,
+              selected = character(0)
+              )
+          }
+          
           # Expression slider: update based on range of avgExpr column
           if ("avgExpr" %in% colnames(dge_table())){
             # Determine min, max L2FC values
@@ -966,6 +1017,8 @@ dge_table_filtering_server <-
             `group` = reactive({input$group}),
             `feature` = reactive({input$feature}),
             `assay` = reactive({input$assay}),
+            `contrast` = reactive({input$contrast}),
+            `method` = reactive({input$method}),
             `expression` = expr_value,
             `lfc` = lfc_value,
             `auc` = auc,
