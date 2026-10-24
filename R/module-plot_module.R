@@ -3061,13 +3061,19 @@ plot_module_server <- function(id,
                             length(value) == 2
                           ){
                             # Symmetric option for diverging palettes (data
-                            # units only)
+                            # units only): use the mirrored value the slider
+                            # is being moved to (see "mirror color limits"),
+                            # so the plot and the slider agree
                             if (
                               units == "value" &&
                               isTruthy(input$custom_diverging_colors) &&
                               isTRUE(input$color_limits_symmetric)
                             ){
-                              value <- c(-1, 1) * max(abs(value))
+                              value <-
+                                symmetric_color_limits(
+                                  value,
+                                  color_limits_mirrored()
+                                )
                             }
 
                             # The untouched slider means "full range"
@@ -3430,7 +3436,19 @@ plot_module_server <- function(id,
                        )
                      })
 
-                   # Symmetric option: mirror the handles about zero
+                   # Symmetric option: mirror the handles about zero. The
+                   # last symmetric value is kept so that moving one handle
+                   # mirrors that handle (the range can be narrowed as well
+                   # as widened); see symmetric_color_limits().
+                   color_limits_mirrored <- reactiveVal(NULL)
+
+                   observeEvent(
+                     list(input$color_limits_symmetric, input$color_limits_units),
+                     label = glue("{plot_label}: forget mirrored color limits"),
+                     {
+                       color_limits_mirrored(NULL)
+                     })
+
                    observeEvent(
                      input$color_limits,
                      label = glue("{plot_label}: mirror color limits"),
@@ -3442,7 +3460,9 @@ plot_module_server <- function(id,
                        value <- input$color_limits
                        req(is.numeric(value), length(value) == 2)
 
-                       mirrored <- c(-1, 1) * max(abs(value))
+                       mirrored <-
+                         symmetric_color_limits(value, color_limits_mirrored())
+                       color_limits_mirrored(mirrored)
 
                        if (!isTRUE(all.equal(value, mirrored))){
                          updateSliderInput(

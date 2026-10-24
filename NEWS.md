@@ -79,6 +79,24 @@
 
 ## Bug fixes
 
+* Multi-assay DGE on SingleCellExperiment objects tests the selected
+  alternative experiment instead of running the main experiment under its
+  name: the selected experiment is swapped into the main position before the
+  object is handed to scDE. For AnnData objects the cell-level test runs on
+  the X matrix only (scDE's scanpy backend cannot select an obsm modality), so
+  other selected assays are skipped with a notice.
+* Per-cell cutoffs given as quantiles are resolved once over the per-cell
+  values of every panel, as documented, instead of separately per split group
+  or feature.
+* With a diverging palette or per-cell cutoffs and no explicit color limits,
+  split feature panels and shared-scale feature panels keep the pooled range of
+  the values shown, so the same value has the same color in every panel; with
+  separate scales, each panel keeps its own legend title.
+* The symmetric color limits slider can be narrowed: moving one handle mirrors
+  that handle instead of restoring the wider range.
+* Hexbin feature plots drop their titles when titles are switched off, also
+  when the module supplies default custom titles.
+
 * The subset filter dialog no longer saves a categorical filter with no
   values. The confirm button was disabled client-side while the selection was
   empty, but a late refresh of the value choices could empty it after the

@@ -1,3 +1,81 @@
+#' Mirror color scale limits about zero
+#'
+#' The color limits slider has a symmetric option for diverging palettes. The
+#' two handles are kept at the same distance from zero, following the handle
+#' the user moved: when exactly one handle differs from the previous
+#' (symmetric) value, that handle's magnitude is mirrored, so the range can
+#' be narrowed as well as widened. When both handles changed (a reset, or the
+#' first value after enabling the option) the larger magnitude is used.
+#'
+#' @param value numeric vector of length two from the slider.
+#' @param previous the previous symmetric value, or NULL.
+#'
+#' @return a numeric vector of length two, `c(-m, m)`, or `value` unchanged
+#'   when it is not a finite pair.
+#'
+#' @noRd
+symmetric_color_limits <- function(value, previous = NULL){
+  if (!is.numeric(value) || length(value) != 2 || any(!is.finite(value))){
+    return(value)
+  }
+
+  changed <-
+    if (is.numeric(previous) && length(previous) == 2){
+      which(abs(value - previous) > sqrt(.Machine$double.eps))
+    } else {
+      integer()
+    }
+
+  magnitude <-
+    if (length(changed) == 1){
+      abs(value[changed])
+    } else {
+      max(abs(value))
+    }
+
+  c(-1, 1) * magnitude
+}
+
+#' Replace the color scale of every panel, keeping each panel's legend title
+#'
+#' Adding one scale to a patchwork with `&` gives every panel the same legend
+#' title (or none). When panels carry their own titles, such as feature names
+#' on separate scales, replace the scale panel by panel and keep the name the
+#' panel's current scale has.
+#'
+#' @param plot a ggplot or patchwork.
+#' @param aesthetic `"colour"` or `"fill"`.
+#' @param ... passed to [color_scale()] (`palette`, `limits`, `diverging`).
+#'
+#' @return the plot with its scales replaced.
+#'
+#' @noRd
+replace_panel_color_scales <- function(plot, aesthetic = c("colour", "fill"), ...){
+  aesthetic <- match.arg(aesthetic)
+
+  current_name <- function(panel){
+    scale <- panel$scales$get_scales(aesthetic)
+    if (is.null(scale) || is.null(scale$name)) waiver() else scale$name
+  }
+
+  replace <- function(panel){
+    suppressMessages(
+      panel + color_scale(aesthetic, ..., name = current_name(panel))
+    )
+  }
+
+  if (inherits(plot, "patchwork")){
+    for (i in seq_len(length(plot))){
+      if (inherits(plot[[i]], "ggplot")){
+        plot[[i]] <- replace(plot[[i]])
+      }
+    }
+    plot
+  } else {
+    replace(plot)
+  }
+}
+
 #' Continuous color scale for cellDIVER plots
 #'
 #' Builds the ggplot2 colour or fill scale used by Feature, Dot and Hexbin

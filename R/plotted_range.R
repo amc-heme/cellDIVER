@@ -25,6 +25,36 @@ plotted_range <- function(plot, columns){
   range(values)
 }
 
+#' Per-cell values of features, for cutoffs and the color limits slider
+#'
+#' Fetches the default layer of the given features through SCUBA and returns
+#' every finite value as one vector, so quantiles taken over it are pooled
+#' across features (and, for a single feature, across split groups).
+#'
+#' @param object a single-cell object.
+#' @param features character vector of feature names (with modality keys).
+#'
+#' @return a numeric vector, empty when the values cannot be fetched.
+#'
+#' @noRd
+feature_cell_values <- function(object, features){
+  tryCatch(
+    {
+      values <-
+        SCUBA::fetch_data(
+          object,
+          vars = features,
+          layer = SCUBA::default_layer(object)
+        )
+      values <-
+        unlist(values[, vapply(values, is.numeric, logical(1)), drop = FALSE])
+      values <- values[is.finite(values)]
+      unname(values)
+    },
+    error = function(e) numeric()
+  )
+}
+
 #' @rdname plotted_range
 #' @noRd
 plotted_values <- function(plot, columns){

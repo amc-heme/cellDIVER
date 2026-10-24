@@ -154,25 +154,17 @@ shiny_hexbin_feature <- function(
     palette <- c("lightgrey", "blue")
   }
   
-  # Range of the underlying per-cell values (before any cutoffs), reported
-  # for the color scale limits slider in "data values" mode
-  cell_range <-
-    tryCatch(
-      {
-        values <-
-          SCUBA::fetch_data(
-            object,
-            vars = features_entered,
-            layer = SCUBA::default_layer(object)
-          )
-        values <- unlist(values[, vapply(values, is.numeric, logical(1)), drop = FALSE])
-        values <- values[is.finite(values)]
-        if (length(values) > 0) range(values) else NULL
-      },
-      error = function(e) NULL
-    )
+  # The per-cell values of every feature, before cutoffs: their range is
+  # reported for the color scale limits slider in "data values" mode, and
+  # cutoffs given as quantiles are taken over them
+  cell_values <- feature_cell_values(object, features_entered)
+  cell_range <- if (length(cell_values) > 0) range(cell_values) else NULL
   
-  # Per-cell cutoffs passed to hextant (NA means no cutoff on that side)
+  # Per-cell cutoffs passed to hextant (NA means no cutoff on that side).
+  # Quantile cutoffs ("q<percent>") are resolved here against the per-cell
+  # values of every feature together, so each panel receives the same
+  # numeric cutoff.
+  data_cutoffs <- resolve_data_cutoffs(data_cutoffs, cell_values)
   cell_min_cutoff <-
     if (!is.null(data_cutoffs) && !is.na(data_cutoffs[1])) data_cutoffs[1] else NULL
   cell_max_cutoff <-
@@ -214,15 +206,15 @@ shiny_hexbin_feature <- function(
   # If plotting a single feature, create a single plot
   if (length(features_entered) == 1) {
     
-    # Determine title to use
-    # If custom_titles is provided, use it; otherwise generate default
-    if (isTruthy(custom_titles)) {
+    # Determine title to use. Titles switched off win over custom titles,
+    # which the module supplies as defaults regardless of the title setting.
+    if (!isTRUE(show_title)) {
+      plot_title <- NULL
+    } else if (isTruthy(custom_titles)) {
       plot_title <- custom_titles
-    } else if (show_title) {
+    } else {
       # Generate default title: "Feature (action)"
       plot_title <- paste0(features_entered[1], " (", action, ")")
-    } else {
-      plot_title <- NULL
     }
     
     # Create the hexbin feature plot using hextant
@@ -244,6 +236,12 @@ shiny_hexbin_feature <- function(
       xlab = paste0(reduction, "_1"),
       ylab = paste0(reduction, "_2")
     )
+    
+    # hextant substitutes a default title for NULL: remove it when titles
+    # are switched off, so the display and the download agree
+    if (!isTRUE(show_title)) {
+      plot <- plot + labs(title = NULL)
+    }
     
     # Color scale limits given as quantiles are evaluated against the
     # per-bin values shown
@@ -310,16 +308,15 @@ shiny_hexbin_feature <- function(
     for (i in seq_along(features_entered)) {
       feature <- features_entered[i]
       
-      # Determine title to use for this feature
-      # If custom_titles is provided and long enough, use it; otherwise generate
-      # default
-      if (isTruthy(custom_titles) && length(custom_titles) >= i) {
+      # Determine title to use for this feature. Titles switched off win
+      # over custom titles, which the module supplies as defaults.
+      if (!isTRUE(show_title)) {
+        individual_title <- NULL
+      } else if (isTruthy(custom_titles) && length(custom_titles) >= i) {
         individual_title <- custom_titles[i]
-      } else if (show_title) {
+      } else {
         # Generate default title: "Feature (action)"
         individual_title <- paste0(feature, " (", action, ")")
-      } else {
-        individual_title <- NULL
       }
       
       # Create the hexbin feature plot using hextant
@@ -341,6 +338,12 @@ shiny_hexbin_feature <- function(
         xlab = paste0(reduction, "_1"),
         ylab = paste0(reduction, "_2")
       )
+      
+      # hextant substitutes a default title for NULL: remove it when titles
+      # are switched off
+      if (!isTRUE(show_title)) {
+        individual_plot <- individual_plot + labs(title = NULL)
+      }
       
       # Apply additional styling layers (the fill scale is added after all
       # panels are built, so quantile limits can be taken over every panel)

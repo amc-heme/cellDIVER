@@ -134,31 +134,23 @@ shiny_feature <- function(object,
     )
   )
   
-  # Per-cell cutoffs for plot_feature() (NA = no cutoff on that side), and the
-  # range of the underlying per-cell values before cutoffs, reported for the
-  # color scale limits slider in "data values" mode
+  # The per-cell values of every feature, before cutoffs: their range is
+  # reported for the color scale limits slider in "data values" mode, and
+  # cutoffs given as quantiles are taken over them
+  cell_values <-
+    if (!isTruthy(blend)){
+      feature_cell_values(object, features_entered)
+    } else numeric()
+  cell_range <- if (length(cell_values) > 0) range(cell_values) else NULL
+  
+  # Per-cell cutoffs for plot_feature() (NA = no cutoff on that side).
+  # Quantile cutoffs ("q<percent>") are resolved here, against the per-cell
+  # values of every panel together, so each split group or feature receives
+  # the same numeric cutoff instead of one taken over its own values.
+  data_cutoffs <- resolve_data_cutoffs(data_cutoffs, cell_values)
   min_cutoff <- if (!is.null(data_cutoffs)) data_cutoffs[1] else NA
   max_cutoff <- if (!is.null(data_cutoffs)) data_cutoffs[2] else NA
   cutoffs_set <- !is.null(data_cutoffs) && any(!is.na(data_cutoffs))
-  
-  cell_range <-
-    if (!isTruthy(blend)){
-      tryCatch(
-        {
-          values <-
-            SCUBA::fetch_data(
-              object,
-              vars = features_entered,
-              layer = SCUBA::default_layer(object)
-            )
-          values <-
-            unlist(values[, vapply(values, is.numeric, logical(1)), drop = FALSE])
-          values <- values[is.finite(values)]
-          if (length(values) > 0) range(values) else NULL
-        },
-        error = function(e) NULL
-      )
-    } else NULL
   
   if (length(features_entered) == 1){
     # Single-feature plots ####
@@ -218,8 +210,14 @@ shiny_feature <- function(object,
     # already applied via the colors parameter above). This replaces the scale
     # set by FeaturePlotSingle, whose limits come from the unclamped data,
     # which produces an expected ggplot2 message; the legend title is passed
-    # explicitly to preserve it.
+    # explicitly to preserve it. Without user-set limits the scale keeps the
+    # range of the values shown across every split group, as
+    # FeaturePlotSingle's common limits did, so the same value has the same
+    # color in every panel.
     if (isTruthy(diverging_palette) || !is.null(scale_limits) || cutoffs_set){
+      if (is.null(scale_limits)){
+        scale_limits <- plotted_range(feature_plot, features_entered)
+      }
       suppressMessages(
         feature_plot <- feature_plot &
           color_scale(
@@ -338,33 +336,55 @@ shiny_feature <- function(object,
         )
       
       # Apply a final color scale when a diverging palette, user-set color
-      # scale limits or per-cell cutoffs are in use. The one scale (and its
-      # limits) applies to every panel, as with share_scale. Not applied when
+      # scale limits or per-cell cutoffs are in use. Not applied when
       # coloring by feature, which uses a categorical palette per panel.
       if (
         (isTruthy(diverging_palette) || !is.null(scale_limits) || cutoffs_set) &
         !color_by_feature
       ){
-        suppressMessages(
-          feature_plot <- feature_plot &
-            color_scale(
+        scale_palette <-
+          if (isTruthy(diverging_palette)){
+            diverging_palette
+          } else if (isTruthy(palette)){
+            palette
+          } else {
+            c("lightgrey", "blue")
+          }
+        
+        if (isTRUE(share_scale)){
+          # One scale for every panel. Without user-set limits it keeps the
+          # range of the values shown across all features, as
+          # MultiFeatureSimple's common limits did, so the panels stay
+          # comparable.
+          if (is.null(scale_limits)){
+            scale_limits <- plotted_range(feature_plot, features_entered)
+          }
+          suppressMessages(
+            feature_plot <- feature_plot &
+              color_scale(
+                "colour",
+                palette = scale_palette,
+                limits = scale_limits,
+                diverging = isTruthy(diverging_palette),
+                name =
+                  if (identical(legend_title, "assay_score")){
+                    "Expression"
+                  } else NULL
+              )
+          )
+        } else {
+          # Separate scales: replace each panel's scale on its own, keeping
+          # the legend title MultiFeatureSimple gave it (the feature name,
+          # "Expression", or none)
+          feature_plot <-
+            replace_panel_color_scales(
+              feature_plot,
               "colour",
-              palette =
-                if (isTruthy(diverging_palette)){
-                  diverging_palette
-                } else if (isTruthy(palette)){
-                  palette
-                } else {
-                  c("lightgrey", "blue")
-                },
+              palette = scale_palette,
               limits = scale_limits,
-              diverging = isTruthy(diverging_palette),
-              name =
-                if (identical(legend_title, "assay_score")){
-                  "Expression"
-                } else NULL
+              diverging = isTruthy(diverging_palette)
             )
-        )
+        }
       }
       
       # Record the range of the feature values shown, for the color scale

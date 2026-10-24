@@ -989,6 +989,34 @@ dge_tab_server <- function(id,
                     stop(test_selections()$edger_sample_error)
                   }
 
+                  # The cell-level test of AnnData objects runs on the X
+                  # matrix only (scDE's scanpy backend cannot select an obsm
+                  # modality); the others are reported and skipped
+                  if (!edgeR_selected){
+                    eligible_assays <- dge_wilcoxon_assays(subset(), selected_assays)
+                    skipped_assays <- setdiff(selected_assays, eligible_assays)
+                    if (!length(eligible_assays)){
+                      stop(
+                        "None of the selected assays (",
+                        paste(selected_assays, collapse = ", "),
+                        ") can be tested at the cell level for this object; ",
+                        "select the main (X) matrix."
+                      )
+                    }
+                    if (length(skipped_assays)){
+                      showNotification(
+                        paste0(
+                          "The cell-level test runs on the main matrix only; ",
+                          "skipped assays: ",
+                          paste(skipped_assays, collapse = ", "), "."
+                        ),
+                        type = "warning",
+                        duration = 10
+                      )
+                    }
+                    selected_assays <- eligible_assays
+                  }
+
                   # edgeR sums raw counts, so only assays with a counts layer
                   # can be tested; the others are reported and skipped
                   if (edgeR_selected){
@@ -1062,7 +1090,7 @@ dge_tab_server <- function(id,
                       dge_result <-
                         if (edgeR_multicontrast){
                           scDE::run_dge_multicontrast(
-                            object = subset(),
+                            object = dge_assay_object(subset(), assay_name),
                             group_by = group_by_category(),
                             sample_by = test_selections()$edger_sample_col,
                             contrast_mode =
@@ -1085,7 +1113,7 @@ dge_tab_server <- function(id,
                           )
                         } else if (edgeR_selected){
                           scDE::run_dge(
-                            object = subset(),
+                            object = dge_assay_object(subset(), assay_name),
                             group_by = group_by_variable,
                             layer = "counts",
                             seurat_assay = assay_name,
@@ -1101,9 +1129,12 @@ dge_tab_server <- function(id,
                           )
                         } else {
                           scDE::run_dge(
-                            object = subset(),
+                            object = dge_assay_object(subset(), assay_name),
                             group_by = group_by_variable,
-                            # This is only used for Seurat objects
+                            # Selects the assay of Seurat objects and the
+                            # modality of file-backed objects; for
+                            # SingleCellExperiment objects the selected
+                            # experiment is swapped in by dge_assay_object()
                             seurat_assay = assay_name,
                             positive_only = input$pos,
                             lfc_format = "log2",
@@ -1936,6 +1967,39 @@ dge_edger_error_ui <- function(err_cnd){
 
 # Assays (among `assays`) holding a raw counts layer, which edgeR needs.
 # Layers are listed through SCUBA so every object class is covered.
+# The object to hand to scDE for one selected assay. scDE selects assays
+# through `seurat_assay` for Seurat objects and modalities for file-backed
+# objects, but its SingleCellExperiment backends always read the main
+# experiment, so a selected alternative experiment is swapped into the main
+# position first (keeping the cell metadata, which carries the groups).
+dge_assay_object <- function(object, assay){
+  if (inherits(object, "SingleCellExperiment") && isTruthy(assay)){
+    main <- SingleCellExperiment::mainExpName(object)
+    if (!identical(assay, main) &&
+        assay %in% SingleCellExperiment::altExpNames(object)){
+      return(
+        SingleCellExperiment::swapAltExp(
+          object, assay, saved = main, withColData = TRUE
+        )
+      )
+    }
+  }
+  object
+}
+
+# Assays the cell-level (Wilcoxon) test can analyse. scDE's scanpy backend
+# for AnnData objects reads the X matrix only, so obsm modalities offered as
+# assays (for example a protein panel) cannot be selected there; every other
+# class is served per assay (Seurat, file-backed) or swapped in
+# (SingleCellExperiment, see dge_assay_object()).
+dge_wilcoxon_assays <- function(object, assays){
+  anndata_classes <- c("AnnDataR6", "anndata.AnnData", "anndata._core.anndata.AnnData")
+  if (inherits(object, anndata_classes)){
+    return(intersect(assays, "X"))
+  }
+  assays
+}
+
 dge_counts_assays <- function(object, assays, counts_layer = "counts"){
   has_counts <- vapply(assays, function(assay){
     layers <- tryCatch(

@@ -113,3 +113,36 @@ test_that("the h5ad loader preference is honoured without starting Julia", {
   expect_identical(h5_object_loader("reticulate"), "reticulate")
   expect_error(h5_object_loader("python"), "cellDIVER.h5_engine")
 })
+
+test_that("a selected alternative experiment is swapped in for scDE", {
+  skip_if_not_installed("SingleCellExperiment")
+  object <- unit_pseudobulk_object()
+  sce <- Seurat::as.SingleCellExperiment(object)
+  protein <- matrix(
+    seq_len(4 * ncol(sce)), nrow = 4,
+    dimnames = list(paste0("p", 1:4), colnames(sce))
+  )
+  SingleCellExperiment::altExp(sce, "ADT") <-
+    SingleCellExperiment::SingleCellExperiment(list(counts = protein))
+
+  swapped <- cellDIVER:::dge_assay_object(sce, "ADT")
+  expect_identical(SingleCellExperiment::mainExpName(swapped), "ADT")
+  expect_identical(rownames(swapped), paste0("p", 1:4))
+  # the cell metadata (groups) travels with the swapped experiment
+  expect_identical(
+    SummarizedExperiment::colData(swapped)$condition,
+    SummarizedExperiment::colData(sce)$condition
+  )
+  # the main experiment, Seurat objects and unknown assays are left alone
+  expect_identical(cellDIVER:::dge_assay_object(sce, "RNA"), sce)
+  expect_identical(cellDIVER:::dge_assay_object(sce, "missing"), sce)
+  expect_identical(cellDIVER:::dge_assay_object(object, "ADT"), object)
+})
+
+test_that("the cell-level test of AnnData objects is limited to the X matrix", {
+  anndata_like <- structure(list(), class = "AnnDataR6")
+  expect_identical(cellDIVER:::dge_wilcoxon_assays(anndata_like, c("X", "protein")), "X")
+  expect_identical(cellDIVER:::dge_wilcoxon_assays(anndata_like, "protein"), character(0))
+  object <- unit_pseudobulk_object()
+  expect_identical(cellDIVER:::dge_wilcoxon_assays(object, c("RNA", "ADT")), c("RNA", "ADT"))
+})
