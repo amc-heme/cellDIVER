@@ -34,6 +34,7 @@ RUN R -e "options(timeout = 600); install.packages('BPCells', repos=c('https://b
 # OPTIONAL: anndata / MuData / Python support. Uncomment to support .h5ad /
 # MuData objects (see README.md "Image Notes" before enabling — the uv path
 # has been fragile).
+# RUN R -e "install.packages(c('reticulate', 'anndata'))"
 # USER shiny
 # RUN R -e "library(SCUBA); reticulate::py_require(c('anndata','pandas','numpy','scipy','mudata>=0.3.1')); reticulate::import('anndata'); reticulate::import('mudata')"
 # USER root

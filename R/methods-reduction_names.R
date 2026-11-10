@@ -119,3 +119,14 @@ reduction_names.mudata._core.mudata.MuData <-
     reduction_names.md._core.mudata.MuData(object)
   }
   
+
+#' @describeIn reduction_names File-backed SCUBA objects: the reduction keys
+#' of the file (e.g. X_umap, rna_X_umap)
+#' @export
+reduction_names.scuba_source <-
+  function(
+    object,
+    ...
+  ){
+    names(SCUBA::scuba_source_reductions(object))
+  }

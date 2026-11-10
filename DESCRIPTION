@@ -58,15 +58,18 @@ Imports:
     cowplot,
     dplyr,
     DT,
+    edgeR (>= 4.0.0),
     ggplot2,
     ggsci,
     glue,
     grDevices,
     gtools,
     HDF5Array,
+    hextant (>= 0.1.0),
     lifecycle,
     methods,
     patchwork,
+    presto,
     RColorBrewer,
     R.devices,
     rintrojs (>= 0.3.0),
@@ -74,14 +77,14 @@ Imports:
     rlog (>= 0.1.0),
     scales,
     scattermore,
-    SCUBA,
-    scDE,
-    Seurat (>= 3.0.0),
+    SCUBA (>= 2.0.0.9000),
+    scDE (>= 0.4.0),
+    Seurat (>= 5.5.0),
     SeuratObject,
     shiny (>= 1.6.1),
     shinyBS (>= 0.61.1),
     shinyjs (>= 2.0.0),
-    shinyWidgets (>= 0.6.2),
+    shinyWidgets (>= 0.7.0),
     SingleCellExperiment,
     sortable (>= 0.4.5),
     stats,
@@ -95,18 +98,22 @@ Imports:
     waiter (>= 0.2.5),
     yaml
 Remotes: 
-    github::amc-heme/SCUBA,
-    github::amc-heme/scDE
+    github::amc-heme/SCUBA@feature/julia-engine,
+    github::amc-heme/scDE,
+    github::amc-heme/presto,
+    github::amc-heme/hextant@feature/pseudobulk-scuba
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: 
     R (>= 3.5.0)
 Suggests: 
+    Matrix,
     anndata,
     jsonlite,
     profvis (>= 0.3.7),
     reactlog (>= 1.1.0),
     reticulate (>= 1.41.0),
+    shinytest,
     shinytest2 (>= 0.4.1),
     testthat (>= 3.0.0),
     withr

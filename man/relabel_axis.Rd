@@ -6,6 +6,7 @@
 \alias{relabel_axis.SingleCellExperiment}
 \alias{relabel_axis.AnnDataR6}
 \alias{relabel_axis.md._core.mudata.MuData}
+\alias{relabel_axis.scuba_source}
 \title{Re-label axis behavior}
 \usage{
 relabel_axis(object, feature, ...)
@@ -17,6 +18,8 @@ relabel_axis(object, feature, ...)
 \method{relabel_axis}{AnnDataR6}(object, feature)
 
 \method{relabel_axis}{md._core.mudata.MuData}(object, feature)
+
+\method{relabel_axis}{scuba_source}(object, feature, ...)
 }
 \arguments{
 \item{object}{a single-cell object. Currently, Seurat,
@@ -52,6 +55,9 @@ event a different label is more appropriate for the feature being plotted.
 \item \code{relabel_axis(AnnDataR6)}: Anndata objects
 
 \item \code{relabel_axis(md._core.mudata.MuData)}: MuData objects
+
+\item \code{relabel_axis(scuba_source)}: File-backed SCUBA objects: delegated to SCUBA,
+which knows the modalities and reductions of the file
 
 }}
 \keyword{internal}

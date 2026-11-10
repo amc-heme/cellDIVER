@@ -7,6 +7,11 @@
 #' app.
 #' @param metadata_config the metadata section of the config file imported in 
 #' the main server function.
+#' @param assay_config the assays section of the config file imported in 
+#' the main server function. Used to create the assay selection menu.
+#' @param designated_genes_assay the name of the assay designated in the config 
+#' file as the genes assay. Used to set the default selection. If NULL, the 
+#' first assay will be selected by default.
 #' @param meta_categories the metadata variables exposed by the config user.
 #' @param meta_choices a named vector giving the metadata categories defined in
 #' the config file, with their respective labels for display in dropdown menus.
@@ -21,6 +26,8 @@
 dge_tab_ui <- function(id,
                        unique_metadata,
                        metadata_config,
+                       assay_config,
+                       designated_genes_assay,
                        meta_categories,
                        meta_choices,
                        auto_dictionary_path,
@@ -39,8 +46,9 @@ dge_tab_ui <- function(id,
           id = ns("sidebar"),
           tags$h3("Differential Gene Expression"),
           tags$p(
-          "Use the dropdown menus below to select the desired test, the groups 
-          to use, and the subset on which to perform the test."
+          "Use the dropdown menus below to select the desired test, the assays 
+          to analyze, the groups to use, and the subset on which to perform 
+          the test."
           ),
           
           collapsible_panel(
@@ -53,6 +61,31 @@ dge_tab_ui <- function(id,
               id = ns("test_selections"),
               meta_choices = meta_choices
               ),
+            
+            # Assay selection for multi-assay differential expression ####
+            # Create choices for assay selection using dropdown_title from 
+            # config
+            checkboxGroupInput(
+              inputId = ns("assays"),
+              label = "Assays to Analyze:",
+              choices = 
+                setNames(
+                  names(assay_config),
+                  sapply(
+                    assay_config, 
+                    function(assay_info) {
+                      assay_info$dropdown_title
+                      }
+                    )
+                  ),
+              selected = 
+                if (!is.null(designated_genes_assay) && 
+                    isTruthy(designated_genes_assay)) {
+                  designated_genes_assay
+                } else {
+                  names(assay_config)[[1]]
+                }
+            ),
             
             # Checkbox to return positive markers only (shown for both modes)
             checkboxInput(
@@ -127,6 +160,14 @@ dge_tab_ui <- function(id,
               outputId = ns("download_table"),
               label = "Download Table",
               icon = icon("table")
+              )
+            ),
+          # Pseudobulk sample table (edgeR runs only)
+          hidden(
+            downloadButton(
+              outputId = ns("download_pseudobulk"),
+              label = "Download Pseudobulk Samples",
+              icon = icon("vial")
               )
             )
           ) # End dge-sidebar div
@@ -210,9 +251,10 @@ dge_tab_ui <- function(id,
 
 #' Differential Gene Expression Tab Module
 #'
-#' The server instance of the differential gene expression tab module. One 
-#' instance should be created for each object to avoid input collisions between 
-#' objects with similarly named metadata columns.
+#' The server instance of the differential gene expression tab module. This
+#' module supports multi-assay differential expression analysis. One instance 
+#' should be created for each object to avoid input collisions between objects 
+#' with similarly named metadata columns.
 #'
 #' @param id Used to match server function to ui function. "dge" is the 
 #' recommended value to use.
@@ -220,10 +262,13 @@ dge_tab_ui <- function(id,
 #' @param metadata_config The metadata section of the config file imported in 
 #' the main server function.
 #' @param assay_config The assays section of the config file imported in 
-#' the main server function.
+#' the main server function. Used to enable multi-assay analysis.
 #' @param designated_genes_assay the name of the assay designated in the config 
-#' file as the genes assay. If NULL, the first assay will be assumed to be the 
-#' genes assay.
+#' file as the genes assay. Used to set the default assay selection. If NULL, 
+#' the first assay will be selected by default.
+#' @param sample_id_colname Reactive returning the metadata column configured as
+#' the biological sample identifier. This is named `patient_colname` in the
+#' current configuration schema.
 #' @param meta_categories a named vector of metadata categories retrieved from the 
 #' config file.
 #' @param unique_metadata a list of all the unique metadata values in the current 
@@ -238,7 +283,8 @@ dge_tab_ui <- function(id,
 #' display to the user based on the errors detected
 #'
 #' @return server code for the differential gene expression tab. Reactive 
-#' expressions are contained within the namespace set by `id`
+#' expressions are contained within the namespace set by `id`. Results include
+#' an `assay` column to distinguish features from different assays.
 #'
 #' @noRd
 dge_tab_server <- function(id,
@@ -246,6 +292,7 @@ dge_tab_server <- function(id,
                            metadata_config,
                            assay_config,
                            designated_genes_assay,
+                           sample_id_colname,
                            # This will replace metadata_config at some point
                            # (It is derived from the config file and is the only
                            # information used)
@@ -297,8 +344,12 @@ dge_tab_server <- function(id,
           unique_metadata = unique_metadata,
           metadata_config = metadata_config,
           assay_config = assay_config,
+          sample_id_colname = sample_id_colname,
           meta_choices = meta_choices,
-          valid_features = valid_features
+          valid_features = valid_features,
+          # Reactive wrapper: subset_selections is created below, and the
+          # reactive is only evaluated afterwards
+          subset_filters = reactive({ subset_selections$selections() })
           )
       
       ## 1.2 Chosen group by category 
@@ -350,7 +401,10 @@ dge_tab_server <- function(id,
           assay_config = assay_config,
           meta_categories = meta_categories,
           valid_features = valid_features,
-          hide_menu = hidden_variable
+          hide_menu = hidden_variable,
+          allow_expression_filters = reactive({
+            !identical(test_selections()$dge_method, "edger")
+          })
           )
       
       # 3. Calculations ran after submit button is pressed ----------
@@ -395,6 +449,10 @@ dge_tab_server <- function(id,
             log_info("DGE Tab: Submit button pressed")
             sidebar_spinner$show()
             main_spinner$show()
+            
+            # Disable assay selector during analysis
+            shinyjs::disable("assays")
+            
             log_session(session)
             log_info("DGE Tab: Spinners displayed.")
             
@@ -420,7 +478,8 @@ dge_tab_server <- function(id,
             # Return TRUE when all conditions below are met
             # DGE, with standard groups (thresholding not used)
             if (test_selections()$dge_mode == "mode_dge" &
-                test_selections()$group_mode == "standard"){
+                test_selections()$group_mode == "standard" &
+                identical(test_selections()$edger_contrast_mode, "single")){
               if (!is.null(test_selections()$group_1) &
                   !is.null(test_selections()$group_2)){
                 # At least one group must have more than one 
@@ -484,6 +543,12 @@ dge_tab_server <- function(id,
                 subset_criteria <- subset_selections$selections()
               } else if (test_selections()$group_mode == "standard"){
                 # "Standard" DGE
+                # Multi-contrast edgeR needs the full selected subset. In
+                # particular, one-vs-rest must retain cells from every group.
+                if (identical(test_selections()$dge_method, "edger") &&
+                    !identical(test_selections()$edger_contrast_mode, "single")){
+                  return(subset_selections$selections())
+                }
                 # Add extra subset filter for the two groups selected
                 # Fetch choices for group 1 and group 2
                 choices <-
@@ -609,6 +674,9 @@ dge_tab_server <- function(id,
                   main_spinner$hide()
                   sidebar_spinner$hide()
                   
+                  # Re-enable assay selector
+                  shinyjs::enable("assays")
+                  
                   # Return NULL for subset to 
                   # discontinue downstream calculations
                   NULL
@@ -650,7 +718,7 @@ dge_tab_server <- function(id,
                         )
                       
                       # Use case_when to create metacluster 
-                      meta_table$metacluster <- 
+                      meta_table[[dge_metacluster_column]] <- 
                         case_when(
                           # If the cell has a value for the group by category, 
                           # assign a group name to it based on the members of the
@@ -718,7 +786,7 @@ dge_tab_server <- function(id,
                           )
                       
                       # Create metadata column based on simple threshold
-                      meta_table$simple_expr_threshold <-
+                      meta_table[[dge_threshold_column]] <-
                         case_when(
                           # Avoiding "+" and "-" declarations for now
                           # "High" when expresssion value is greater than
@@ -788,6 +856,9 @@ dge_tab_server <- function(id,
             # In case spinners are displayed, remove them
             sidebar_spinner$hide()
             main_spinner$hide()
+            
+            # Re-enable assay selector
+            shinyjs::enable("assays")
           }
           
         })
@@ -806,7 +877,15 @@ dge_tab_server <- function(id,
           thresholding_present = thresholding_present,
           dge_simple_threshold = 
             # Must put module output back into a reactive
-            reactive({test_selections()$threshold_value}) 
+            reactive({test_selections()$threshold_value}),
+          dge_method = reactive({test_selections()$dge_method}),
+          dge_mode = reactive({test_selections()$dge_mode}),
+          dge_group_1 = reactive({test_selections()$group_1}),
+          dge_group_2 = reactive({test_selections()$group_2}),
+          dge_contrast_mode = reactive({
+            mode <- test_selections()$edger_contrast_mode
+            if (is.null(mode)) "single" else mode
+          })
           )
       
       ## 3.9. Run DGE ####
@@ -828,17 +907,39 @@ dge_tab_server <- function(id,
             dge_table <- 
               tryCatch(
                 error = function(err_cnd){
-                  # Use error_handler to display notification to user
-                  error_handler(
-                    session,
-                    err_cnd = err_cnd,
-                    error_list = error_list$dge_test_errors,
-                    source_reactive = "dge_table, dge_tab module"
-                  )
+                  if (identical(test_selections()$dge_method, "edger")){
+                    # Expected edgeR validation failures contain actionable
+                    # details (for example, missing raw counts or inadequate
+                    # replication), so return those details to the user.
+                    log_error(
+                      paste0(
+                        "edgeR error in dge_table: ",
+                        conditionMessage(err_cnd)
+                      )
+                    )
+                    showNotification(
+                      ui = dge_edger_error_ui(err_cnd),
+                      duration = NULL,
+                      id = ns("edger_error"),
+                      session = session
+                    )
+                  } else {
+                    # Preserve the existing mapped error handling for
+                    # Wilcoxon and marker analyses.
+                    error_handler(
+                      session,
+                      err_cnd = err_cnd,
+                      error_list = error_list$dge_test_errors,
+                      source_reactive = "dge_table, dge_tab module"
+                    )
+                  }
                   
                   # Hide the spinners
                   main_spinner$hide()
                   sidebar_spinner$hide()
+                  
+                  # Re-enable assay selector
+                  shinyjs::enable("assays")
                   
                   # Return nothing for the dge table in the event of an error
                   return(NULL)
@@ -861,36 +962,302 @@ dge_tab_server <- function(id,
                     }
                   }
                   
-                  # Note: designated genes assay is no longer used
-                  dge_table <-
-                    # Use DGE generic to determine test to run
-                    scDE::run_dge(
-                      object = subset(),
-                      group_by = 
-                        if (metaclusters_present()){
-                          "metacluster"
-                        } else if (thresholding_present()){
-                          "simple_expr_threshold"
-                        } else {
-                          group_by_category()
-                        },
-                      # Seurat assay: designated genes assay, or the first
-                      # assay if undefined.
-                      # This is only used for Seurat objects
-                      seurat_assay =
-                        if (isTruthy(designated_genes_assay())){
-                          designated_genes_assay()
-                        } else names(assay_config())[[1]],
-                      # Positive genes only: based on user input
-                      positive_only = input$pos,
-                      # Report results using a log2 fold change
-                      lfc_format = "log2",
-                      # Show only adjusted p-value column
-                      remove_raw_pval = FALSE
-                      )
+                  # Multi-assay differential expression ####
+                  # Get selected assays from user input
+                  selected_assays <- input$assays
                   
-                  log_session(session)
-                  log_info("DGE Tab: Completed scDE DGE")
+                  # Validate that at least one assay is selected
+                  if (is.null(selected_assays) || 
+                      length(selected_assays) == 0) {
+                    stop("Please select at least one assay to analyze.")
+                  }
+
+                  edgeR_selected <-
+                    identical(test_selections()$dge_method, "edger")
+                  marker_mode <-
+                    identical(test_selections()$dge_mode, "mode_marker")
+                  contrast_mode <- test_selections()$edger_contrast_mode
+                  if (is.null(contrast_mode)) contrast_mode <- "single"
+                  # Marker identification with edgeR is a one-vs-rest
+                  # multi-contrast run over every group of the subset
+                  edgeR_multicontrast <-
+                    edgeR_selected &&
+                    (marker_mode || !identical(contrast_mode, "single"))
+
+                  if (edgeR_selected &&
+                      isTruthy(test_selections()$edger_sample_error)){
+                    stop(test_selections()$edger_sample_error)
+                  }
+
+                  # The cell-level test of AnnData objects runs on the X
+                  # matrix only (scDE's scanpy backend cannot select an obsm
+                  # modality); the others are reported and skipped
+                  if (!edgeR_selected){
+                    eligible_assays <- dge_wilcoxon_assays(subset(), selected_assays)
+                    skipped_assays <- setdiff(selected_assays, eligible_assays)
+                    if (!length(eligible_assays)){
+                      stop(
+                        "None of the selected assays (",
+                        paste(selected_assays, collapse = ", "),
+                        ") can be tested at the cell level for this object; ",
+                        "select the main (X) matrix."
+                      )
+                    }
+                    if (length(skipped_assays)){
+                      showNotification(
+                        paste0(
+                          "The cell-level test runs on the main matrix only; ",
+                          "skipped assays: ",
+                          paste(skipped_assays, collapse = ", "), "."
+                        ),
+                        type = "warning",
+                        duration = 10
+                      )
+                    }
+                    selected_assays <- eligible_assays
+                  }
+
+                  # edgeR sums raw counts, so only assays with a counts layer
+                  # can be tested; the others are reported and skipped
+                  if (edgeR_selected){
+                    eligible_assays <- dge_counts_assays(subset(), selected_assays)
+                    skipped_assays <- setdiff(selected_assays, eligible_assays)
+                    if (!length(eligible_assays)){
+                      stop(
+                        "None of the selected assays (",
+                        paste(selected_assays, collapse = ", "),
+                        ") has a raw counts layer, which edgeR needs."
+                      )
+                    }
+                    if (length(skipped_assays)){
+                      showNotification(
+                        paste0(
+                          "edgeR skipped assays without raw counts: ",
+                          paste(skipped_assays, collapse = ", "), "."
+                        ),
+                        type = "warning",
+                        duration = 10
+                      )
+                      selected_assays <- eligible_assays
+                    }
+                  }
+                  
+                  # Run DGE for each selected assay
+                  dge_results_list <- list()
+                  # The condition object of each assay that failed, so a
+                  # single failure can be re-raised with scDE's own message
+                  failed_conditions <- list()
+                  edger_assay_details <- list()
+                  
+                  # Determine group_by variable (shared across all assays)
+                  group_by_variable <- 
+                    if (metaclusters_present()){
+                      dge_metacluster_column
+                    } else if (thresholding_present()){
+                      dge_threshold_column
+                    } else {
+                      group_by_category()
+                    }
+
+                  # Single edgeR contrast: the two groups, collapsed into
+                  # metacluster names when a picker holds several values
+                  edgeR_group_1 <-
+                    if (metaclusters_present()){
+                      vector_to_text(test_selections()$group_1)
+                    } else {
+                      test_selections()$group_1
+                    }
+                  edgeR_group_2 <-
+                    if (metaclusters_present()){
+                      vector_to_text(test_selections()$group_2)
+                    } else {
+                      test_selections()$group_2
+                    }
+                  
+                  # Loop over each selected assay
+                  for (assay_name in selected_assays) {
+                    tryCatch({
+                      log_session(session)
+                      log_info(
+                        paste0(
+                          "DGE Tab: Running ",
+                          test_selections()$dge_method,
+                          " analysis for assay: ",
+                          assay_name
+                        )
+                      )
+                      
+                      dge_result <-
+                        if (edgeR_multicontrast){
+                          scDE::run_dge_multicontrast(
+                            object = dge_assay_object(subset(), assay_name),
+                            group_by = group_by_category(),
+                            sample_by = test_selections()$edger_sample_col,
+                            contrast_mode =
+                              if (marker_mode) "one_vs_rest" else contrast_mode,
+                            groups =
+                              if (!marker_mode &&
+                                  length(test_selections()$edger_groups)){
+                                test_selections()$edger_groups
+                              } else {
+                                NULL
+                              },
+                            reference_group =
+                              test_selections()$edger_reference_group,
+                            layer = "counts",
+                            seurat_assay = assay_name,
+                            min_cells = test_selections()$edger_min_cells,
+                            positive_only = input$pos,
+                            remove_raw_pval = FALSE,
+                            robust = FALSE
+                          )
+                        } else if (edgeR_selected){
+                          scDE::run_dge(
+                            object = dge_assay_object(subset(), assay_name),
+                            group_by = group_by_variable,
+                            layer = "counts",
+                            seurat_assay = assay_name,
+                            test_use = "edgeR",
+                            sample_by = test_selections()$edger_sample_col,
+                            group_1 = edgeR_group_1,
+                            group_2 = edgeR_group_2,
+                            min_cells = test_selections()$edger_min_cells,
+                            positive_only = input$pos,
+                            lfc_format = "log2",
+                            remove_raw_pval = FALSE,
+                            robust = FALSE
+                          )
+                        } else {
+                          scDE::run_dge(
+                            object = dge_assay_object(subset(), assay_name),
+                            group_by = group_by_variable,
+                            # Selects the assay of Seurat objects and the
+                            # modality of file-backed objects; for
+                            # SingleCellExperiment objects the selected
+                            # experiment is swapped in by dge_assay_object()
+                            seurat_assay = assay_name,
+                            positive_only = input$pos,
+                            lfc_format = "log2",
+                            remove_raw_pval = FALSE
+                          )
+                        }
+
+                      edger_assay_details[[assay_name]] <- list(
+                        details = attr(dge_result, "edger_details"),
+                        multicontrast_details =
+                          attr(dge_result, "edger_multicontrast_details")
+                      )
+                      
+                      # Add assay column to identify which assay these
+                      # results came from
+                      dge_result$assay <- assay_name
+                      
+                      # Store successful result
+                      dge_results_list[[assay_name]] <- dge_result
+                      
+                      log_session(session)
+                      log_info(
+                        paste0(
+                          "DGE Tab: Completed ",
+                          test_selections()$dge_method,
+                          " analysis for assay: ",
+                          assay_name
+                        )
+                      )
+                    }, error = function(assay_error) {
+                      # Log the error for this specific assay
+                      log_session(session)
+                      log_error(
+                        paste0(
+                          "DGE Tab: Failed for assay ", 
+                          assay_name, 
+                          ": ", 
+                          conditionMessage(assay_error)
+                          )
+                        )
+                      
+                      # Keep the condition for the error handling below
+                      failed_conditions[[assay_name]] <<- assay_error
+                    })
+                  }
+                  
+                  # Handle results: check if any assays succeeded
+                  if (length(dge_results_list) == 0) {
+                    if (length(selected_assays) == 1L){
+                      # One assay: re-raise scDE's condition unchanged so the
+                      # user sees its actionable message
+                      stop(failed_conditions[[1]])
+                    }
+                    rlang::abort(
+                      paste0(
+                        "Differential expression analysis failed for all ",
+                        "selected assays."
+                      ),
+                      class = "dge_all_assays_failed",
+                      assay_errors = vapply(
+                        failed_conditions, conditionMessage, character(1)
+                      )
+                    )
+                  } else {
+                    # At least one assay succeeded - combine results
+                    dge_table <- dplyr::bind_rows(dge_results_list)
+                    
+                    # Show warning notification if some assays failed
+                    if (length(failed_conditions) > 0) {
+                      showNotification(
+                        paste0(
+                          "Warning: Differential expression analysis ",
+                          "failed for the following assays: ",
+                          paste(
+                            names(failed_conditions),
+                            vapply(
+                              failed_conditions, conditionMessage, character(1)
+                            ),
+                            sep = ": ",
+                            collapse = "; "
+                          ),
+                          ". Results are shown for successful assays only."
+                          ),
+                        type = "warning",
+                        duration = 10
+                      )
+                    }
+                    
+                    log_session(session)
+                    log_info(
+                      paste0(
+                        "DGE Tab: Completed ",
+                        test_selections()$dge_method,
+                        " analysis for all assays. ",
+                        "Successful: ", 
+                        length(dge_results_list), 
+                        ", Failed: ", 
+                        length(failed_conditions)
+                        )
+                      )
+                  }
+                  attr(dge_table, "dge_method") <-
+                    if (edgeR_selected) "edger" else "wilcoxon"
+                  attr(dge_table, "dge_contrast_mode") <-
+                    if (edgeR_selected){
+                      if (marker_mode) "one_vs_rest" else contrast_mode
+                    } else {
+                      "single"
+                    }
+                  if (edgeR_selected){
+                    if (length(dge_results_list) == 1L){
+                      attr(dge_table, "edger_details") <-
+                        edger_assay_details[[1]]$details
+                      attr(dge_table, "edger_multicontrast_details") <-
+                        edger_assay_details[[1]]$multicontrast_details
+                    } else {
+                      attr(dge_table, "edger_assay_details") <-
+                        edger_assay_details[names(dge_results_list)]
+                    }
+                    # The design of the first assay's result, for the summary
+                    attr(dge_table, "edger_design_type") <-
+                      dge_results_design_type(edger_assay_details[[1]])
+                  }
                   
                   # Compute on values of table (for use with automated tests)
                   # Commented out, column formatting here does not apply for 
@@ -965,6 +1332,9 @@ dge_tab_server <- function(id,
               main_spinner$hide()
               sidebar_spinner$hide()
               
+              # Re-enable assay selector
+              shinyjs::enable("assays")
+              
               # Return NULL for subset to 
               # discontinue downstream calculations
               NULL
@@ -1003,6 +1373,39 @@ dge_tab_server <- function(id,
                   dge_table %>% 
                   dplyr::filter(
                     feature %in% dge_table_filters$feature()
+                  )
+              }
+              
+              if (session$userData$dev_mode == TRUE){
+                print(paste0("Number of rows remaining: ", nrow(dge_table)))
+                print("Filtering by assay:")
+              }
+              
+              # Filter by assay
+              if (isTruthy(dge_table_filters$assay())){
+                dge_table <-
+                  dge_table %>% 
+                  dplyr::filter(
+                    assay %in% dge_table_filters$assay()
+                  )
+              }
+
+              # Filter by contrast and by method (multi-contrast and
+              # pseudobulk results only)
+              if ("contrast" %in% colnames(dge_table) &&
+                  isTruthy(dge_table_filters$contrast())){
+                dge_table <-
+                  dge_table %>%
+                  dplyr::filter(
+                    contrast %in% dge_table_filters$contrast()
+                  )
+              }
+              if ("method" %in% colnames(dge_table) &&
+                  isTruthy(dge_table_filters$method())){
+                dge_table <-
+                  dge_table %>%
+                  dplyr::filter(
+                    method %in% dge_table_filters$method()
                   )
               }
               
@@ -1196,10 +1599,46 @@ dge_tab_server <- function(id,
               c(`Feature` = "feature",
                 `Average Expression` = "avgExpr", 
                 `AUC` = "auc",
-                `Adjusted p-value` = "pval_adj"
+                `Adjusted p-value` = "pval_adj",
+                `Assay` = "assay",
+                # Pseudobulk results: the test behind each row, and the
+                # contrast of multi-contrast runs
+                `Method` = "method",
+                `Contrast` = "contrast",
+                `Group 1` = "group_1",
+                `Group 2` = "group_2"
                 )
             
             table <- dplyr::rename(table, any_of(rename_cols))
+            
+            # Reorder columns to place Assay column early in the table ####
+            # Desired order: Feature, Group, Contrast, Method, Assay, log2FC,
+            # then remaining cols. Only reorder if Assay column is present
+            if ("Assay" %in% colnames(table)) {
+              # Get all column names
+              all_cols <- colnames(table)
+              
+              # Define the desired order for the first columns
+              priority_cols <- c(
+                "Feature", group_rename, "Contrast", "Method", "Assay", "log2FC"
+              )
+              
+              # Get priority columns that exist in the table
+              first_cols <- priority_cols[priority_cols %in% all_cols]
+              
+              # Get remaining columns (excluding priority and "Additional Info")
+              remaining_cols <- setdiff(
+                all_cols, 
+                c(first_cols, "Additional Info")
+                )
+              
+              # Create final column order: priority cols, remaining cols, 
+              # Additional Info last
+              final_order <- c(first_cols, remaining_cols, "Additional Info")
+              
+              # Reorder the table
+              table <- table[, final_order]
+            }
             
             datatable(
               table,
@@ -1245,9 +1684,9 @@ dge_tab_server <- function(id,
             # Define metadata used to split plot (DGE groups/marker classes) 
             metadata_column <- 
               if (metaclusters_present()){
-                "metacluster"
+                dge_metacluster_column
               } else if (thresholding_present()){
-                  "simple_expr_threshold"
+                dge_threshold_column
               } else {
                 group_by_category()
                 }
@@ -1280,11 +1719,9 @@ dge_tab_server <- function(id,
               # Split by groups or marker classes used for DGE
               split_by = 
                 if (metaclusters_present()){
-                  # Use "metacluster" when metaclusers present
-                  "metacluster"
+                  dge_metacluster_column
                 } else if (thresholding_present()){
-                  # When thresholding present, use "simple_expr_threshold"
-                  "simple_expr_threshold"
+                  dge_threshold_column
                 } else {
                   # Standard DGE: split by the group by category
                   group_by_category()
@@ -1375,6 +1812,13 @@ dge_tab_server <- function(id,
             id = "download_table"
             )
           
+          # The pseudobulk sample table exists for edgeR runs only
+          if (identical(attr(dge_table_content(), "dge_method"), "edger")){
+            showElement(id = "download_pseudobulk")
+          } else {
+            hideElement(id = "download_pseudobulk")
+          }
+          
           # Show UMAP options panel
           showElement(
             id = "options_panel_ui"
@@ -1383,6 +1827,10 @@ dge_tab_server <- function(id,
           # Hide spinners
           sidebar_spinner$hide()
           main_spinner$hide()
+          
+          # Re-enable assay selector after analysis completes
+          shinyjs::enable("assays")
+          
           log_session(session)
           log_info("DGE Tab: Spinners removed.")
           })
@@ -1448,6 +1896,28 @@ dge_tab_server <- function(id,
           contentType = "text/csv"
           ) # End downloadHandler
       
+      # Pseudobulk sample table: the retained and excluded sample x group
+      # profiles behind every edgeR contrast, and the test used per contrast
+      output$download_pseudobulk <-
+        downloadHandler(
+          filename = function() {
+            group_var <- test_selections()$group_by
+            if (!is.null(group_var) && !is.na(group_var)){
+              glue("DGE_pseudobulk_samples_{group_var}.csv")
+            } else {
+              "DGE_pseudobulk_samples.csv"
+            }
+          },
+          content = function(file) {
+            write.csv(
+              edger_details_table(dge_table_content()),
+              file = file,
+              row.names = FALSE
+              )
+            },
+          contentType = "text/csv"
+          )
+      
       # Dev mode: status of filter table values
       if (session$userData$dev_mode == TRUE){
         output$dge_filter_status <-
@@ -1471,4 +1941,161 @@ dge_tab_server <- function(id,
       }
     )
   }
-  
+
+# Build the persistent notification shown for expected edgeR input and design
+# failures. Shiny escapes the condition text, while keeping the specific reason
+# visible to the user.
+dge_edger_error_ui <- function(err_cnd){
+  assay_errors <- err_cnd$assay_errors
+  icon_notification_ui(
+    icon_name = "exclamation-triangle",
+    tagList(
+      tags$strong("edgeR could not run: "),
+      conditionMessage(err_cnd),
+      # One failure per assay when several assays were tested
+      if (length(assay_errors)){
+        tags$ul(
+          lapply(
+            names(assay_errors),
+            function(assay) tags$li(paste0(assay, ": ", assay_errors[[assay]]))
+          )
+        )
+      }
+    )
+  )
+}
+
+# Assays (among `assays`) holding a raw counts layer, which edgeR needs.
+# Layers are listed through SCUBA so every object class is covered.
+# The object to hand to scDE for one selected assay. scDE selects assays
+# through `seurat_assay` for Seurat objects and modalities for file-backed
+# objects, but its SingleCellExperiment backends always read the main
+# experiment, so a selected alternative experiment is swapped into the main
+# position first (keeping the cell metadata, which carries the groups).
+dge_assay_object <- function(object, assay){
+  if (inherits(object, "SingleCellExperiment") && isTruthy(assay)){
+    main <- SingleCellExperiment::mainExpName(object)
+    if (!identical(assay, main) &&
+        assay %in% SingleCellExperiment::altExpNames(object)){
+      return(
+        SingleCellExperiment::swapAltExp(
+          object, assay, saved = main, withColData = TRUE
+        )
+      )
+    }
+  }
+  object
+}
+
+# Assays the cell-level (Wilcoxon) test can analyse. scDE's scanpy backend
+# for AnnData objects reads the X matrix only, so obsm modalities offered as
+# assays (for example a protein panel) cannot be selected there; every other
+# class is served per assay (Seurat, file-backed) or swapped in
+# (SingleCellExperiment, see dge_assay_object()).
+dge_wilcoxon_assays <- function(object, assays){
+  anndata_classes <- c("AnnDataR6", "anndata.AnnData", "anndata._core.anndata.AnnData")
+  if (inherits(object, anndata_classes)){
+    return(intersect(assays, "X"))
+  }
+  assays
+}
+
+dge_counts_assays <- function(object, assays, counts_layer = "counts"){
+  has_counts <- vapply(assays, function(assay){
+    layers <- tryCatch(
+      SCUBA::layer_names(object, assay = assay),
+      error = function(err_cnd) character()
+    )
+    counts_layer %in% layers
+  }, logical(1))
+  assays[has_counts]
+}
+
+# The design type recorded in one assay's edgeR details: the single-contrast
+# design, or the designs of a multi-contrast run ("mixed" when they differ).
+dge_results_design_type <- function(assay_details){
+  details <- assay_details$details
+  multi <- assay_details$multicontrast_details
+  if (!is.null(multi) && is.data.frame(multi$contrast_table)){
+    types <- unique(multi$contrast_table$design_type[
+      multi$contrast_table$method == "edgeR"
+    ])
+    types <- types[!is.na(types)]
+    if (!length(types)) return(NA_character_)
+    return(if (length(types) == 1L) types else "mixed")
+  }
+  if (!is.null(details) && !is.null(details$design_type)){
+    return(details$design_type)
+  }
+  NA_character_
+}
+
+# Flatten the pseudobulk profiles behind an edgeR result (any of the three
+# attribute shapes) into one table for download: one row per sample x group
+# profile and contrast, with whether it was retained and why not, plus the
+# test used for the contrast.
+edger_details_table <- function(results){
+  profile_rows <- function(details, contrast = NA_character_, assay = NA_character_){
+    if (is.null(details)) return(NULL)
+    retained <- details$retained_profiles
+    excluded <- details$excluded_profiles
+    rows <- list()
+    if (is.data.frame(retained) && nrow(retained)){
+      rows$retained <- data.frame(
+        sample = retained$sample, group = retained$group,
+        n_cells = retained$n_cells, retained = TRUE,
+        exclusion_reason = NA_character_, stringsAsFactors = FALSE
+      )
+    }
+    if (is.data.frame(excluded) && nrow(excluded)){
+      rows$excluded <- data.frame(
+        sample = excluded$sample, group = excluded$group,
+        n_cells = excluded$n_cells, retained = FALSE,
+        exclusion_reason = excluded$exclusion_reason, stringsAsFactors = FALSE
+      )
+    }
+    rows <- dplyr::bind_rows(rows)
+    if (!nrow(rows)){
+      rows <- data.frame(
+        sample = NA_character_, group = NA_character_, n_cells = NA_integer_,
+        retained = NA, exclusion_reason = NA_character_, stringsAsFactors = FALSE
+      )
+    }
+    rows$assay <- assay
+    rows$contrast <- contrast
+    rows$method <- details$method
+    rows$design_type <- details$design_type
+    rows$fallback_reason <- details$fallback_reason
+    rows
+  }
+  assay_rows <- function(details, multi, assay = NA_character_){
+    if (!is.null(multi)){
+      return(dplyr::bind_rows(lapply(names(multi$contrasts), function(contrast){
+        profile_rows(multi$contrasts[[contrast]], contrast = contrast, assay = assay)
+      })))
+    }
+    details_contrast <-
+      if (!is.null(details)) paste(details$group_1, "vs", details$group_2) else NA_character_
+    profile_rows(details, contrast = details_contrast, assay = assay)
+  }
+  assay_details <- attr(results, "edger_assay_details")
+  table <-
+    if (!is.null(assay_details)){
+      dplyr::bind_rows(lapply(names(assay_details), function(assay){
+        assay_rows(
+          assay_details[[assay]]$details,
+          assay_details[[assay]]$multicontrast_details,
+          assay = assay
+        )
+      }))
+    } else {
+      assay_rows(
+        attr(results, "edger_details"),
+        attr(results, "edger_multicontrast_details"),
+        assay = if ("assay" %in% names(results)) unique(results$assay)[1] else NA_character_
+      )
+    }
+  if (is.null(table) || !nrow(table)) return(data.frame())
+  table[, c("assay", "contrast", "method", "design_type", "sample", "group",
+            "n_cells", "retained", "exclusion_reason", "fallback_reason")]
+}

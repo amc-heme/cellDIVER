@@ -15,7 +15,10 @@
 require_python_support <- function(format) {
   missing <- Filter(
     function(package) !requireNamespace(package, quietly = TRUE),
-    c("reticulate", "anndata")
+    c(
+      "reticulate",
+      if (identical(format, "h5ad")) "anndata"
+    )
   )
 
   if (length(missing) > 0) {

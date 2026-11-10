@@ -156,7 +156,42 @@ make_subset.AnnDataR6 <-
       return(object)
     }
     
-    # Otherwise, form vector of variables included in filter criteria, 
+    # Subset Anndata object for the matching cells
+    object[cells_matching_filters(object, filter_list), ]
+  }
+
+#' @describeIn make_subset File-backed SCUBA objects (.h5ad / .h5mu): the
+#' metadata lives in R and the subset records the cells, so filters are
+#' evaluated on fetched data and the object is indexed by cell name.
+#' @export
+make_subset.scuba_source <-
+  function(
+    object,
+    filter_list
+  ){
+    if (length(filter_list) == 0){
+      return(object)
+    }
+    object[cells_matching_filters(object, filter_list)]
+  }
+
+#' Cells matching every filter of a filter list
+#'
+#' Evaluates categorical and numeric filters on data fetched through SCUBA,
+#' for objects that cannot be subset with an R expression (AnnData and
+#' file-backed objects).
+#'
+#' @param object A single-cell object supported by SCUBA.
+#' @param filter_list The filter list of the subset selections module.
+#'
+#' @return A character vector of cell names.
+#' @noRd
+cells_matching_filters <-
+  function(
+    object,
+    filter_list
+  ){
+    # Form vector of variables included in filter criteria, 
     # and pull data on each variable for all cells in the object
     all_filter_vars <-
       sapply(
@@ -216,14 +251,10 @@ make_subset.AnnDataR6 <-
 
     # Determine cells for subsetting object
     # If there is only one filter criterion, unpack the vector of matching cells
-    cells <- 
-      if (length(matching_cells) == 1){
-        matching_cells[[1]]
-      } else {
-        # Multiple criteria: take the intersect of cells matching each critierion
-        Reduce(f = intersect, x = matching_cells)
-      }
-    
-    # Subset Anndata object for cells
-    object[cells,]
+    if (length(matching_cells) == 1){
+      matching_cells[[1]]
+    } else {
+      # Multiple criteria: take the intersect of cells matching each critierion
+      Reduce(f = intersect, x = matching_cells)
+    }
   }

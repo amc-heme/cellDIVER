@@ -41,8 +41,30 @@ test_that("DimPlot renders, groups, splits, filters and resets actual cells", {
   expect_equal(browser_point_count(reset), nrow(metadata))
 })
 
+test_that("the feature picker loads its choices from the server", {
+  # Unlike browser_set_feature(), which registers options client-side, this
+  # drives selectize's own server-side loader, which only works if the
+  # picker exists when the module pushes its choices.
+  app <- browser_app("plots-feature-picker")
+  browser_open_tab(app, "plots", "object_plots-make_dimplot")
+  picker <- "document.querySelector('#object_plots-text_features').selectize"
+  app$wait_for_js(sprintf("!!(%s && %s.settings.load)", picker, picker))
+  app$run_js(sprintf("%s.focus(); %s.onSearchChange('CD3');", picker, picker))
+  app$wait_for_js(sprintf("Object.keys(%s.options).length > 0", picker))
+  options <- app$get_js(sprintf("Object.keys(%s.options)", picker))
+  expect_true("rna_CD34" %in% options)
+
+  logs <- app$get_logs()
+  # No bsTooltip() call may fail in the browser
+  console <- logs[logs$location != "shiny", "message"]
+  expect_false(any(grepl("shinyBS is not defined", console, fixed = TRUE)))
+  # and no download handler may error on startup
+  server <- logs[logs$location == "shiny", "message"]
+  expect_false(any(grepl("confirm_download", server, fixed = TRUE)))
+})
+
 for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
-                    "proportion")) {
+                    "proportion", "hexbin_density", "hexbin_feature")) {
   test_that(paste("browser renders real", plot_type, "plot content"), {
     app <- browser_app(paste0("plot-", plot_type))
     browser_open_tab(app, "plots", "object_plots-make_dimplot")
@@ -60,6 +82,9 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
       # of another, so it refuses to draw while both default to the same
       # column ("Proportions" and "Proportion Comparison" must differ).
       browser_set(app, paste0(namespace, "-split_by"), "Batch")
+    } else if (plot_type == "hexbin_density") {
+      # Density plots need no feature; exercise the relocated bins slider.
+      browser_set(app, paste0(namespace, "-hexbin_nbins"), 30)
     } else {
       browser_set_feature(app, "object_plots-text_features", "rna_CD34")
     }
@@ -68,6 +93,48 @@ for (plot_type in c("feature", "violin", "dot", "ridge", "scatter",
     if (plot_type == "proportion") {
       expect_match(svg, "B Cells", fixed = TRUE)
       expect_match(svg, "<rect")
+    } else if (plot_type == "hexbin_density") {
+      expect_match(svg, "Density", fixed = TRUE)
+      expect_match(svg, "<(polygon|path)\\b")
+    } else if (plot_type == "hexbin_feature") {
+      expect_match(svg, "CD34", fixed = TRUE)
+      expect_match(svg, "(mean)", fixed = TRUE)
+      expect_match(svg, "<(polygon|path)\\b")
+      # The aggregation method and bins inputs now live in the plot module
+      # namespace, ahead of the download button; changing them re-renders.
+      browser_set(app, paste0(namespace, "-hexbin_action"), "sum")
+      browser_set(app, paste0(namespace, "-hexbin_nbins"), 30)
+      browser_plot(app, paste0(namespace, "-plot"))
+      summed <- browser_svg(app, namespace)
+      expect_match(summed, "(sum)", fixed = TRUE)
+      expect_false(identical(svg, summed))
+      # Color scale limits are bounded by the plotted (per-bin) values, so
+      # the upper bound shrinks when sums are replaced by means.
+      browser_set(app, paste0(namespace, "-use_color_limits"), TRUE)
+      sum_limits <- app$wait_for_value(
+        input = paste0(namespace, "-color_limits"), ignore = list(c(0, 1))
+      )
+      expect_length(sum_limits, 2)
+      browser_set(app, paste0(namespace, "-hexbin_action"), "mean")
+      mean_limits <- app$wait_for_value(
+        input = paste0(namespace, "-color_limits"),
+        ignore = list(c(0, 1), sum_limits)
+      )
+      expect_lt(mean_limits[[2]], sum_limits[[2]])
+      # "Data values" bounds the slider by the per-cell range: below any
+      # per-bin sum, and no higher than the per-bin means (equal when a bin
+      # holds a single cell, so the slider may legitimately not move).
+      browser_set(app, paste0(namespace, "-color_limits_target"), "data")
+      app$wait_for_idle(); Sys.sleep(2)
+      cell_limits <- app$get_value(input = paste0(namespace, "-color_limits"))
+      expect_lt(cell_limits[[2]], sum_limits[[2]])
+      expect_lte(cell_limits[[2]], mean_limits[[2]])
+      # "Quantiles" fixes the slider at 0-100 percent
+      browser_set(app, paste0(namespace, "-color_limits_units"), "quantile")
+      quantile_limits <- app$wait_for_value(
+        input = paste0(namespace, "-color_limits"), ignore = list(cell_limits)
+      )
+      expect_equal(quantile_limits, c(0, 100))
     } else {
       expect_match(svg, "CD34", fixed = TRUE)
       if (plot_type == "scatter") expect_match(svg, "CD38", fixed = TRUE)

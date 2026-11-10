@@ -105,3 +105,13 @@ assay_names.mudata._core.mudata.MuData <-
     )
   }
   
+#' @describeIn assay_names File-backed SCUBA objects: the modalities of the
+#' file (the main matrix first)
+#' @export
+assay_names.scuba_source <-
+  function(
+    object,
+    ...
+  ){
+    SCUBA::scuba_source_modalities(object)
+  }

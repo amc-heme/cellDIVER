@@ -58,10 +58,24 @@ error_handler <-
     error_match <- FALSE
     # Loop through all defined error types (error_list)
     for (error_type in error_list){
+      # Conditions and configured match expressions can occasionally contain
+      # more than one element. Reduce all comparisons to one logical value so
+      # the error handler cannot mask the original error with
+      # "the condition has length > 1".
+      condition_text <- paste(conditionMessage(err_cnd), collapse = "\n")
+      error_patterns <- as.character(error_type$err_message)
+      message_matches <- any(vapply(
+        error_patterns,
+        function(pattern){
+          isTRUE(grepl(pattern = pattern, x = condition_text))
+        },
+        logical(1)
+      ))
+
       # If the condition message (the error that is returned) matches the error 
       # message of a stored error type (error_type$err_message), show the 
       # notification associated with that error type
-      if (grepl(pattern = error_type$err_message, x = err_cnd$message)){
+      if (message_matches){
         # Display Notification
         showNotification(
           ui = error_type$notification, 

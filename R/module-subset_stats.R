@@ -38,14 +38,15 @@ subset_stats_ui <- function(id,
           outputId = ns("print_mode"), 
           inline = FALSE
           ),
-        # Statistical method used for test
-        # Always a Wilcoxon rank sum
+        # Statistical method used for the submitted test
         tags$strong(
           "Statistical Method:"
         ),
-        tags$span(
-          "Wilcoxon rank sum"
+        textOutput(
+          outputId = ns("dge_method"),
+          inline = TRUE
         ),
+        uiOutput(outputId = ns("edger_sample_summary")),
         # Threshold used: only displays for threshold-based DGE
         hidden(
           div(
@@ -192,6 +193,14 @@ subset_stats_ui <- function(id,
 #' @param thresholding_present only used in the DGE tab. If TRUE, the number of cells above and below the chosen expression threshold will be displayed.
 #' @param dge_simple_threshold only used in the DGE tab. If thresholding is 
 #' being used, the value of the threshold chosen is passed here to be displayed.
+#' @param dge_method For the DGE tab, a reactive returning the submitted
+#' differential-expression method.
+#' @param dge_mode For the DGE tab, a reactive returning the submitted analysis
+#' mode.
+#' @param dge_group_1,dge_group_2 For standard DGE, reactives returning the
+#' submitted comparison groups in contrast order.
+#' @param dge_contrast_mode Reactive returning the submitted edgeR contrast
+#' mode.
 #'
 #' @noRd
 subset_stats_server <- 
@@ -205,7 +214,12 @@ subset_stats_server <-
            group_by_category,
            metaclusters_present = NULL,
            thresholding_present = NULL,
-           dge_simple_threshold = NULL
+           dge_simple_threshold = NULL,
+           dge_method = NULL,
+           dge_mode = NULL,
+           dge_group_1 = NULL,
+           dge_group_2 = NULL,
+           dge_contrast_mode = NULL
            ){
     moduleServer(
       id, 
@@ -219,10 +233,15 @@ subset_stats_server <-
         if (
           tab == "dge" & 
             (!is.reactive(metaclusters_present) | 
-             !is.reactive(thresholding_present))
+             !is.reactive(thresholding_present) |
+             !is.reactive(dge_method) |
+             !is.reactive(dge_mode) |
+             !is.reactive(dge_group_1) |
+             !is.reactive(dge_group_2) |
+             !is.reactive(dge_contrast_mode))
         ){
-          stop("If `tab`=='dge', arguments `metaclusters_present` and 
-               `thresholding_present` must be defined as reactive values.")
+          stop("If `tab`=='dge', arguments `metaclusters_present` and
+               all DGE selection arguments must be defined as reactive values.")
         }
         
         # 1. Compute stats for subset ------------------------------------------
@@ -283,6 +302,28 @@ subset_stats_server <-
         # For DGE tab only: stats on selected DE/marker groups, test 
         # mode, and number of cells by class
         if (tab == "dge"){
+          output$dge_method <- renderText({
+            results <- event_expr()
+            submitted_method <- attr(results, "dge_method")
+            if (is.null(submitted_method)){
+              submitted_method <- dge_method()
+            }
+            dge_results_method_label(results, submitted_method)
+          })
+
+          output$edger_sample_summary <- renderUI({
+            results <- event_expr()
+            req(identical(attr(results, "dge_method"), "edger"), results)
+            summary_text <- edger_sample_summary_text(results)
+            req(isTruthy(summary_text))
+
+            div(
+              class = "half-space-top",
+              tags$strong("Biological samples retained: "),
+              tags$span(summary_text)
+            )
+          })
+
           # `groups`
           # The groups or markers used for DGE. 
           # Used for downstream stats
@@ -298,9 +339,9 @@ subset_stats_server <-
                     # expression threshold if either of those modes are enabled.
                     # Otherwise, use the group by variable (category).
                     if (metaclusters_present()){
-                      "metacluster"
+                      dge_metacluster_column
                       } else if (thresholding_present()){
-                      "simple_expr_threshold"
+                      dge_threshold_column
                       } else {
                       group_by_category()
                       }
@@ -322,17 +363,15 @@ subset_stats_server <-
             eventReactive(
               event_expr(),
               {
-                ifelse(
-                  # Conditional: TRUE when differential expression 
-                  # is selected
-                  n_groups() == 2,
-                  # Differential expression: print the two groups
-                  # groups() contains the identities of both groups
-                  glue("Differential Expression ({groups()[1]} vs. 
-                                {groups()[2]})"),
-                  # Marker identification: print the number of
-                  # groups selected
-                  glue("Marker Identification ({n_groups()} groups)")
+                dge_mode_description(
+                  mode = dge_mode(),
+                  observed_groups = groups(),
+                  group_1 = dge_group_1(),
+                  group_2 = dge_group_2(),
+                  thresholding = thresholding_present(),
+                  contrast_mode = dge_contrast_mode(),
+                  n_contrasts = length(unique(event_expr()$contrast)),
+                  design_type = attr(event_expr(), "edger_design_type")
                 )
               })
           
@@ -530,4 +569,146 @@ subset_stats_server <-
           )
         } # Currently no need to return values for correlations tab
       })
+}
+
+# Describe the submitted analysis without reordering a two-group contrast based
+# on metadata factor or cell order.
+dge_mode_description <- function(mode,
+                                 observed_groups,
+                                 group_1 = NULL,
+                                 group_2 = NULL,
+                                 thresholding = FALSE,
+                                 contrast_mode = "single",
+                                 n_contrasts = NULL,
+                                 design_type = NULL){
+  paired <- if (identical(design_type, "paired")) ", paired by sample" else ""
+  if (identical(mode, "mode_dge")){
+    if (!identical(contrast_mode, "single")){
+      return(
+        paste0(
+          "Differential Expression (",
+          if (is.null(n_contrasts)) 0L else n_contrasts,
+          " edgeR ", gsub("_", "-", contrast_mode), " contrasts", paired, ")"
+        )
+      )
+    }
+    if (!isTRUE(thresholding) && length(group_1) > 0L && length(group_2) > 0L){
+      group_1_label <- paste(group_1, collapse = " and ")
+      group_2_label <- paste(group_2, collapse = " and ")
+    } else {
+      group_1_label <- observed_groups[[1]]
+      group_2_label <- observed_groups[[2]]
+    }
+
+    return(
+      paste0(
+        "Differential Expression (", group_1_label,
+        " vs. ", group_2_label, paired, ")"
+      )
+    )
+  }
+
+  # Marker identification with edgeR is a one-vs-rest multi-contrast run
+  if (identical(contrast_mode, "one_vs_rest")){
+    return(
+      paste0(
+        "Marker Identification (", length(observed_groups),
+        " groups; edgeR one-vs-rest", paired, ")"
+      )
+    )
+  }
+  paste0("Marker Identification (", length(observed_groups), " groups)")
+}
+
+# Method label for a submitted result: edgeR runs report their design and
+# whether some or all contrasts fell back to the cell-level test.
+dge_results_method_label <- function(results, submitted_method){
+  if (!identical(submitted_method, "edger") || is.null(results)){
+    return(dge_method_label(submitted_method))
+  }
+  methods <- if ("method" %in% names(results)) unique(results$method) else "edgeR"
+  design_type <- attr(results, "edger_design_type")
+  if (all(methods == "wilcoxon")){
+    return(dge_method_label("edger", fallback = TRUE))
+  }
+  label <- dge_method_label("edger", design_type = design_type)
+  if ("wilcoxon" %in% methods){
+    n_fallback <- length(unique(results$contrast[results$method == "wilcoxon"]))
+    label <- paste0(
+      label, "; cell-level Wilcoxon fallback for ", n_fallback, " contrast",
+      if (n_fallback == 1L) "" else "s"
+    )
+  }
+  label
+}
+
+# Format retained/excluded pseudobulk information from either edgeR result
+# shape without making the UI depend on internal model objects.
+edger_sample_summary_text <- function(results){
+  # One contrast: retained samples per group, or the fallback and its reason
+  contrast_text <- function(details){
+    if (identical(details$method, "wilcoxon")){
+      return(paste0("cell-level Wilcoxon (", details$fallback_reason, ")"))
+    }
+    retained <- details$sample_summary
+    retained_text <- paste0(
+      retained$group, ": ", retained$retained_samples, collapse = "; "
+    )
+    excluded <- nrow(details$excluded_profiles)
+    paste0(
+      if (identical(details$design_type, "paired")) "paired; " else "",
+      retained_text, "; excluded: ", excluded
+    )
+  }
+  format_summary <- function(details, multi){
+    if (!is.null(multi)){
+      summaries <- vapply(names(multi$contrasts), function(contrast){
+        paste0(contrast, " [", contrast_text(multi$contrasts[[contrast]]), "]")
+      }, character(1))
+      return(paste(summaries, collapse = " | "))
+    }
+
+    if (is.null(details)){
+      return(NULL)
+    }
+    if (identical(details$method, "wilcoxon")){
+      return(contrast_text(details))
+    }
+    if (!is.data.frame(details$sample_summary)){
+      return(NULL)
+    }
+    retained <- details$sample_summary
+    excluded <- nrow(details$excluded_profiles)
+    paste0(
+      if (identical(details$design_type, "paired")) "Paired by sample. " else "",
+      paste0(retained$group, ": ", retained$retained_samples, collapse = "; "),
+      ". ", excluded, " sample/group pseudobulk profile(s) excluded."
+    )
+  }
+
+  assay_details <- attr(results, "edger_assay_details")
+  if (!is.null(assay_details)){
+    summaries <- lapply(names(assay_details), function(assay){
+      details <- assay_details[[assay]]
+      summary <- format_summary(
+        details$details,
+        details$multicontrast_details
+      )
+      if (isTruthy(summary)){
+        paste0(assay, ": ", summary)
+      } else {
+        NULL
+      }
+    })
+    summaries <- Filter(Negate(is.null), summaries)
+    if (length(summaries) > 0L){
+      return(paste(unlist(summaries), collapse = " | "))
+    }
+    return(NULL)
+  }
+
+  format_summary(
+    attr(results, "edger_details"),
+    attr(results, "edger_multicontrast_details")
+  )
 }

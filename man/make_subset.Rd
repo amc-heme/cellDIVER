@@ -4,6 +4,7 @@
 \alias{make_subset}
 \alias{make_subset.default}
 \alias{make_subset.AnnDataR6}
+\alias{make_subset.scuba_source}
 \title{Subset Creation}
 \usage{
 make_subset(object, filter_list)
@@ -11,6 +12,8 @@ make_subset(object, filter_list)
 \method{make_subset}{default}(object, filter_list)
 
 \method{make_subset}{AnnDataR6}(object, filter_list)
+
+\method{make_subset}{scuba_source}(object, filter_list)
 }
 \arguments{
 \item{object}{a single cell object}
@@ -30,6 +33,10 @@ Method ran for all classes besides anndata
 \item \code{make_subset(default)}: Seurat, SingleCellExperiment objects
 
 \item \code{make_subset(AnnDataR6)}: Anndata objects
+
+\item \code{make_subset(scuba_source)}: File-backed SCUBA objects (.h5ad / .h5mu): the
+metadata lives in R and the subset records the cells, so filters are
+evaluated on fetched data and the object is indexed by cell name.
 
 }}
 \keyword{internal}

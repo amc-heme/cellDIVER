@@ -138,26 +138,97 @@ browser_open_tab <- function(app, tab, anchor) {
   invisible(app)
 }
 
+#' Choose the differential expression method and wait for the server to apply it
+#'
+#' The method picker's choices are re-sent by the server once the object's
+#' metadata is known, with the selection the server last saw. On a slow
+#' runner that update can arrive after the test has already chosen edgeR
+#' and silently put the picker back to Wilcoxon. Select, let Shiny settle,
+#' confirm the value, retry if it was overwritten, and finally wait for the
+#' edgeR options panel, which the server shows only once it has applied
+#' the choice.
+#'
+#' @param app Running browser driver.
+#' @param value `"edger"` or `"wilcoxon"`.
+#' @return The driver, invisibly.
+browser_select_method <- function(app, value) {
+  input <- "object_dge-test_selections-method"
+  for (attempt in 1:3) {
+    browser_set(app, input, value)
+    app$wait_for_idle(duration = 1000)
+    if (identical(app$get_value(input = input), value)) break
+  }
+  testthat::expect_identical(app$get_value(input = input), value)
+  if (identical(value, "edger")) {
+    app$wait_for_js(
+      paste0(
+        "getComputedStyle(document.getElementById(",
+        "'object_dge-test_selections-edger_options')).display !== 'none'"
+      ),
+      timeout = 30000
+    )
+  }
+  invisible(app)
+}
+
 #' Set a dynamically named bound browser input
 #'
 #' Fails when the target is absent: `set_inputs()` only logs "Unable to find
 #' input binding" and carries on, which turns a missing element into a
 #' misleading timeout much later in the test.
 #'
+#' Also confirms the value the server holds afterwards. Many pickers are
+#' refreshed by the server when another input changes (the group pickers after
+#' `group_by`, the filter values after the filter variable, the method picker
+#' after the object loads), and that refresh selects a default. On a slow
+#' runner it can arrive after the test's own value and silently overwrite it,
+#' which then surfaces as a wrong result or a timeout much later. Let Shiny
+#' settle, read the value back, and set it again if it was overwritten.
+#'
 #' @param app Running browser driver.
 #' @param input Fully namespaced input ID.
 #' @param value Value to send through the real input binding.
+#' @param verify Confirm the value from the server and retry. `FALSE` for
+#'   one-shot menus the server resets on purpose after reading them (the
+#'   subset filter type picker).
 #' @return The driver, invisibly, after reactive updates settle.
-browser_set <- function(app, input, value) {
+browser_set <- function(app, input, value, verify = TRUE) {
   testthat::expect_true(
     app$get_js(sprintf("document.getElementById('%s') !== null", input)),
     label = paste0("input '", input, "' exists in the DOM")
   )
-  do.call(app$set_inputs, c(
-    stats::setNames(list(value), input), list(wait_ = FALSE)
-  ))
-  app$wait_for_idle()
+  for (attempt in 1:3) {
+    do.call(app$set_inputs, c(
+      stats::setNames(list(value), input), list(wait_ = FALSE)
+    ))
+    app$wait_for_idle(duration = 500)
+    if (!verify || browser_value_matches(app$get_value(input = input), value)) break
+  }
+  if (!verify) return(invisible(app))
+  testthat::expect_true(
+    browser_value_matches(app$get_value(input = input), value),
+    label = paste0(
+      "input '", input, "' holds ", paste(format(value), collapse = ", "),
+      " after being set"
+    )
+  )
   invisible(app)
+}
+
+#' Compare a value read back from Shiny with the value that was set
+#'
+#' Read-back values come as character vectors (or lists for multi-selects)
+#' and in widget order, so compare as unordered character sets; numbers and
+#' logicals are compared through their character form.
+#'
+#' @param actual Value from `app$get_value(input = )`.
+#' @param expected Value passed to `browser_set()`.
+#' @return `TRUE` when both describe the same selection.
+browser_value_matches <- function(actual, expected) {
+  actual <- as.character(unlist(actual))
+  expected <- as.character(unlist(expected))
+  if (is.null(actual) || !length(actual)) return(!length(expected))
+  setequal(actual, expected)
 }
 
 #' Choose a value in a server-side selectize input
@@ -180,7 +251,7 @@ browser_set <- function(app, input, value) {
 browser_set_feature <- function(app, input, values) {
   values <- as.character(values)
   id <- jsonlite::toJSON(input, auto_unbox = TRUE)
-  app$run_js(sprintf(
+  script <- sprintf(
     paste0(
       "(() => { const element = document.getElementById(%s);",
       " const control = element && element.selectize;",
@@ -191,8 +262,14 @@ browser_set_feature <- function(app, input, values) {
       " control.setValue(values, false); })()"
     ),
     id, id, jsonlite::toJSON(values)
-  ))
-  app$wait_for_idle()
+  )
+  # A late `updateSelectizeInput()` from the server can clear the selection
+  # (see browser_set()): confirm the value and select again if needed.
+  for (attempt in 1:3) {
+    app$run_js(script)
+    app$wait_for_idle(duration = 500)
+    if (browser_value_matches(app$get_value(input = input), values)) break
+  }
   # Fail here rather than at a downstream timeout if the value did not stick.
   testthat::expect_setequal(app$get_value(input = input), values)
   invisible(app)
@@ -251,7 +328,8 @@ browser_expand_panel <- function(app, panel) {
 browser_filter <- function(app, namespace, variable, values, panel = NULL) {
   if (!is.null(panel)) browser_expand_panel(app, panel)
   browser_click(app, paste0(namespace, "-add_filter"))
-  browser_set(app, paste0(namespace, "-filter_type"), "categorical")
+  # the type picker is reset to blank by the server once it has read it
+  browser_set(app, paste0(namespace, "-filter_type"), "categorical", verify = FALSE)
   browser_set(app, paste0(namespace, "-categorical_var"), variable)
   browser_set(app, paste0(namespace, "-categorical_values"), values)
   browser_click(app, paste0(namespace, "-filter_confirm"))
@@ -458,4 +536,47 @@ browser_click_plot <- function(app, output, fraction = 0.4) {
   )
   app$wait_for_idle()
   invisible(app)
+}
+
+#' Read the replicated pseudobulk browser fixture
+#'
+#' Sources the same file as the `cellDIVER_pseudobulk` fixture app.
+#'
+#' @return The Seurat object served by that app.
+browser_pseudobulk_object <- function() {
+  fixture_environment <- new.env(parent = globalenv())
+  sys.source(
+    testthat::test_path("apps", "cellDIVER_pseudobulk", "pseudobulk_fixture.R"),
+    envir = fixture_environment
+  )
+  fixture_environment$pseudobulk_browser_object()
+}
+
+#' Assert the browser's edgeR result equals a direct scDE run
+#'
+#' @param app Running browser driver.
+#' @param expected The scDE result the app's table must match.
+#' @param previous Previous exported table to wait past.
+#' @return The actual table exported by the app.
+browser_expect_pseudobulk <- function(app, expected, previous = NULL) {
+  actual <- app$wait_for_value(
+    export = "object_dge-dge_table", ignore = list(NULL, previous)
+  )
+  testthat::expect_s3_class(actual, "data.frame")
+  testthat::expect_gt(nrow(actual), 0)
+  testthat::expect_identical(attr(actual, "dge_method"), "edger")
+  columns <- intersect(
+    c("contrast", "method", "group", "feature", "avgExpr", "log2FC", "pval", "pval_adj"),
+    names(expected)
+  )
+  testthat::expect_true(all(columns %in% names(actual)))
+  key <- function(x) paste(x$group, x$feature, if ("contrast" %in% names(x)) x$contrast else "")
+  actual_order <- order(key(actual))
+  expected_order <- order(key(expected))
+  testthat::expect_equal(
+    as.data.frame(actual[actual_order, columns]),
+    as.data.frame(expected[expected_order, columns]),
+    tolerance = 1e-6, ignore_attr = TRUE
+  )
+  actual
 }
