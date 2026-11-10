@@ -78,7 +78,10 @@ type of plot being created by expr_plot (violin, dot, etc.).</p>
 <span><span class="fu">relabel_axis</span><span class="op">(</span><span class="va">object</span>, <span class="va">feature</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'md._core.mudata.MuData'</span></span>
-<span><span class="fu">relabel_axis</span><span class="op">(</span><span class="va">object</span>, <span class="va">feature</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">relabel_axis</span><span class="op">(</span><span class="va">object</span>, <span class="va">feature</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'scuba_source'</span></span>
+<span><span class="fu">relabel_axis</span><span class="op">(</span><span class="va">object</span>, <span class="va">feature</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -112,6 +115,8 @@ event a different label is more appropriate for the feature being plotted.</p>
 <li><p><code>relabel_axis(SingleCellExperiment)</code>: SingleCellExperiment objects</p></li>
 <li><p><code>relabel_axis(AnnDataR6)</code>: Anndata objects</p></li>
 <li><p><code>relabel_axis(md._core.mudata.MuData)</code>: MuData objects</p></li>
+<li><p><code>relabel_axis(scuba_source)</code>: File-backed SCUBA objects: delegated to SCUBA,
+which knows the modalities and reductions of the file</p></li>
 </ul></div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

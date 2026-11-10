@@ -137,6 +137,14 @@ CI instead of silently skipping. Use
 iteration, or `devtools::test(filter = "browser")` for browser
 scenarios.
 
+The file-backed (`.h5ad` / `.h5mu`) object path needs SCUBA’s Julia
+engine. Its tests (`test-scuba-source.R`) register themselves only when
+`CELLDIVER_TEST_JULIA=true` and the engine starts, so a machine without
+Julia records no skip. Run them with
+`CELLDIVER_TEST_JULIA=true Rscript -e 'devtools::test(filter = "scuba-source")'`;
+the separate, non-required **Tests (Julia engine)** workflow runs them
+in CI.
+
 Coverage includes configuration roundtrips, choices/titles, subset and
 threshold boundaries, reactive plot controls, DGE filters/statistics,
 rendered plots and downloads, marker/pairwise/threshold DGE, and

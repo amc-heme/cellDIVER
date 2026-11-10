@@ -24,6 +24,9 @@ relabel_axis(object, feature)
 
 # S3 method for class 'md._core.mudata.MuData'
 relabel_axis(object, feature)
+
+# S3 method for class 'scuba_source'
+relabel_axis(object, feature, ...)
 ```
 
 ## Arguments
@@ -59,3 +62,6 @@ plotted.
 - `relabel_axis(AnnDataR6)`: Anndata objects
 
 - `relabel_axis(md._core.mudata.MuData)`: MuData objects
+
+- `relabel_axis(scuba_source)`: File-backed SCUBA objects: delegated to
+  SCUBA, which knows the modalities and reductions of the file

@@ -21,6 +21,14 @@ detail in their respective sections.
   (e.g. gene, surface protein, or other data enabled by the browser
   admin).
 
+- **HexDensity Plot:** a DimPlot in which cells are binned into hexagons
+  colored by the number of cells in each bin, which reduces overplotting
+  in dense datasets.
+
+- **HexFeature Plot:** a hexbin plot in which each hexagon is colored by
+  the mean, median, or sum of a feature’s values across the cells it
+  contains.
+
 - **Violin Plot:** displays the distribution of a feature’s value across
   groups of cells as defined in the metadata.
 
@@ -52,7 +60,17 @@ suggested feature.
 
 Allows for the selection of color palettes for categorical and
 continuous data. Selections made will apply to all plots in the plots
-tab.
+tab. The categorical palette applies to DimPlots, scatterplots, cell
+proportion plots, violin plots and ridge plots; the continuous palette
+applies to feature plots, dot plots and hexbin plots.
+
+Each continuous palette other than the default (light grey to blue) is
+also offered in a reversed form, listed directly beneath the original as
+“*name* (reversed)”. Feature, dot and hexbin feature plots can
+additionally use a zero-centered diverging palette (see [Use Custom
+Diverging Colors](#Feature-plots-diverging-colors)), and all plots with
+a continuous color scale allow its minimum and maximum to be set (see
+[Set Scale Limits](#Feature-plots-color-limits)).
 
 ### Forming Subsets
 
@@ -296,6 +314,69 @@ plots](#dot-plots), and [ridge plots](#ridge-plots).
 
 Toggles group by variable labels above each set of cells on and off.
 
+#### Use Custom Colors
+
+When checked, two color pickers appear to set the colors used for the
+lowest and highest values on the plot, replacing the continuous palette
+chosen in the [palettes](#Palettes) menu.
+
+#### Use Custom Diverging Colors
+
+When checked, the plot is colored with a three-color, zero-centered
+scale: one color for negative values, one for zero, and one for positive
+values. This is intended for data centered on zero, such as scaled
+expression or module scores. The three colors may be changed with the
+pickers that appear.
+
+To control where the low and high colors sit, use [Set Scale
+Limits](#Feature-plots-color-limits), which offers a “symmetric about
+zero” option for diverging palettes.
+
+#### Set Scale Limits
+
+When checked, a two-handle slider appears for choosing the values at
+which the lowest and highest colors of the continuous color scale are
+placed. Values outside the chosen range are drawn in the end colors; the
+underlying data are not changed. This is useful when a few extreme
+values would otherwise compress the rest of the scale into a narrow band
+of colors. The limits apply to every panel of the plot, so panels share
+one scale while limits are set.
+
+The slider’s range is set from the values shown on the plot: feature
+values for feature plots, per-bin aggregates (mean, median or sum) for
+HexFeature plots, cell counts (or 0 to 1 scaled density when scaling per
+facet) for HexDensity plots, and mean-centered scaled average expression
+for dot plots. Leaving both handles at the ends uses the full range of
+the data, and “Reset to data range” returns the handles there. The range
+updates when the plotted features change.
+
+**Apply to** chooses what the limits act on. *Color scale* (the default)
+leaves the data alone and only moves the ends of the color ramp, so
+values beyond the limits are drawn in the end colors and the legend
+spans the limits. *Data values*, available for feature plots and
+HexFeature plots, clamps each cell’s value to the limits *before*
+anything is drawn: for HexFeature plots the clamped cells are then
+aggregated into hexagons, so a “sum” or “mean” bin can no longer be
+dominated by a few extreme cells, and for feature plots the points are
+drawn with the clamped values. The color scale then spans the clamped
+data, and the slider’s range reflects the per-cell values rather than
+the plotted ones.
+
+**Units** chooses how the limits are expressed. *Values* uses the data’s
+own units with the slider bounded by the range described above.
+*Quantiles* runs the slider from 0 to 100 percent and places the limits
+at those percentiles of the per-cell values (in Data values mode) or of
+the plotted values (in Color scale mode), pooled across all panels. For
+example, 1 to 99 trims the most extreme one percent at each end. The
+symmetric option is only offered in value units.
+
+When a diverging palette is in use, a **Symmetric about zero** option
+(on by default) keeps the limits mirrored about zero, so moving either
+handle sets both to the same absolute value. This setting is available
+for [feature plots](#Feature-plots), [hexbin plots](#Hexbin-plots) and
+[dot plots](#dot-plots), and is hidden for feature plots that color by
+feature or blend two features.
+
 #### Include Legend
 
 Toggles appearance of a legend to the right side of the plot on and off.
@@ -316,6 +397,107 @@ side of the "Feature Plot Specific Options" menu. A menu will appear
 with an option to choose whether to download a .png or .svg file.
 Downloads in the .svg format can be edited with Adobe Illustrator or a
 similar program.
+
+### Hexbin Plots
+
+Hexbin plots divide the projection into a grid of hexagons and summarize
+the cells that fall into each one. Two hexbin plot types are available
+from the plot switches:
+
+- **HexDensity Plot:** each hexagon is colored by the number of cells it
+  contains. This gives a view of where cells are concentrated on the
+  projection without the overplotting that occurs in a DimPlot of a
+  large dataset.
+
+- **HexFeature Plot:** each hexagon is colored by a summary (mean,
+  median, or sum) of a feature’s values across the cells it contains,
+  for each feature entered in the [feature
+  selection](#feature-selection) menu.
+
+Both plot types use the continuous palette chosen in the
+[palettes](#Palettes) menu, with the default being the same light grey
+to blue gradient used by feature plots.
+
+#### Metadata to Split By
+
+This menu sets a categorical metadata variable used to “split” cells
+into separate panels for viewing side-by-side, and defaults to “None”.
+One panel is created for each value in the variable, and the number of
+columns may be adjusted with the slider that appears.
+
+#### Choose Projection
+
+This menu is used to switch between methods of dimensional reduction:
+hexagons are laid out over the coordinates of the selected projection.
+Projection methods are calculated during dataset processing and added by
+the browser admin.
+
+#### Number of Bins
+
+Sets the number of hexagons across each axis of the projection, from 20
+to 200 (the default is 80). Higher values give smaller hexagons and more
+detail, while lower values give a smoother summary.
+
+#### Scale Density Independently per Facet
+
+This option is available for HexDensity plots when a split by variable
+is selected. When enabled, each panel uses its own color scale from 0 to
+1, which shows the relative distribution of cells within each group.
+When disabled, all panels share a scale based on cell counts, so panels
+with more cells appear darker overall.
+
+#### Expression Aggregation Method
+
+This option is available for HexFeature plots and sets how the values of
+the cells in each hexagon are combined: the **mean** (the default), the
+**median**, or the **sum**. The chosen method appears in the default
+title of each panel.
+
+#### Title Options
+
+When set to “default”, HexDensity plots are titled “Density” and
+HexFeature plots are titled with the feature name followed by the
+aggregation method, e.g. “CD34 (mean)”. When set to “none”, no title is
+shown.
+
+#### Use Custom Colors and Use Custom Diverging Colors
+
+HexFeature plots offer the same custom color options as feature plots,
+including the zero-centered diverging palette. See [Use Custom Diverging
+Colors](#Feature-plots-diverging-colors).
+
+#### Set Scale Limits
+
+Both hexbin plot types allow the minimum and maximum of the fill scale
+to be set, as described in [Set Scale
+Limits](#Feature-plots-color-limits). For HexFeature plots the range
+reflects the per-bin aggregated values, so with the “sum” method it is
+larger than the values of individual cells; choose *Apply to: Data
+values* to cap each cell’s value before the cells are aggregated
+instead. For HexDensity plots it reflects cell counts per bin, or scaled
+density from 0 to 1 when “Scale density independently per facet” is
+enabled.
+
+#### Include Legend
+
+Toggles appearance of a legend to the right side of the plot on and off.
+
+#### Manually Adjust Plot Dimensions
+
+When enabled, an interface appears allowing the user to change the
+height and width of the plot in pixels using either a slider bar or text
+entry. When entering a value in the text box, press return to update the
+plot with the value. Downloaded plots will have the dimensions defined
+here if "manually adjust plot dimensions" is checked. Otherwise defaults
+are...?
+
+#### Download Button
+
+Plots are downloaded by clicking the download button at the bottom left
+side of the "Hexbin Plot Specific Options" menu. A menu will appear with
+an option to choose whether to download a .png or .svg file. Downloads
+in the .svg format can be edited with Adobe Illustrator or a similar
+program.
 
 ### Violin Plots
 
@@ -400,6 +582,20 @@ will display in descending alphanumeric order. When set to “custom”, an
 interface will appear that will allow you to arrange values in any
 order. To change the order of a value, drag-and-drop the value in the
 interface.
+
+#### Use Custom Colors and Use Custom Diverging Colors
+
+Dot plots offer the same custom color options as feature plots. The
+zero-centered diverging palette is well suited to dot plots, since the
+color of each dot shows mean-centered, scaled average expression. See
+[Use Custom Diverging Colors](#Feature-plots-diverging-colors).
+
+#### Set Scale Limits
+
+Sets the minimum and maximum of the color scale, as described in [Set
+Scale Limits](#Feature-plots-color-limits). The range reflects the
+mean-centered scaled average expression values shown, which the dot plot
+already limits to between -2.5 and 2.5.
 
 #### Include Legend
 
@@ -632,11 +828,16 @@ similar program.
 ## Differential Gene Expression Tab
 
 Differential gene expression (DGE) analysis compares groups of cells
-based on their metadata, and returns a table of genes that differ in
-expression between the groups. cellDIVER uses
-[presto](https://www.biorxiv.org/content/10.1101/653253v1.full) for DGE
-analysis, which performs a Wilcoxon Rank Sum and an area under the
-receiver operator curve (auROC) analysis on the expression data.
+based on their metadata and returns a table of genes that differ in
+expression between the groups. cellDIVER supports two statistical
+methods. The cell-level Wilcoxon rank-sum method uses
+[presto](https://www.biorxiv.org/content/10.1101/653253v1.full) on
+normalized expression and also reports an area under the receiver
+operator curve (auROC). The edgeR pseudobulk method sums raw counts per
+biological sample and group, applies TMM normalization, and uses edgeR’s
+quasi-likelihood framework; it is available in both modes whenever the
+dataset has a sample column, and falls back to the cell-level test for
+contrasts that are not replicated.
 
 Two DGE testing modes are available: differential expression and marker
 identification. These may be selected using the **“Choose test to
@@ -665,6 +866,12 @@ information on the menus involved in each DGE mode.
 - If performing marker identification, select the metadata to use for
   marker classes. If performing differential expression, select two
   groups based on metadata, or feature expression.
+
+- Choose Wilcoxon or edgeR pseudobulk. In differential expression mode
+  edgeR can run one contrast, all pairwise contrasts, selected groups
+  versus the rest, or selected groups versus a reference; in marker
+  identification mode it tests every group versus the rest.
+  Feature-expression-threshold comparisons use Wilcoxon.
 
 - For either marker identification or differential expression, determine
   if you would like to define groups using the full dataset, or a subset
@@ -696,6 +903,65 @@ define groups via feature expression, check **“use feature expression to
 define groups”**. The groups are defined within the context of the full
 dataset or a subset, depending on selections made in the “[subset
 options](#dge-subset-options)” menu.
+
+#### Statistical Method
+
+**Wilcoxon rank-sum** is a fast exploratory test on cell-level
+normalized expression. Because cells from the same biological sample are
+not independent replicates, its p-values can be overly optimistic when
+the scientific question concerns differences across biological samples.
+
+**edgeR pseudobulk** sums raw integer counts per biological sample and
+group (through SCUBA, so the full cell-level matrix is never built,
+whatever the object format), applies TMM normalization and expression
+filtering, and tests each contrast with edgeR’s quasi-likelihood model.
+When every sample belongs to one group (for example treated versus
+control donors) the design is *independent* and the model is
+`~ 0 + group`. When samples contribute cells to both groups (cluster
+versus cluster within the same donors, or any marker contrast) the
+design is *paired* and the model is `~ sample + group`, which tests the
+group effect within samples. Each sample x group profile must contain at
+least the selected number of cells (10 by default), and edgeR needs at
+least two samples per group, or two paired samples; three or more are
+recommended.
+
+**Sample / replicate column.** Choose the metadata column that
+identifies the biological sample of each cell. The column configured in
+the dataset configuration (the “Sample / replicate identifier”) is
+selected by default; any categorical metadata exposed in the browser can
+be chosen instead, except the variable used for the groups. edgeR is not
+offered when the dataset has no such column.
+
+**Plan and fallback.** As you change the groups, the subset, the sample
+column or the minimum cells, the panel under the edgeR options shows the
+plan for the run: for each contrast, whether edgeR will run (with the
+design and the number of samples) or whether the cell-level Wilcoxon
+test will be used instead, and why (for example a group with a single
+sample). Contrasts that cannot be tested at the sample level are never
+blocked: the run completes, those contrasts are tested with the
+cell-level Wilcoxon test, and the `Method` column of the table says
+which test produced each row. The summary reports the design and the
+number of contrasts that fell back.
+
+The contrast control supports a single contrast, every pairwise
+comparison among the chosen groups, each chosen group versus all other
+cells, or each chosen group versus a reference group. Leaving “Groups to
+Test” empty uses every observed group in the current subset. Marker
+identification always runs each group versus the rest. edgeR is not
+available for feature-expression-threshold groups, additional batch
+covariates, or arbitrary model formulas, and the app never substitutes
+normalized expression when raw counts are missing: assays without a raw
+counts layer are skipped with a notice.
+
+Group 1 is always the numerator of an edgeR contrast. For
+one-versus-rest analyses, the named group is Group 1; for reference
+analyses, the reference is Group 2. Positive log2 fold changes therefore
+indicate higher expression in Group 1.
+
+**File-backed datasets.** `.h5ad` and `.h5mu` files open as file-backed
+objects served by SCUBA’s Julia engine when it is available (see
+`options(cellDIVER.h5_engine)`); pseudobulk aggregation then streams the
+file without loading the matrix into R.
 
 #### Groups Defined by Categorical Metadata
 
@@ -739,17 +1005,26 @@ in the sample.
 The interface for entering criteria is the same as in the plots tab. See
 [“forming subsets”](#Subsets) for more info.
 
+### Assays to Analyze
+
+When the dataset has more than one assay (for example gene expression
+and surface protein), the “Assays to Analyze” checkboxes choose which
+assays are tested. The designated genes assay is selected by default.
+Each selected assay is tested separately with the same groups and
+settings, and the results are combined into one table with an “assay”
+column. The results table can then be filtered by assay. If a test fails
+for one assay, a warning is shown and the remaining assays are still
+reported.
+
 ### Other DGE Settings
 
 #### Positive Markers Only
 
-When checked, the table returned will only show genes that are
-upregulated in each group/marker class. Disabling this option will also
-show downregulated genes, but this information is redundant since genes
-downregulated in a group will always show as being upregulated in
-another group (i.e. in differential expression mode, a gene that is
-expressed twice as much in group 1 compared to group 2 will be half as
-expressed in group 2 relative to group 1).
+When checked, the table returned will only show genes with a positive
+log2 fold change. For edgeR, this means genes higher in Group 1 than
+Group 2; clear the checkbox to retain genes higher in Group 2 as
+negative fold changes. For Wilcoxon marker results, positive genes are
+those upregulated in the displayed group or marker class.
 
 ### Interpreting DGE Results
 
@@ -759,19 +1034,13 @@ of the server, this may take up to two minutes to run, but usually
 completes in under 30 seconds. When the test is complete, a report will
 display in the main window.
 
-The “test summary” section will display summary data on the test
-selected and the subset it was performed on. The “test selected”
-subsection will display either “differential expression” or “marker
-identification” based on the test mode chosen. It will also display the
-groups being compared if differential expression was chosen, or the
-number of marker classes if marker identification was chosen. The
-“subset used for test” subsection shows information on the subset of
-cells chosen. For each categorical metadata variable shown in the app,
-the categories represented by the cells in the test sample will be shown
-(if cells from patients A, B, and C are present, this section will list
-A, B, and C under “patients”). The number of cells in the subset tested
-is also displayed, and the number of cells in each DGE group or marker
-class is also shown.
+The “test summary” section displays the submitted statistical method
+(for edgeR, whether the design was paired and how many contrasts fell
+back to the cell-level test) and the groups used. For edgeR it reports
+retained biological-sample counts and excluded pseudobulk profiles for
+each contrast, or the reason a contrast fell back. The number of cells
+in the analyzed subset and in each DGE group or marker class is also
+shown.
 
 #### DGE Table
 
@@ -784,7 +1053,19 @@ downloaded via the “ download table” button.
   differentially expressed.
 
 - Average expression: the average expression of the gene in the group or
-  class listed.
+  class listed. This is reported for Wilcoxon results.
+
+- Average expression for edgeR rows is the average log2 counts per
+  million across the pseudobulk profiles of the contrast.
+
+- Contrast, Group 1 and Group 2: for multi-contrast edgeR runs (and
+  marker identification with edgeR), the contrast each row belongs to;
+  Group is the numerator (Group 1) of that contrast. The table can be
+  filtered by contrast.
+
+- Method: the test that produced the row, `edgeR` or `wilcoxon` (the
+  cell-level fallback for a contrast without enough samples). The table
+  can be filtered by method.
 
 - Log2FC: the log-2 fold change in expression of the gene in the group
   or class, relative to either the other group (in differential
@@ -792,7 +1073,10 @@ downloaded via the “ download table” button.
 
 - AUC: the area under the receiver operator curve for the gene, which
   serves as a measure of how well the gene serves as a marker for the
-  indicated group/class.
+  indicated group/class. This is reported for Wilcoxon results.
+
+- pval: the unadjusted p-value. For edgeR this is produced by the
+  quasi-likelihood F-test.
 
 - Adjusted p-value: the adjusted p-value associated with the log2FC
   calculation in expression of the gene in the current group vs. the
@@ -804,6 +1088,11 @@ downloaded via the “ download table” button.
 - Percent expression outside class: the percentage of cells in the
   indicated group or class that express the gene outside the
   group/class.
+
+The “ download pseudobulk samples” button, shown after an edgeR run,
+exports the sample x group profiles behind every contrast: their cell
+counts, whether they were retained, why they were excluded, and the test
+used for the contrast.
 
 If either of the percent expression values are very low, or if there is
 a large difference in percent expression inside the group vs. outside,

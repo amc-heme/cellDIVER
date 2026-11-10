@@ -20,6 +20,9 @@ assay_names(object)
 
 # S3 method for class 'md._core.mudata.MuData'
 assay_names(object)
+
+# S3 method for class 'scuba_source'
+assay_names(object, ...)
 ```
 
 ## Arguments
@@ -49,3 +52,6 @@ assay_names(object)
   this data is not present in the object.
 
 - `assay_names(md._core.mudata.MuData)`: MuData objects
+
+- `assay_names(scuba_source)`: File-backed SCUBA objects: the modalities
+  of the file (the main matrix first)

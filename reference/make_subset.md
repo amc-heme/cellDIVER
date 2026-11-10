@@ -14,6 +14,9 @@ make_subset(object, filter_list)
 
 # S3 method for class 'AnnDataR6'
 make_subset(object, filter_list)
+
+# S3 method for class 'scuba_source'
+make_subset(object, filter_list)
 ```
 
 ## Arguments
@@ -35,3 +38,8 @@ A Seurat object subsetted for the criteria entered.
 - `make_subset(default)`: Seurat, SingleCellExperiment objects
 
 - `make_subset(AnnDataR6)`: Anndata objects
+
+- `make_subset(scuba_source)`: File-backed SCUBA objects (.h5ad /
+  .h5mu): the metadata lives in R and the subset records the cells, so
+  filters are evaluated on fetched data and the object is indexed by
+  cell name.

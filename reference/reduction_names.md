@@ -18,6 +18,9 @@ reduction_names(object)
 
 # S3 method for class 'md._core.mudata.MuData'
 reduction_names(object)
+
+# S3 method for class 'scuba_source'
+reduction_names(object, ...)
 ```
 
 ## Arguments
@@ -52,3 +55,6 @@ reduction_names(object)
   matrices in each modality (mod-obsm keys). obsm matrices in each
   modality are not necesarially reductions. It is left to the admin to
   decide which reductions to include.
+
+- `reduction_names(scuba_source)`: File-backed SCUBA objects: the
+  reduction keys of the file (e.g. X_umap, rna_X_umap)

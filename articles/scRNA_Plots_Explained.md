@@ -32,6 +32,17 @@ Cells, CD8+ T Cells, and NK Cells have similar expression profiles.
 
 ![](scRNA_Plots_Explained_1_DimPlot_example.png)
 
+## Hexbin Density Plots
+
+Hexbin density plots are DimPlots in which the projection is divided
+into a grid of hexagons, and each hexagon is colored by the number of
+cells that fall inside it. In large datasets a DimPlot draws so many
+overlapping points that dense regions look the same as moderately
+populated ones; a hexbin density plot shows where cells are actually
+concentrated. The number of bins controls the size of the hexagons. As
+with DimPlots, the positions of the hexagons come from the dimensional
+reduction, so distances between regions should not be over-interpreted.
+
 ## Feature Plots
 
 Feature plots are DimPlots with cells colored according to the
@@ -64,6 +75,17 @@ shows the extent to which each feature is expressed. The co-expression
 plot will show one panel for individual expression of each feature, as
 well as a “blended” plot that shows the extent to which both features
 are expressed in each cell.
+
+## Hexbin Feature Plots
+
+Hexbin feature plots combine a hexbin density plot with a feature plot:
+each hexagon is colored by a summary of a feature’s values (the mean,
+median, or sum) across the cells it contains. Because every cell in a
+hexagon contributes to its color, hexbin feature plots are not affected
+by the plotting order of cells the way feature plots are, and they make
+it easier to see broad patterns of expression in large datasets. They
+do, however, hide variation between the cells within a hexagon, so they
+are best read alongside violin, ridge, and dot plots.
 
 ## Violin Plots
 

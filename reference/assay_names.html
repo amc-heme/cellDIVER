@@ -69,7 +69,10 @@ equivalent of assays, are returned.</p>
 <span><span class="fu">assay_names</span><span class="op">(</span><span class="va">object</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'md._core.mudata.MuData'</span></span>
-<span><span class="fu">assay_names</span><span class="op">(</span><span class="va">object</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">assay_names</span><span class="op">(</span><span class="va">object</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'scuba_source'</span></span>
+<span><span class="fu">assay_names</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -97,6 +100,8 @@ modalities. To use assay_names with Anndata objects, a vector of assays
 (python list) must be stored in <code>object.uns["cellDIVER_assays"]</code>. This method
 will return an error if this data is not present in the object.</p></li>
 <li><p><code>assay_names(md._core.mudata.MuData)</code>: MuData objects</p></li>
+<li><p><code>assay_names(scuba_source)</code>: File-backed SCUBA objects: the modalities of the
+file (the main matrix first)</p></li>
 </ul></div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
