@@ -98,10 +98,10 @@ Imports:
     waiter (>= 0.2.5),
     yaml
 Remotes: 
-    github::amc-heme/SCUBA@feature/julia-engine,
+    github::amc-heme/SCUBA,
     github::amc-heme/scDE,
     github::amc-heme/presto,
-    github::amc-heme/hextant@feature/pseudobulk-scuba
+    github::amc-heme/hextant
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: 
