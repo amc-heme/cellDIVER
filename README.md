@@ -11,7 +11,7 @@ Some bioinformatics experience is required to install the app and configure each
 ## Requirements
 * [Bioconductor](https://bioconductor.org/install/)
 * A pre-processed and finalized single cell object (or objects). Currently supported formats: Seurat, SingleCellExperiment, and Anndata.
-* A server to host the app. This can be any computer with at that can be left on and be connected to the internet continuously. RAM requirements vary depending on the object type.
+* A server to host the app. This can be any computer that can be left on and connected to the internet continuously. RAM requirements vary depending on the object type.
 
 If using anndata objects, [reticulate](https://github.com/rstudio/reticulate) must be installed with the following Python packages:
 
@@ -26,12 +26,12 @@ If using anndata objects, [reticulate](https://github.com/rstudio/reticulate) mu
 
 ## Installation and Use
 
-1. Install from Github using [Remotes](https://github.com/r-lib/remotes).
+1. Install from Github using [remotes](https://github.com/r-lib/remotes).
 ```
 remotes::install_github("amc-heme/cellDIVER")
 ```
 
-If this is your first time setting up cellDIVER, we reccomend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html), which applies the process in steps 3-5 to an example object.
+If this is your first time setting up cellDIVER, we recommend you view the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html). This walkthrough uses an example object for steps 3-5 below.
 
 > **Behaviour change.** `run_cellDIVER()` and `run_config()` no longer attach
 > their dependencies to your search path. Earlier versions called `library()`
@@ -40,7 +40,7 @@ If this is your first time setting up cellDIVER, we reccomend you view the [**Ap
 > attach the package yourself or qualify the call as `Seurat::DimPlot()`. The
 > apps themselves are unaffected. See `NEWS.md`.
 
-2. Process or obtain a finalized single cell object.
+2. Process or obtain a finalized single cell object (an example object is provided, as seen in the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html).
 
 3. Configure an object for the browser by using the configuration app provided with the package. For more information on the config app, see the [**Full Config App Documentation**](https://amc-heme.github.io/cellDIVER/articles/config_documentation.html) or the [**App Setup Walkthrough**](https://amc-heme.github.io/cellDIVER/articles/dataset_setup_walkthrough.html).
 ```
@@ -51,7 +51,7 @@ cellDIVER::run_config(
   )
 ```
 
-4. To set up a browser for others to use, create a browser config YAML file (If you are using the browser locally for your own use, skip to step 4). The file will contain a list of datasets with the path to the objects and config files for each, along with browser specific settings. 
+4. To set up a browser for others to use, create a browser config YAML file (If you are using the browser locally for your own use, skip to step 5). The file will contain a list of datasets with the path to the objects and config files for each, along with browser specific settings. 
 <!-- Complete and add -->
 <!--See [**browser config setup**]() for more info. -->
 
