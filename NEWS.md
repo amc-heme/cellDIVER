@@ -2,6 +2,12 @@
 
 ## New features
 
+* Optional login screen. When the browser config YAML sets `credentials` (a
+  tab-delimited file with `user` and `password` columns) and optionally
+  `users` (an allow-list), `run_cellDIVER()` wraps the app in a shinymanager
+  login; without `credentials` it runs unauthenticated. shinymanager is a
+  Suggests dependency, needed only when the key is set.
+
 * Pseudobulk differential expression with edgeR, for every supported object
   class. Raw counts are summed per sample and group by `SCUBA::pseudobulk()`
   (the full cells x features matrix is never materialised) and tested with

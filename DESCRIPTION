@@ -114,6 +114,7 @@ Suggests:
     reactlog (>= 1.1.0),
     reticulate (>= 1.41.0),
     shinytest,
+    shinymanager,
     shinytest2 (>= 0.4.1),
     testthat (>= 3.0.0),
     withr

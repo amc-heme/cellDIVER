@@ -1035,6 +1035,17 @@ RSTUDIO_PANDOC: ~
 
 ```
 
+#### Optional authentication
+
+To put the app behind a login screen, add a `credentials` key giving the path to a tab-delimited text file with (at minimum) `user` and `password` columns, one account per row. An optional `users` key lists the user names from that file that are allowed to log in; omit it to accept every row. Keep the credentials file outside any repository and readable only by the account that runs the app. The [shinymanager](https://datastorm-open.github.io/shinymanager/) package must be installed; it is not needed when the key is absent, in which case the app runs without a login.
+
+```yaml
+credentials: "/secure/path/cellDIVER_credentials.tsv"
+users:
+    - alice
+    - bob
+```
+
 You can create a config file from R Studio by going to **File** >> **New File** >> **Text File**. After creating the text file, save it in the same directory as the object and config files, and **be sure to add ".yaml" to the filename**. After saving initially, use the structure above and define the paths to the object and config files. 
 
 ::: {.callout .callout-info}

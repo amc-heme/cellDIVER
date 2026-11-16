@@ -54,4 +54,12 @@ called; cellDIVER now declares its imports properly, so the app runs without
 altering the calling environment. If you relied on, say, \code{DimPlot()} being
 available at the console after launching the app, attach the package
 yourself or qualify the call as \code{Seurat::DimPlot()}.
+
+Optional authentication: when the browser config YAML contains a
+\code{credentials} key giving the path to a tab-delimited file with \code{user} and
+\code{password} columns, the app is wrapped in a shinymanager login screen. An
+optional \code{users} key (a list of user names) restricts which rows of that
+file are accepted. The config app does not write these keys, and the
+shinymanager package must be installed for them to work. Without
+\code{credentials} the app runs unauthenticated.
 }

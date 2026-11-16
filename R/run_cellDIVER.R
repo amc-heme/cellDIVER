@@ -26,6 +26,14 @@
 #' available at the console after launching the app, attach the package
 #' yourself or qualify the call as `Seurat::DimPlot()`.
 #'
+#' Optional authentication: when the browser config YAML contains a
+#' `credentials` key giving the path to a tab-delimited file with `user` and
+#' `password` columns, the app is wrapped in a shinymanager login screen. An
+#' optional `users` key (a list of user names) restricts which rows of that
+#' file are accepted. The config app does not write these keys, and the
+#' shinymanager package must be installed for them to work. Without
+#' `credentials` the app runs unauthenticated.
+#'
 #' @usage
 #' # Option 1: Single-object deployment with
 #' # an object and an object config file
@@ -715,6 +723,49 @@ run_cellDIVER <-
 
     log_info("Datasets successfully loaded.")
 
+    # Optional authentication ------------------------------------------------------
+    # When `browser_config$credentials` names a tab-delimited file with (at
+    # least) `user` and `password` columns, the app is wrapped in a shinymanager
+    # login screen. `browser_config$users` optionally restricts the accepted
+    # logins to an allow-list of user names. Neither key is written by the
+    # config app; add them to the browser config YAML by hand. When
+    # `credentials` is absent the app runs without authentication, and
+    # shinymanager (a Suggests dependency) is not needed.
+    credentials <-
+      if (isTruthy(browser_config$credentials)){
+        if (!requireNamespace("shinymanager", quietly = TRUE)){
+          stop(
+            "The browser config sets `credentials`, but the shinymanager ",
+            "package is not installed. Install it ",
+            "(install.packages(\"shinymanager\")) or remove the key."
+          )
+        }
+
+        creds <-
+          utils::read.delim(
+            browser_config$credentials,
+            stringsAsFactors = FALSE
+          )
+
+        if (!all(c("user", "password") %in% names(creds))){
+          stop(
+            "The credentials file must be tab-delimited with `user` and ",
+            "`password` columns; found: ",
+            paste(names(creds), collapse = ", ")
+          )
+        }
+
+        if (isTruthy(browser_config$users)){
+          creds <- creds[creds$user %in% browser_config$users, , drop = FALSE]
+        }
+
+        log_info(
+          glue("Authentication enabled ({nrow(creds)} credential(s) loaded).")
+        )
+
+        creds
+      } else NULL
+
     # Table of Contents ------------------------------------------------------------
 
     # Main UI ----------------------------------------------------------------------
@@ -1033,8 +1084,28 @@ run_cellDIVER <-
       js_list
     )
 
+    # Gate the UI behind the shinymanager login screen when credentials are
+    # configured (see "Optional authentication" above)
+    if (!is.null(credentials)){
+      ui <- shinymanager::secure_app(ui)
+    }
+
     # Main Server function ---------------------------------------------------------
     server <- function(input, output, session) {
+      # Optional authentication: validate logins against the configured
+      # credentials. auth_output exposes the authenticated session details
+      # for downstream use and debugging.
+      if (!is.null(credentials)){
+        res_auth <-
+          shinymanager::secure_server(
+            check_credentials = shinymanager::check_credentials(credentials)
+          )
+
+        output$auth_output <- renderPrint({
+          shiny::reactiveValuesToList(res_auth)
+        })
+      }
+
       # Record whether app is in dev mode (signals modules to display more
       # information for testing and development)
       session$userData$dev_mode <- dev_mode
